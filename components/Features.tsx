@@ -41,12 +41,12 @@ export default function Features() {
         <section id="features" className="py-24 bg-gray-50 dark:bg-gray-900/50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center max-w-4xl mx-auto mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
+                    <h2 className="text-xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
                         비즈니스 커뮤니케이션을 쉽게, '오늘까지'
                         <br />
                         서류 요청, 리마인드, 서류 관리까지 하나로 해결하세요.
                     </h2>
-                    <p className="text-lg text-gray-700 dark:text-gray-400">
+                    <p className="text-base md:text-lg text-gray-700 dark:text-gray-400">
                         파일 수집부터 관리까지, 완벽한 문서 제출 솔루션
                     </p>
                 </div>
@@ -71,7 +71,7 @@ export default function Features() {
                             <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center mb-6">
                                 <feature.icon className="w-6 h-6 text-primary" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                            <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2">
                                 {feature.title}
                             </h3>
                             <p className="text-gray-600 dark:text-gray-400">

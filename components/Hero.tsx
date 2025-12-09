@@ -14,20 +14,20 @@ export default function Hero() {
         <section className="pt-32 pb-16 md:pt-48 md:pb-32 overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
                 <div className="text-center max-w-4xl mx-auto">
-                    <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-gray-900 dark:text-white mb-6 leading-tight">
+                    <h1 className="text-2xl md:text-6xl font-bold tracking-tight text-gray-900 dark:text-white mb-6 leading-tight">
                         오늘도 대표님 죄송하지만.. 이라는 말로<br />
                         서류 제출을 요청하고 계신가요?<br />
                         <span className="text-primary">'오늘까지'가 대신해드릴게요.</span>
                     </h1>
-                    <p className="text-xl text-gray-700 dark:text-gray-200 mb-10 max-w-2xl mx-auto leading-relaxed">
+                    <p className="text-xs md:text-xl text-gray-700 dark:text-gray-200 mb-10 max-w-2xl mx-auto leading-relaxed">
                         제출 현황 대시보드, 미 제출자 자동 리마인드, 파일 자동 정리까지.<br />
                         흩어진 서류 수집/관리의 혼란을 '오늘까지'에서 끝내드려요.
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
-                        <button onClick={() => setIsModalOpen(true)} className="bg-primary text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                        <button onClick={() => setIsModalOpen(true)} className="bg-primary text-white px-8 py-4 rounded-lg text-base md:text-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
                             프로젝트 만들기 <ArrowRight className="w-5 h-5" />
                         </button>
-                        <button onClick={() => setIsDemoModalOpen(true)} className="bg-white text-gray-900 border border-gray-200 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-colors dark:bg-gray-900 dark:text-white dark:border-gray-700 dark:hover:bg-gray-800">
+                        <button onClick={() => setIsDemoModalOpen(true)} className="bg-white text-gray-900 border border-gray-200 px-8 py-4 rounded-lg text-base md:text-lg font-semibold hover:bg-gray-50 transition-colors dark:bg-gray-900 dark:text-white dark:border-gray-700 dark:hover:bg-gray-800">
                             데모 보기
                         </button>
                     </div>

@@ -19,9 +19,9 @@ export default function Audience() {
         <section className="py-24 bg-white dark:bg-black">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center max-w-3xl mx-auto mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                    <h2 className="text-2xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
                         '오늘까지'로 바꿔보세요.                   </h2>
-                    <p className="text-lg text-gray-700 dark:text-gray-400">
+                    <p className="text-base md:text-lg text-gray-700 dark:text-gray-400">
                         구글폼처럼 간단하지만, 스마트하게. 제출자도 관리자도 모두 편한 솔루션
                     </p>
                 </div>
@@ -32,7 +32,7 @@ export default function Audience() {
                         <div className="inline-block px-4 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold text-sm mb-6">
                             관리자
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                        <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-4">
                             파일 제출 요청 → 확인까지<br />전 과정 자동화
                         </h3>
                         <ul className="space-y-4">
@@ -52,7 +52,7 @@ export default function Audience() {
                         <div className="inline-block px-4 py-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-semibold text-sm mb-6">
                             사용자
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                        <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-4">
                             반복 제출 없이<br />저장된 파일로 빠르게 업로드
                         </h3>
                         <ul className="space-y-4">

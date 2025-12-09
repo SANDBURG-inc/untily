@@ -16,10 +16,10 @@ export default function CTA() {
                     <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid.svg')] opacity-10" />
 
                     <div className="relative z-10 max-w-3xl mx-auto">
-                        <h2 className="text-3xl md:text-5xl font-bold mb-6">
+                        <h2 className="text-xl md:text-5xl font-bold mb-6">
                             '오늘까지'로 감정노동 삭제하기
                         </h2>
-                        <p className="text-xl text-white mb-10">
+                        <p className="text-base md:text-xl text-white mb-10">
                             피곤한 서류 요청을 스마트하게 바꿔보세요.
                             <br />
                             5분이면 첫 프로젝트를 만들고 링크를 공유할 수 있습니다.

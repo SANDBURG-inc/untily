@@ -28,9 +28,9 @@ export default function UseCases() {
         <section className="py-24 bg-gray-50 dark:bg-gray-900/50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center max-w-5xl mx-auto mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                    <h2 className="text-2xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
                         '오늘까지'를 통해 다양한 상황에서 똑똑하게 커뮤니케이션하는 법.                    </h2>
-                    <p className="text-lg text-gray-700 dark:text-gray-400">
+                    <p className="text-sm md:text-lg text-gray-700 dark:text-gray-400">
                         입찰부터 채용까지, 어디서나 활용 가능한 문서 제출 플랫폼
                     </p>
                 </div>

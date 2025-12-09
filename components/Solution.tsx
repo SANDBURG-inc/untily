@@ -32,11 +32,11 @@ export default function Solution() {
         <section id="solution" className="py-24 bg-white dark:bg-black">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center max-w-3xl mx-auto mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                    <h2 className="text-2xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
                         링크 한 번으로 끝나는<br />
                         제출 시스템
                     </h2>
-                    <p className="text-lg text-gray-700 dark:text-gray-400">
+                    <p className="text-base md:text-lg text-gray-700 dark:text-gray-400">
                         Google Forms처럼 간단하지만, 파일 제출에 특화된 솔루션
                     </p>
                 </div>
@@ -54,7 +54,7 @@ export default function Solution() {
                                 <div className="w-8 h-8 bg-gray-900 dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center text-sm font-bold mx-auto mb-4">
                                     {step.number}
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3">
                                     {step.title}
                                 </h3>
                                 <p className="text-gray-700 dark:text-gray-400 text-sm leading-relaxed">
