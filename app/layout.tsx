@@ -9,6 +9,13 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "오늘까지 - 제출 서류 관리, 리마인드 자동화 서비스",
   description: "\"오늘도 대표님 죄송하지만..\" 이라는 말로 서류 제출을 요청하고 계신가요? '오늘까지'가 대신해드릴게요.",
+  verification: {
+    google: 'y7JhQr1wtt0JgJHFtaXNMiim07NYarv5W00qi4Zurns',
+  },
+
+  other: {
+    'naver-site-verification': '898d49fe362196ad7d451d483719bc92d03392af',
+  },
 };
 
 export default function RootLayout({
