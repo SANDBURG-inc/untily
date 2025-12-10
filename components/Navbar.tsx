@@ -25,7 +25,7 @@ export default function Navbar() {
                         <Link href="#features" className="text-sm font-medium text-gray-900 hover:text-primary dark:text-gray-100">
                             기능
                         </Link>
-                        <Link href="#solution" className="text-sm font-medium text-gray-900 hover:text-primary dark:text-gray-100">
+                        <Link href="#audience" className="text-sm font-medium text-gray-900 hover:text-primary dark:text-gray-100">
                             솔루션
                         </Link>
                         <Link href="#pricing" className="text-sm font-medium text-gray-900 hover:text-primary dark:text-gray-100">
@@ -57,10 +57,10 @@ export default function Navbar() {
                         <Link href="#features" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800">
                             기능
                         </Link>
-                        <Link href="#solution" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <Link href="#audience" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800">
                             솔루션
                         </Link>
-                        <Link href="#use-cases" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <Link href="#pricing" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800">
                             요금제
                         </Link>
                         <button

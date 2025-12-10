@@ -1,0 +1,5 @@
+(app/robots.txt)
+
+User-Agent: *
+Allow: /
+Sitemap: https://untily.kr/sitemap.xml

@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "오늘까지 - 제출 서류 관리, 리마인드 자동화 서비스",
-  description: "The all-in-one file submission platform for everyone.",
+  description: "\"오늘도 대표님 죄송하지만..\" 이라는 말로 서류 제출을 요청하고 계신가요? '오늘까지'가 대신해드릴게요.",
 };
 
 export default function RootLayout({
