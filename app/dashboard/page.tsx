@@ -1,6 +1,7 @@
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DocumentCard } from "@/components/dashboard/DocumentCard";
 import { Plus } from "lucide-react";
+import Link from "next/link";
 
 import { stackServerApp } from "@/stack/server";
 import { redirect } from "next/navigation";
@@ -19,10 +20,10 @@ export default async function DashboardPage() {
             <main className="container mx-auto px-4 py-8">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">
                     <h1 className="text-2xl font-bold text-slate-900">내 문서함</h1>
-                    <button className="hidden md:flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    <Link href="/dashboard/register" className="hidden md:flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                         <Plus size={16} />
                         문서함 등록
-                    </button>
+                    </Link>
                 </div>
 
                 <p className="text-slate-500 mb-8">
@@ -30,10 +31,10 @@ export default async function DashboardPage() {
                 </p>
 
                 {/* Mobile button */}
-                <button className="md:hidden w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors mb-8">
+                <Link href="/dashboard/register" className="md:hidden w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors mb-8">
                     <Plus size={16} />
                     문서함 등록
-                </button>
+                </Link>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <DocumentCard
