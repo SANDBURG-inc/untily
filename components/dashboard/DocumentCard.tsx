@@ -9,6 +9,7 @@ interface DocumentCardProps {
     totalCount: number;
     unsubmittedCount: number;
     status: "In Progress" | "Completed";
+    hasLimitedSubmitters?: boolean;
 }
 
 export function DocumentCard({
@@ -20,9 +21,10 @@ export function DocumentCard({
     totalCount,
     unsubmittedCount,
     status,
+    hasLimitedSubmitters = true,
 }: DocumentCardProps) {
     return (
-        <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col">
             <div className="mb-4">
                 <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-blue-600 text-white mb-3">
                     {status === "In Progress" ? "진행중" : "완료"}
@@ -43,17 +45,25 @@ export function DocumentCard({
                 <div className="flex gap-2">
                     <span className="w-16 text-slate-500">제출:</span>
                     <span>
-                        {currentCount} / {totalCount}명
-                        {unsubmittedCount > 0 && (
-                            <span className="text-orange-500 ml-1">
-                                (미제출 {unsubmittedCount}명)
-                            </span>
+                        {hasLimitedSubmitters ? (
+                            <>
+                                {currentCount} / {totalCount}명
+                                {unsubmittedCount > 0 && (
+                                    <span className="text-orange-500 ml-1">
+                                        (미제출 {unsubmittedCount}명)
+                                    </span>
+                                )}
+                            </>
+                        ) : (
+                            <>{currentCount}명 제출</>
                         )}
                     </span>
                 </div>
             </div>
 
-            <ProgressBar current={currentCount} total={totalCount} />
+            {hasLimitedSubmitters && <ProgressBar current={currentCount} total={totalCount} />}
+
+            <div className="flex-1"></div>
 
             <button className="w-full mt-6 py-2.5 border border-slate-200 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors">
                 자세히 보기
