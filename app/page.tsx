@@ -1,12 +1,12 @@
-import Navbar from "@/components/Navbar";
-import Hero from "@/components/Hero";
-import Problem from "@/components/Problem";
-import Solution from "@/components/Solution";
-import Features from "@/components/Features";
-import Audience from "@/components/Audience";
-import UseCases from "@/components/UseCases";
-import CTA from "@/components/CTA";
-import Footer from "@/components/Footer";
+import Navbar from "@/components/layout/Navbar";
+import Hero from "@/components/landing/Hero";
+import Problem from "@/components/landing/Problem";
+import Solution from "@/components/landing/Solution";
+import Features from "@/components/landing/Features";
+import Audience from "@/components/landing/Audience";
+import UseCases from "@/components/landing/UseCases";
+import CTA from "@/components/landing/CTA";
+import Footer from "@/components/layout/Footer";
 
 export default function Home() {
   return (

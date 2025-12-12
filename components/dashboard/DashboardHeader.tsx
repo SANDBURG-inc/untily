@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { User } from "lucide-react";
+import { UserButton } from "@stackframe/stack";
 
 export function DashboardHeader() {
     return (
@@ -8,9 +8,7 @@ export function DashboardHeader() {
                 <Link href="/dashboard" className="flex items-center gap-2">
                     <img src="/logo_light.svg" alt="오늘까지" className="h-8" />
                 </Link>
-                <button className="p-2 rounded-full hover:bg-slate-100 text-slate-600">
-                    <User size={20} />
-                </button>
+                <UserButton />
             </div>
         </header>
     );

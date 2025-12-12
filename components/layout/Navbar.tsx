@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
-import Modal from './Modal';
-import ContactForm from './ContactForm';
+import Modal from '../shared/Modal';
+import ContactForm from '../shared/ContactForm';
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
