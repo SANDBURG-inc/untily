@@ -2,9 +2,8 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { FileText, Calendar, Users, TrendingUp, Edit } from "lucide-react";
 import Link from "next/link";
 import prisma from "@/lib/db";
-import { stackServerApp } from "@/stack/server";
-import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
+import { ensureAuthenticated } from "@/lib/auth";
 
 //TODO 수정 진행중
 export default async function DocumentBoxDetailPage({
@@ -12,11 +11,7 @@ export default async function DocumentBoxDetailPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const user = await stackServerApp.getUser();
-
-    if (!user) {
-        redirect("/sign-in");
-    }
+    const user = await ensureAuthenticated();
 
     // Await params in Next.js 15
     const { id } = await params;

@@ -1,14 +1,9 @@
-import { stackServerApp } from "@/stack/server";
-import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import DocumentRegistrationForm from "@/components/dashboard/DocumentRegistrationForm";
+import { ensureAuthenticated } from "@/lib/auth";
 
 export default async function RegisterPage() {
-    const user = await stackServerApp.getUser();
-
-    if (!user) {
-        redirect("/sign-in");
-    }
+    await ensureAuthenticated();
 
     return (
         <div className="min-h-screen bg-white">
