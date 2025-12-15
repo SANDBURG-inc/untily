@@ -3,16 +3,10 @@ import { DocumentCard } from "@/components/dashboard/DocumentCard";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import prisma from "@/lib/db";
-
-import { stackServerApp } from "@/stack/server";
-import { redirect } from "next/navigation";
+import { ensureAuthenticated } from "@/lib/auth";
 
 export default async function DashboardPage() {
-    const user = await stackServerApp.getUser();
-
-    if (!user) {
-        redirect("/sign-in");
-    }
+    const user = await ensureAuthenticated();
 
     // Fetch document boxes from database
     const documentBoxes = await prisma.documentBox.findMany({
