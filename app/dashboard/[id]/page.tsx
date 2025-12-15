@@ -1,10 +1,10 @@
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { FileText, Calendar, Users, TrendingUp, Edit } from "lucide-react";
+import { ChevronLeft, Info, Plus, Search, Trash2, UserPlus, Phone, Mail, FileText, CheckCircle2, History, Bell, CheckCircle, Calendar, Users, TrendingUp, Edit } from 'lucide-react';
 import Link from "next/link";
 import prisma from "@/lib/db";
 import { stackServerApp } from "@/stack/server";
-import { redirect } from "next/navigation";
-import { notFound } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
+import { AutoReminderSettings } from "@/components/dashboard/AutoReminderSettings";
 
 //TODO 수정 진행중
 export default async function DocumentBoxDetailPage({
@@ -30,6 +30,18 @@ export default async function DocumentBoxDetailPage({
             submitters: true,
             requiredDocuments: true,
             documentBoxRemindTypes: true,
+            reminderLogs: {
+                orderBy: {
+                    sentAt: 'desc',
+                },
+                include: {
+                    recipients: {
+                        include: {
+                            submitter: true
+                        }
+                    }
+                }
+            },
         },
     });
 
@@ -180,47 +192,69 @@ export default async function DocumentBoxDetailPage({
                 </div>
 
                 {/* Reminder History */}
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <div className="flex items-center justify-between mb-4">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-gray-700" />
-                            <h2 className="text-base font-semibold text-gray-900">리마인드 내역</h2>
+                            <History className="w-5 h-5 text-gray-700" />
+                            <h2 className="text-xl font-bold text-gray-900">리마인드 내역</h2>
                         </div>
-                        <button className="text-sm text-blue-600 hover:text-blue-700">
+                        <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors">
+                            <Bell className="w-4 h-4" />
                             리마인드 발송
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-2 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        <span className="text-sm text-gray-700">
-                            마감 3일 전부터 매일 미제출자에게 자동으로 안내를 발송합니다.
-                        </span>
-                    </div>
+                    <AutoReminderSettings
+                        documentBoxId={id}
+                        initialEnabled={documentBox.documentBoxRemindTypes.length > 0}
+                    />
 
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-gray-200">
-                                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">
-                                        <input type="checkbox" className="rounded" />
-                                    </th>
-                                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">제목</th>
-                                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">발송 예정일</th>
-                                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">리마인드 방식</th>
-                                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">리마인드 상태</th>
+                                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">수신자</th>
+                                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">리마인드 발송일</th>
+                                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">리마인드 채널</th>
+                                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">발송</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr className="border-b border-gray-100">
-                                    <td className="py-3 px-4">
-                                        <input type="checkbox" className="rounded" />
-                                    </td>
-                                    <td className="py-3 px-4 text-sm text-gray-900">주민등록 제출</td>
-                                    <td className="py-3 px-4 text-sm text-gray-600">2024-11-15</td>
-                                    <td className="py-3 px-4 text-sm text-gray-600">2024-11-15</td>
-                                    <td className="py-3 px-4 text-sm text-gray-600">대기중</td>
-                                </tr>
+                                {documentBox.reminderLogs.length > 0 ? (
+                                    documentBox.reminderLogs.map((log) => {
+                                        const recipientCount = log.recipients.length;
+                                        const recipientText = recipientCount > 0
+                                            ? recipientCount > 1
+                                                ? `${log.recipients[0].submitter.name} 외 ${recipientCount - 1}명`
+                                                : log.recipients[0].submitter.name
+                                            : '수신자 없음';
+
+                                        return (
+                                            <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                <td className="py-3 px-4 text-sm text-gray-900 font-medium hover:text-blue-600">
+                                                    <Link href={`/dashboard/${id}/reminders/${log.id}`}>
+                                                        {recipientText}
+                                                    </Link>
+                                                </td>
+                                                <td className="py-3 px-4 text-sm text-gray-600">
+                                                    {log.sentAt.toISOString().split('T')[0]}
+                                                </td>
+                                                <td className="py-3 px-4 text-sm text-gray-600">
+                                                    {log.channel === 'EMAIL' ? '이메일' : log.channel === 'SMS' ? '문자' : '앱 푸시'}
+                                                </td>
+                                                <td className="py-3 px-4 text-sm text-gray-600">
+                                                    {log.isAuto ? '자동발송' : '직접발송'}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr className="border-b border-gray-100">
+                                        <td colSpan={4} className="py-8 text-center text-sm text-gray-500">
+                                            발송된 리마인드 내역이 없습니다.
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
