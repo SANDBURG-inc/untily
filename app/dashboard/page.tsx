@@ -64,6 +64,7 @@ export default async function DashboardPage() {
                         {documentBoxes.map((box) => (
                             <DocumentCard
                                 key={box.documentBoxId}
+                                documentBoxId={box.documentBoxId}
                                 title={box.boxTitle}
                                 description={box.boxDescription || ''}
                                 createdDate={box.createdAt.toISOString().split('T')[0]}

@@ -1,4 +1,5 @@
 import { ProgressBar } from "./ProgressBar";
+import Link from "next/link";
 
 interface DocumentCardProps {
     title: string;
@@ -10,6 +11,7 @@ interface DocumentCardProps {
     unsubmittedCount: number;
     status: "In Progress" | "Completed";
     hasLimitedSubmitters?: boolean;
+    documentBoxId: string;
 }
 
 export function DocumentCard({
@@ -22,6 +24,7 @@ export function DocumentCard({
     unsubmittedCount,
     status,
     hasLimitedSubmitters = true,
+    documentBoxId,
 }: DocumentCardProps) {
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col">
@@ -65,9 +68,9 @@ export function DocumentCard({
 
             <div className="flex-1"></div>
 
-            <button className="w-full mt-6 py-2.5 border border-slate-200 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors">
+            <Link href={`/dashboard/${documentBoxId}`} className="block w-full mt-6 py-2.5 border border-slate-200 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors text-center">
                 자세히 보기
-            </button>
+            </Link>
         </div>
     );
 }
