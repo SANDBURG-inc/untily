@@ -22,7 +22,7 @@ export default function DocumentRegistrationForm() {
 
     // Document Requirements
     const [requirements, setRequirements] = useState<DocumentRequirement[]>([
-        { id: '1', name: '', type: '선택', description: '' }
+        { id: '1', name: '', type: '필수', description: '' }
     ]);
 
     // Submission Settings
@@ -75,7 +75,7 @@ export default function DocumentRegistrationForm() {
         const newRequirement: DocumentRequirement = {
             id: Date.now().toString(),
             name: '',
-            type: '선택',
+            type: '필수',
             description: ''
         };
         setRequirements([...requirements, newRequirement]);
@@ -193,7 +193,13 @@ export default function DocumentRegistrationForm() {
                     </div>
                     <button
                         type="button"
-                        onClick={() => setSubmittersEnabled(!submittersEnabled)}
+                        onClick={() => {
+                            const newValue = !submittersEnabled;
+                            setSubmittersEnabled(newValue);
+                            if (!newValue) {
+                                setReminderEnabled(false);
+                            }
+                        }}
                         className={`relative w-11 h-6 rounded-full transition-colors ${submittersEnabled ? 'bg-blue-600' : 'bg-gray-300'
                             }`}
                     >
@@ -321,7 +327,6 @@ export default function DocumentRegistrationForm() {
                                             className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white appearance-none pr-10 text-gray-700"
                                             required
                                         >
-                                            <option value="선택">선택</option>
                                             <option value="필수">필수</option>
                                             <option value="옵션">옵션</option>
                                         </select>
@@ -389,17 +394,26 @@ export default function DocumentRegistrationForm() {
                                     현재 버전에서는 이메일만 지원하며, 추후 문자/알림톡 지원이 업데이트될 예정입니다.
                                 </p>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setReminderEnabled(!reminderEnabled)}
-                                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-4 ${reminderEnabled ? 'bg-blue-600' : 'bg-gray-300'
-                                    }`}
-                            >
-                                <span
-                                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${reminderEnabled ? 'translate-x-5' : 'translate-x-0'
-                                        }`}
-                                />
-                            </button>
+                            <div className="relative group">
+                                <button
+                                    type="button"
+                                    onClick={() => setReminderEnabled(!reminderEnabled)}
+                                    disabled={!submittersEnabled}
+                                    className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-4 ${reminderEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                                        } ${!submittersEnabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                                >
+                                    <span
+                                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${reminderEnabled ? 'translate-x-5' : 'translate-x-0'
+                                            }`}
+                                    />
+                                </button>
+                                {!submittersEnabled && (
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                        서류 제출자가 없는 경우, 리마인드 기능이 비활성화 됩니다
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {reminderEnabled && (

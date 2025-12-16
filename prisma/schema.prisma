@@ -33,6 +33,7 @@ model DocumentBox {
   submitters             Submitter[]
   requiredDocuments      RequiredDocument[]
   documentBoxRemindTypes DocumentBoxRemindType[]
+  reminderLogs           ReminderLog[]
 
   @@index([userId])
 }
@@ -41,6 +42,7 @@ model RequiredDocument {
   requiredDocumentId  String      @id @default(cuid())
   documentTitle       String
   documentDescription String?
+  isRequired          Boolean     @default(true)
   documentBoxId       String
   documentBox         DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
 
@@ -56,6 +58,7 @@ model Submitter {
   documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
 
   submittedDocuments SubmittedDocument[]
+  reminderRecipients ReminderRecipient[]
 }
 
 model SubmittedDocument {
@@ -80,4 +83,25 @@ enum RemindType {
   EMAIL
   SMS
   PUSH
+}
+
+model ReminderLog {
+  id            String              @id @default(cuid())
+  documentBoxId String
+  documentBox   DocumentBox         @relation(fields: [documentBoxId], references: [documentBoxId])
+  sentAt        DateTime            @default(now())
+  channel       RemindType
+  isAuto        Boolean // true: 자동, false: 수동
+  recipients    ReminderRecipient[]
+}
+
+model ReminderRecipient {
+  id            String      @id @default(cuid())
+  reminderLogId String
+  reminderLog   ReminderLog @relation(fields: [reminderLogId], references: [id])
+  submitterId   String
+  submitter     Submitter   @relation(fields: [submitterId], references: [submitterId])
+
+  @@index([reminderLogId])
+  @@index([submitterId])
 }
