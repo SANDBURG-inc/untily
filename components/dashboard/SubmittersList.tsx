@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Users, Download } from 'lucide-react';
 import { downloadCsv } from '@/lib/utils/csv-export';
-import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/shared/IconButton';
 import type { SubmitterWithStatus } from '@/lib/queries/document-box';
 
 interface SubmittersListProps {
@@ -112,14 +112,14 @@ export function SubmittersList({
                             {showAll ? '접기' : '모두보기'}
                         </button>
                     )}
-                    <Button
+                    <IconButton
                         variant="secondary"
                         size="sm"
                         icon={<Download className="w-4 h-4" />}
                         onClick={handleDownload}
                     >
                         다운로드
-                    </Button>
+                    </IconButton>
                 </div>
             </div>
 

@@ -3,7 +3,7 @@ import { FileText, History, Bell, Edit } from 'lucide-react';
 import { notFound } from "next/navigation";
 import { AutoReminderSettings } from "@/components/dashboard/AutoReminderSettings";
 import { SubmittersList } from "@/components/dashboard/SubmittersList";
-import { Button } from "@/components/ui/Button";
+import { IconButton } from "@/components/shared/IconButton";
 import { ensureAuthenticated } from "@/lib/auth";
 import { getDocumentBoxWithSubmissionStatus } from "@/lib/queries/document-box";
 import Link from "next/link";
@@ -44,7 +44,7 @@ export default async function DocumentBoxDetailPage({
                                 {documentBox.boxDescription || '제출할 서류를 확인하세요.'}
                             </p>
                         </div>
-                        <Button
+                        <IconButton
                             as="link"
                             href={`/dashboard/${id}/edit`}
                             variant="primary"
@@ -52,7 +52,7 @@ export default async function DocumentBoxDetailPage({
                             icon={<Edit size={16} />}
                         >
                             문서함 수정
-                        </Button>
+                        </IconButton>
                     </div>
                 </div>
 
@@ -131,7 +131,7 @@ export default async function DocumentBoxDetailPage({
                             <History className="w-5 h-5 text-gray-700" />
                             <h2 className="text-xl font-bold text-gray-900">리마인드 내역</h2>
                         </div>
-                        <Button
+                        <IconButton
                             as="link"
                             href={`/dashboard/${id}/send`}
                             variant="outline-primary"
@@ -139,7 +139,7 @@ export default async function DocumentBoxDetailPage({
                             icon={<Bell className="w-4 h-4" />}
                         >
                             리마인드 발송
-                        </Button>
+                        </IconButton>
                     </div>
 
                     <AutoReminderSettings
