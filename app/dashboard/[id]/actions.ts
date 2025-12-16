@@ -3,7 +3,7 @@
 import prisma from "@/lib/db";
 import { RemindType } from "@/lib/generated/prisma/client";
 import { revalidatePath } from "next/cache";
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { generateReminderEmailHtml } from '@/lib/email-templates';
 
 export async function disableAutoReminder(documentBoxId: string) {
@@ -78,54 +78,47 @@ export async function sendManualReminder(documentBoxId: string, recipientIds: st
             }
         });
 
-        // 3. Configure Transporter
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: {
-                user: process.env.SMTP_USER || 'ethereal_user',
-                pass: process.env.SMTP_PASS || 'ethereal_pass',
-            },
-        });
+        // 3. Configure Resend
+        const resend = new Resend(process.env.RESEND_API_KEY || process.env.SMTP_PASS);
 
-        // 4. Send Emails sequentially to avoid rate limits (2 req/s)
-        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+        // 4. Prepare Batch Emails
+        const emails = submitters
+            .filter(submitter => submitter.email)
+            .map(submitter => {
+                const submissionLink = `https://submit.untily.kr/${documentBoxId}/${submitter.submitterId}`;
 
-        for (const submitter of submitters) {
-            if (!submitter.email) continue;
+                const emailHtml = generateReminderEmailHtml({
+                    submitterName: submitter.name,
+                    documentBoxTitle: documentBox.boxTitle,
+                    documentBoxDescription: documentBox.boxDescription,
+                    endDate: documentBox.endDate,
+                    requiredDocuments: documentBox.requiredDocuments.map(doc => ({
+                        name: doc.documentTitle,
+                        description: doc.documentDescription,
+                        isRequired: doc.isRequired
+                    })),
+                    submissionLink: submissionLink
+                });
 
-            const submissionLink = `https://submit.untily.kr/${documentBoxId}/${submitter.submitterId}`;
-
-            const emailHtml = generateReminderEmailHtml({
-                submitterName: submitter.name,
-                documentBoxTitle: documentBox.boxTitle,
-                documentBoxDescription: documentBox.boxDescription,
-                endDate: documentBox.endDate,
-                requiredDocuments: documentBox.requiredDocuments.map(doc => ({
-                    name: doc.documentTitle,
-                    description: doc.documentDescription,
-                    isRequired: doc.isRequired
-                })),
-                submissionLink: submissionLink
-            });
-
-            try {
-                //TODO 도메인 인증 후 수정
-                await transporter.sendMail({
-                    from: 'onboarding@resend.dev',
+                return {
+                    from: 'untily@untily.kr',
                     to: submitter.email,
                     subject: `[문서 제출 요청] ${documentBox.boxTitle} 서류 제출`,
                     html: emailHtml,
-                });
-                // Wait 600ms to stay under 2 requests/sec rate limit
-                await delay(600);
-            } catch (e) {
-                console.error(`Failed to send email to ${submitter.email}`, e);
-            }
-        }
+                };
+            });
 
-        console.log(`Sent emails to ${recipientIds.length} recipients for log ${log.id}`);
+        if (emails.length > 0) {
+            // 5. Send Batch
+            const { data, error } = await resend.batch.send(emails);
+
+            if (error) {
+                console.error("Failed to send batch emails:", error);
+                throw new Error("Failed to send batch emails");
+            }
+
+            console.log(`Sent batch emails to ${emails.length} recipients for log ${log.id}`, data);
+        }
 
         revalidatePath(`/dashboard/${documentBoxId}`);
         return { success: true, logId: log.id };
