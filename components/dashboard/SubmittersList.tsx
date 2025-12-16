@@ -2,20 +2,41 @@
 
 import { useState, useMemo } from 'react';
 import { Users, Download } from 'lucide-react';
-
-interface Submitter {
-    submitterId: string;
-    name: string;
-    email: string;
-    phone: string | null;
-}
+import { downloadCsv } from '@/lib/utils/csv-export';
+import { Button } from '@/components/ui/Button';
+import type { SubmitterWithStatus } from '@/lib/queries/document-box';
 
 interface SubmittersListProps {
-    submitters: Submitter[];
+    submitters: SubmitterWithStatus[];
     documentBoxTitle: string;
+    totalRequiredDocuments: number;
 }
 
-export function SubmittersList({ submitters, documentBoxTitle }: SubmittersListProps) {
+type SubmissionStatus = '제출완료' | '미제출' | '부분제출';
+
+function getSubmissionStatus(submittedCount: number, totalRequired: number): SubmissionStatus {
+    if (totalRequired === 0) return '제출완료';
+    if (submittedCount === 0) return '미제출';
+    if (submittedCount >= totalRequired) return '제출완료';
+    return '부분제출';
+}
+
+function getStatusStyle(status: SubmissionStatus): string {
+    switch (status) {
+        case '제출완료':
+            return 'bg-green-100 text-green-700';
+        case '미제출':
+            return 'bg-gray-100 text-gray-700';
+        case '부분제출':
+            return 'bg-yellow-100 text-yellow-700';
+    }
+}
+
+export function SubmittersList({
+    submitters,
+    documentBoxTitle,
+    totalRequiredDocuments,
+}: SubmittersListProps) {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showAll, setShowAll] = useState(false);
 
@@ -47,37 +68,32 @@ export function SubmittersList({ submitters, documentBoxTitle }: SubmittersListP
         setSelectedIds(newSelected);
     };
 
-    const handleDownload = async () => {
-        try {
-            // Convert submitters to CSV format
-            const headers = ['이름', '이메일', '휴대전화', '제출상태'];
-            const rows = submitters.map(s => [
+    const handleDownload = () => {
+        const headers = ['이름', '이메일', '휴대전화', '제출상태', '제출일', '진행상황'];
+        const rows = submitters.map(s => {
+            const status = getSubmissionStatus(s.submittedCount, totalRequiredDocuments);
+            const progress = totalRequiredDocuments > 0
+                ? `${s.submittedCount}/${totalRequiredDocuments} (${Math.round((s.submittedCount / totalRequiredDocuments) * 100)}%)`
+                : '-';
+            const lastDate = s.lastSubmittedAt
+                ? s.lastSubmittedAt.toISOString().split('T')[0]
+                : '-';
+
+            return [
                 s.name,
                 s.email,
                 s.phone || '',
-                '제출완료' // TODO: 실제 제출 상태로 변경
-            ]);
+                status,
+                lastDate,
+                progress,
+            ];
+        });
 
-            // Add BOM for proper Korean encoding in Excel
-            const BOM = '\uFEFF';
-            const csvContent = BOM + [
-                headers.join(','),
-                ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-            ].join('\n');
-
-            // Create and download file
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${documentBoxTitle}_제출자목록.csv`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('다운로드 실패:', error);
-        }
+        downloadCsv({
+            filename: `${documentBoxTitle}_제출자목록.csv`,
+            headers,
+            rows,
+        });
     };
 
     return (
@@ -96,13 +112,14 @@ export function SubmittersList({ submitters, documentBoxTitle }: SubmittersListP
                             {showAll ? '접기' : '모두보기'}
                         </button>
                     )}
-                    <button
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<Download className="w-4 h-4" />}
                         onClick={handleDownload}
-                        className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-[#E2E8F0] rounded-md hover:bg-gray-50 transition-colors"
                     >
-                        <Download className="w-4 h-4" />
                         다운로드
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -127,28 +144,38 @@ export function SubmittersList({ submitters, documentBoxTitle }: SubmittersListP
                         </tr>
                     </thead>
                     <tbody>
-                        {displayedSubmitters.map((submitter) => (
-                            <tr key={submitter.submitterId} className="border-b border-gray-100 hover:bg-gray-50">
-                                <td className="py-3 px-4">
-                                    <input
-                                        type="checkbox"
-                                        className="rounded"
-                                        checked={selectedIds.has(submitter.submitterId)}
-                                        onChange={() => handleSelectOne(submitter.submitterId)}
-                                    />
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-900">{submitter.name}</td>
-                                <td className="py-3 px-4 text-sm text-gray-600">{submitter.email}</td>
-                                <td className="py-3 px-4">
-                                    <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                                        제출완료
-                                    </span>
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-600">2024-11-15</td>
-                                <td className="py-3 px-4 text-sm text-gray-600">0/0 (0%)</td>
-                                <td className="py-3 px-4 text-sm text-gray-400">...</td>
-                            </tr>
-                        ))}
+                        {displayedSubmitters.map((submitter) => {
+                            const status = getSubmissionStatus(submitter.submittedCount, totalRequiredDocuments);
+                            const progress = totalRequiredDocuments > 0
+                                ? `${submitter.submittedCount}/${totalRequiredDocuments} (${Math.round((submitter.submittedCount / totalRequiredDocuments) * 100)}%)`
+                                : '-';
+                            const lastDate = submitter.lastSubmittedAt
+                                ? submitter.lastSubmittedAt.toISOString().split('T')[0]
+                                : '-';
+
+                            return (
+                                <tr key={submitter.submitterId} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <td className="py-3 px-4">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded"
+                                            checked={selectedIds.has(submitter.submitterId)}
+                                            onChange={() => handleSelectOne(submitter.submitterId)}
+                                        />
+                                    </td>
+                                    <td className="py-3 px-4 text-sm text-gray-900">{submitter.name}</td>
+                                    <td className="py-3 px-4 text-sm text-gray-600">{submitter.email}</td>
+                                    <td className="py-3 px-4">
+                                        <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusStyle(status)}`}>
+                                            {status}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-4 text-sm text-gray-600">{lastDate}</td>
+                                    <td className="py-3 px-4 text-sm text-gray-600">{progress}</td>
+                                    <td className="py-3 px-4 text-sm text-gray-400">...</td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
