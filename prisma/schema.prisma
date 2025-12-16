@@ -73,7 +73,7 @@ model SubmittedDocument {
   submittedDocumentId String           @id @default(cuid())
 
   // S3 관련 필드
-  s3Key               String           @unique
+  s3Key               String
   filename            String
   size                Int
   mimeType            String
