@@ -2,6 +2,7 @@ import { History, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
+import { Table, Column } from '@/components/shared/Table';
 import { AutoReminderSettings } from '../AutoReminderSettings';
 
 /**
@@ -59,6 +60,48 @@ export function ReminderHistory({
     autoReminderEnabled,
     reminderLogs,
 }: ReminderHistoryProps) {
+    const columns: Column<ReminderLog>[] = [
+        {
+            key: 'recipient',
+            header: '수신자',
+            render: (log) => (
+                <Link
+                    href={`/dashboard/${documentBoxId}/reminders/${log.id}`}
+                    className="text-sm text-gray-900 font-medium hover:text-blue-600"
+                >
+                    {getRecipientText(log.recipients)}
+                </Link>
+            ),
+        },
+        {
+            key: 'sentAt',
+            header: '리마인드 발송일',
+            render: (log) => (
+                <span className="text-sm text-gray-600">
+                    {log.sentAt.toISOString().split('T')[0]}
+                </span>
+            ),
+        },
+        {
+            key: 'channel',
+            header: '리마인드 채널',
+            render: (log) => (
+                <span className="text-sm text-gray-600">
+                    {getChannelLabel(log.channel)}
+                </span>
+            ),
+        },
+        {
+            key: 'isAuto',
+            header: '발송',
+            render: (log) => (
+                <span className="text-sm text-gray-600">
+                    {log.isAuto ? '자동발송' : '직접발송'}
+                </span>
+            ),
+        },
+    ];
+
     return (
         <Card className="py-0 gap-0 border border-gray-200 shadow-none">
             <CardHeader className="px-6 pt-6 pb-3">
@@ -84,60 +127,12 @@ export function ReminderHistory({
                 />
 
                 {/* 리마인드 로그 테이블 */}
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-gray-200">
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">
-                                    수신자
-                                </th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">
-                                    리마인드 발송일
-                                </th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">
-                                    리마인드 채널
-                                </th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">
-                                    발송
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {reminderLogs.length > 0 ? (
-                                reminderLogs.map((log) => (
-                                    <tr
-                                        key={log.id}
-                                        className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50"
-                                    >
-                                        <td className="py-3 px-4 text-sm text-gray-900 font-medium hover:text-blue-600">
-                                            <Link href={`/dashboard/${documentBoxId}/reminders/${log.id}`}>
-                                                {getRecipientText(log.recipients)}
-                                            </Link>
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">
-                                            {log.sentAt.toISOString().split('T')[0]}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">
-                                            {getChannelLabel(log.channel)}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">
-                                            {log.isAuto ? '자동발송' : '직접발송'}
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td
-                                        colSpan={4}
-                                        className="py-8 text-center text-sm text-gray-500"
-                                    >
-                                        발송된 리마인드 내역이 없습니다.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <Table
+                    columns={columns}
+                    data={reminderLogs}
+                    keyExtractor={(log) => log.id}
+                    emptyMessage="발송된 리마인드 내역이 없습니다."
+                />
             </CardContent>
         </Card>
     );

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Users, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
+import { Table, Column } from '@/components/shared/Table';
 import { downloadCsv } from '@/lib/utils/csv-export';
 import type { SubmitterWithStatus } from '@/lib/queries/document-box';
 
@@ -60,23 +61,99 @@ export function SubmittersList({
         return submitters.length > 0 && selectedIds.size === submitters.length;
     }, [submitters.length, selectedIds.size]);
 
-    const handleSelectAll = () => {
+    const handleSelectAll = useCallback(() => {
         if (allSelected) {
             setSelectedIds(new Set());
         } else {
             setSelectedIds(new Set(submitters.map(s => s.submitterId)));
         }
-    };
+    }, [allSelected, submitters]);
 
-    const handleSelectOne = (id: string) => {
-        const newSelected = new Set(selectedIds);
-        if (newSelected.has(id)) {
-            newSelected.delete(id);
-        } else {
-            newSelected.add(id);
-        }
-        setSelectedIds(newSelected);
-    };
+    const handleSelectOne = useCallback((id: string) => {
+        setSelectedIds(prev => {
+            const newSelected = new Set(prev);
+            if (newSelected.has(id)) {
+                newSelected.delete(id);
+            } else {
+                newSelected.add(id);
+            }
+            return newSelected;
+        });
+    }, []);
+
+    const columns: Column<SubmitterWithStatus>[] = useMemo(() => [
+        {
+            key: 'checkbox',
+            header: (
+                <input
+                    type="checkbox"
+                    className="rounded"
+                    checked={allSelected}
+                    onChange={handleSelectAll}
+                />
+            ),
+            render: (submitter) => (
+                <input
+                    type="checkbox"
+                    className="rounded"
+                    checked={selectedIds.has(submitter.submitterId)}
+                    onChange={() => handleSelectOne(submitter.submitterId)}
+                />
+            ),
+        },
+        {
+            key: 'name',
+            header: '이름',
+            render: (submitter) => (
+                <span className="text-sm text-gray-900">{submitter.name}</span>
+            ),
+        },
+        {
+            key: 'email',
+            header: '이메일',
+            render: (submitter) => (
+                <span className="text-sm text-gray-600">{submitter.email}</span>
+            ),
+        },
+        {
+            key: 'status',
+            header: '제출상태',
+            render: (submitter) => {
+                const status = getSubmissionStatus(submitter.submittedCount, totalRequiredDocuments);
+                return (
+                    <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusStyle(status)}`}>
+                        {status}
+                    </span>
+                );
+            },
+        },
+        {
+            key: 'lastDate',
+            header: '제출일',
+            render: (submitter) => (
+                <span className="text-sm text-gray-600">
+                    {submitter.lastSubmittedAt
+                        ? submitter.lastSubmittedAt.toISOString().split('T')[0]
+                        : '-'}
+                </span>
+            ),
+        },
+        {
+            key: 'progress',
+            header: '진행상황',
+            render: (submitter) => {
+                const progress = totalRequiredDocuments > 0
+                    ? `${submitter.submittedCount}/${totalRequiredDocuments} (${Math.round((submitter.submittedCount / totalRequiredDocuments) * 100)}%)`
+                    : '-';
+                return <span className="text-sm text-gray-600">{progress}</span>;
+            },
+        },
+        {
+            key: 'action',
+            header: '',
+            render: () => <span className="text-sm text-gray-400">...</span>,
+        },
+    ], [allSelected, selectedIds, totalRequiredDocuments, handleSelectAll, handleSelectOne]);
 
     const handleDownload = () => {
         const headers = ['이름', '이메일', '휴대전화', '제출상태', '제출일', '진행상황'];
@@ -123,62 +200,11 @@ export function SubmittersList({
             </CardHeader>
 
             <CardContent className="px-6 pt-0 pb-6">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-gray-200">
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">
-                                    <input
-                                        type="checkbox"
-                                        className="rounded"
-                                        checked={allSelected}
-                                        onChange={handleSelectAll}
-                                    />
-                                </th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">이름</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">이메일</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">제출상태</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">제출일</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">진행상황</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {displayedSubmitters.map((submitter) => {
-                                const status = getSubmissionStatus(submitter.submittedCount, totalRequiredDocuments);
-                                const progress = totalRequiredDocuments > 0
-                                    ? `${submitter.submittedCount}/${totalRequiredDocuments} (${Math.round((submitter.submittedCount / totalRequiredDocuments) * 100)}%)`
-                                    : '-';
-                                const lastDate = submitter.lastSubmittedAt
-                                    ? submitter.lastSubmittedAt.toISOString().split('T')[0]
-                                    : '-';
-
-                                return (
-                                    <tr key={submitter.submitterId} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
-                                        <td className="py-3 px-4">
-                                            <input
-                                                type="checkbox"
-                                                className="rounded"
-                                                checked={selectedIds.has(submitter.submitterId)}
-                                                onChange={() => handleSelectOne(submitter.submitterId)}
-                                            />
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-gray-900">{submitter.name}</td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">{submitter.email}</td>
-                                        <td className="py-3 px-4">
-                                            <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusStyle(status)}`}>
-                                                {status}
-                                            </span>
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">{lastDate}</td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">{progress}</td>
-                                        <td className="py-3 px-4 text-sm text-gray-400">...</td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
+                <Table
+                    columns={columns}
+                    data={displayedSubmitters}
+                    keyExtractor={(s) => s.submitterId}
+                />
             </CardContent>
         </Card>
     );
