@@ -1,9 +1,8 @@
-import { Edit } from 'lucide-react';
+import { Edit, Send } from 'lucide-react';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/shared/IconButton';
 import {
     SubmissionStats,
     SubmittersList,
@@ -59,12 +58,24 @@ export default async function DocumentBoxDetailPage({
                                 {documentBox.boxDescription || '제출할 서류를 확인하세요.'}
                             </p>
                         </div>
-                        <Button variant="primary" asChild>
-                            <Link href={`/dashboard/${id}/edit`}>
-                                <Edit size={16} />
+                        <div className="flex gap-2">
+                            <IconButton
+                                as="link"
+                                href={`/dashboard/${id}/edit`}
+                                variant="secondary"
+                                size="sm"
+                                icon={<Edit size={16} />}
+                            >
                                 문서함 수정
-                            </Link>
-                        </Button>
+                            </IconButton>
+                            <IconButton
+                                variant="primary"
+                                size="md"
+                                icon={<Send size={16} />}
+                            >
+                                서류 제출 요청
+                            </IconButton>
+                        </div>
                     </div>
                 </header>
 
