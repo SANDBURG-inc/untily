@@ -4,33 +4,56 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, X, FileText, Users, Settings, ChevronDown, Loader2 } from 'lucide-react';
 import type { Submitter, DocumentRequirement } from '@/lib/types/document';
+import { PageHeader } from '@/components/shared/PageHeader';
 
+interface DocumentBoxInitialData {
+    documentName: string;
+    description: string;
+    submittersEnabled: boolean;
+    submitters: Submitter[];
+    requirements: DocumentRequirement[];
+    deadline: string;
+    reminderEnabled: boolean;
+    emailReminder: boolean;
+    smsReminder: boolean;
+    kakaoReminder: boolean;
+}
 
+interface DocumentRegistrationFormProps {
+    mode?: 'create' | 'edit';
+    documentBoxId?: string;
+    initialData?: DocumentBoxInitialData;
+}
 
-export default function DocumentRegistrationForm() {
+export default function DocumentRegistrationForm({
+    mode = 'create',
+    documentBoxId,
+    initialData,
+}: DocumentRegistrationFormProps) {
     const router = useRouter();
+    const isEditMode = mode === 'edit';
 
     // Basic Information
-    const [documentName, setDocumentName] = useState('');
-    const [description, setDescription] = useState('');
+    const [documentName, setDocumentName] = useState(initialData?.documentName || '');
+    const [description, setDescription] = useState(initialData?.description || '');
 
     // Submitter Registration
-    const [submittersEnabled, setSubmittersEnabled] = useState(true);
-    const [submitters, setSubmitters] = useState<Submitter[]>([
-        { id: '1', name: '', email: '', phone: '' }
-    ]);
+    const [submittersEnabled, setSubmittersEnabled] = useState(initialData?.submittersEnabled ?? true);
+    const [submitters, setSubmitters] = useState<Submitter[]>(
+        initialData?.submitters || [{ id: '1', name: '', email: '', phone: '' }]
+    );
 
     // Document Requirements
-    const [requirements, setRequirements] = useState<DocumentRequirement[]>([
-        { id: '1', name: '', type: '필수', description: '' }
-    ]);
+    const [requirements, setRequirements] = useState<DocumentRequirement[]>(
+        initialData?.requirements || [{ id: '1', name: '', type: '필수', description: '' }]
+    );
 
     // Submission Settings
-    const [deadline, setDeadline] = useState('');
-    const [reminderEnabled, setReminderEnabled] = useState(true);
-    const [emailReminder, setEmailReminder] = useState(true);
-    const [smsReminder, setSmsReminder] = useState(false);
-    const [kakaoReminder, setKakaoReminder] = useState(false);
+    const [deadline, setDeadline] = useState(initialData?.deadline || '');
+    const [reminderEnabled, setReminderEnabled] = useState(initialData?.reminderEnabled ?? true);
+    const [emailReminder, setEmailReminder] = useState(initialData?.emailReminder ?? true);
+    const [smsReminder, setSmsReminder] = useState(initialData?.smsReminder ?? false);
+    const [kakaoReminder, setKakaoReminder] = useState(initialData?.kakaoReminder ?? false);
 
     // UI State
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,52 +116,70 @@ export default function DocumentRegistrationForm() {
         setIsSubmitting(true);
 
         try {
-            const response = await fetch('/api/document-box', {
-                method: 'POST',
+            const payload = {
+                documentName,
+                description,
+                submittersEnabled,
+                submitters: submitters.map(({ id, ...rest }) => rest),
+                requirements: requirements.map(({ id, ...rest }) => rest),
+                deadline,
+                reminderEnabled,
+                emailReminder,
+                smsReminder,
+                kakaoReminder,
+            };
+
+            const url = isEditMode ? `/api/document-box/${documentBoxId}` : '/api/document-box';
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    documentName,
-                    description,
-                    submittersEnabled,
-                    submitters: submitters.map(({ id, ...rest }) => rest),
-                    requirements: requirements.map(({ id, ...rest }) => rest),
-                    deadline,
-                    reminderEnabled,
-                    emailReminder,
-                    smsReminder,
-                    kakaoReminder,
-                }),
+                body: JSON.stringify(payload),
             });
 
             const data = await response.json();
 
             if (!response.ok || !data.success) {
-                throw new Error(data.error || '문서함 생성에 실패했습니다');
+                throw new Error(data.error || (isEditMode ? '문서함 수정에 실패했습니다' : '문서함 생성에 실패했습니다'));
             }
 
-            // Success - redirect to dashboard
-            router.push('/dashboard');
+            // Success - redirect to dashboard or detail page
+            if (isEditMode && documentBoxId) {
+                router.push(`/dashboard/${documentBoxId}`);
+            } else {
+                router.push('/dashboard');
+            }
         } catch (err) {
-            console.error('Error creating document box:', err);
-            setError(err instanceof Error ? err.message : '문서함 생성 중 오류가 발생했습니다');
+            console.error(isEditMode ? 'Error updating document box:' : 'Error creating document box:', err);
+            setError(err instanceof Error ? err.message : (isEditMode ? '문서함 수정 중 오류가 발생했습니다' : '문서함 생성 중 오류가 발생했습니다'));
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleCancel = () => {
-        router.push('/dashboard');
+        if (isEditMode && documentBoxId) {
+            router.push(`/dashboard/${documentBoxId}`);
+        } else {
+            router.push('/dashboard');
+        }
     };
 
     return (
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
             {/* Header */}
-            <div className="mb-8 text-center">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">문서함 등록</h1>
-                <p className="text-sm text-gray-600">문서함 등록하고, 필요한 서류를 쉽게 취합해보세요!</p>
-            </div>
+            <PageHeader
+                title={isEditMode ? '문서함 수정' : '문서함 등록'}
+                description={
+                    isEditMode
+                        ? '문서함 정보를 수정하세요.'
+                        : '문서함 등록하고, 필요한 서류를 쉽게 취합해보세요!'
+                }
+                align="center"
+            />
 
             {/* Error Message */}
             {error && (
@@ -478,7 +519,9 @@ export default function DocumentRegistrationForm() {
                     className="flex-1 py-3 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                     {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isSubmitting ? '생성 중...' : '문서함 생성'}
+                    {isSubmitting
+                        ? (isEditMode ? '수정 중...' : '생성 중...')
+                        : (isEditMode ? '수정완료' : '문서함 생성')}
                 </button>
             </div>
         </form>
