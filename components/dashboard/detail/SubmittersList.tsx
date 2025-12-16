@@ -101,7 +101,7 @@ export function SubmittersList({
 
     return (
         <Card className="mb-6 py-0 gap-0 border border-gray-200 shadow-none">
-            <CardHeader className="px-6 py-4">
+            <CardHeader className="px-6 pt-6 pb-3">
                 <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
                     <Users className="w-6 h-6 text-gray-700" />
                     제출자 목록
@@ -122,7 +122,7 @@ export function SubmittersList({
                 </CardAction>
             </CardHeader>
 
-            <CardContent className="px-6 py-0">
+            <CardContent className="px-6 pt-0 pb-6">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
@@ -154,7 +154,7 @@ export function SubmittersList({
                                     : '-';
 
                                 return (
-                                    <tr key={submitter.submitterId} className="border-b border-gray-200 hover:bg-gray-50">
+                                    <tr key={submitter.submitterId} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
                                         <td className="py-3 px-4">
                                             <input
                                                 type="checkbox"

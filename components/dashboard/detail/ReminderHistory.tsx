@@ -61,7 +61,7 @@ export function ReminderHistory({
 }: ReminderHistoryProps) {
     return (
         <Card className="py-0 gap-0 border border-gray-200 shadow-none">
-            <CardHeader className="px-6 py-4">
+            <CardHeader className="px-6 pt-6 pb-3">
                 <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
                     <History className="w-6 h-6 text-gray-700" />
                     리마인드 내역
@@ -76,7 +76,7 @@ export function ReminderHistory({
                 </CardAction>
             </CardHeader>
 
-            <CardContent className="px-6 py-4">
+            <CardContent className="px-6 pt-0 pb-6">
                 {/* 자동 리마인드 설정 */}
                 <AutoReminderSettings
                     documentBoxId={documentBoxId}
@@ -107,7 +107,7 @@ export function ReminderHistory({
                                 reminderLogs.map((log) => (
                                     <tr
                                         key={log.id}
-                                        className="border-b border-gray-200 hover:bg-gray-50"
+                                        className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50"
                                     >
                                         <td className="py-3 px-4 text-sm text-gray-900 font-medium hover:text-blue-600">
                                             <Link href={`/dashboard/${documentBoxId}/reminders/${log.id}`}>
@@ -126,7 +126,7 @@ export function ReminderHistory({
                                     </tr>
                                 ))
                             ) : (
-                                <tr className="border-b border-gray-200">
+                                <tr>
                                     <td
                                         colSpan={4}
                                         className="py-8 text-center text-sm text-gray-500"
