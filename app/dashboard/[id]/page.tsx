@@ -1,9 +1,10 @@
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { ChevronLeft, Info, Plus, Search, Trash2, UserPlus, Phone, Mail, FileText, CheckCircle2, History, Bell, CheckCircle, Calendar, Users, TrendingUp, Edit } from 'lucide-react';
+import { FileText, History, Bell, Edit } from 'lucide-react';
 import Link from "next/link";
 import prisma from "@/lib/db";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { AutoReminderSettings } from "@/components/dashboard/AutoReminderSettings";
+import { SubmittersList } from "@/components/dashboard/SubmittersList";
 import { ensureAuthenticated } from "@/lib/auth";
 
 //TODO 수정 진행중
@@ -113,54 +114,10 @@ export default async function DocumentBoxDetailPage({
 
                 {/* Submitters List */}
                 {totalSubmitters > 0 && (
-                    <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <Users className="w-5 h-5 text-gray-700" />
-                                <h2 className="text-base font-semibold text-gray-900">제출자 목록</h2>
-                            </div>
-                            <button className="text-sm text-blue-600 hover:text-blue-700">
-                                모두보기
-                            </button>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-gray-200">
-                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">
-                                            <input type="checkbox" className="rounded" />
-                                        </th>
-                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">이름</th>
-                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">이메일</th>
-                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">제출상태</th>
-                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">제출일</th>
-                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">진행상황</th>
-                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {documentBox.submitters.map((submitter) => (
-                                        <tr key={submitter.submitterId} className="border-b border-gray-100 hover:bg-gray-50">
-                                            <td className="py-3 px-4">
-                                                <input type="checkbox" className="rounded" />
-                                            </td>
-                                            <td className="py-3 px-4 text-sm text-gray-900">{submitter.name}</td>
-                                            <td className="py-3 px-4 text-sm text-gray-600">{submitter.email}</td>
-                                            <td className="py-3 px-4">
-                                                <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                                                    제출완료
-                                                </span>
-                                            </td>
-                                            <td className="py-3 px-4 text-sm text-gray-600">2024-11-15</td>
-                                            <td className="py-3 px-4 text-sm text-gray-600">0/0 (0%)</td>
-                                            <td className="py-3 px-4 text-sm text-gray-400">...</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <SubmittersList
+                        submitters={documentBox.submitters}
+                        documentBoxTitle={documentBox.boxTitle}
+                    />
                 )}
 
                 {/* Required Documents */}
