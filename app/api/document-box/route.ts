@@ -75,6 +75,7 @@ export async function POST(request: Request) {
                     data: requirements.map((req) => ({
                         documentTitle: req.name,
                         documentDescription: req.description || null,
+                        isRequired: req.type === '필수',
                         documentBoxId: box.documentBoxId,
                     })),
                 });
