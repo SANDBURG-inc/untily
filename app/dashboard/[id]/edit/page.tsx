@@ -1,7 +1,7 @@
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import DocumentRegistrationForm from "@/components/dashboard/DocumentRegistrationForm";
 import { ensureAuthenticated } from "@/lib/auth";
-import prisma from "@/lib/db";
+import { getDocumentBoxForEdit } from "@/lib/queries/document-box";
 import { notFound } from "next/navigation";
 
 export default async function EditDocumentBoxPage({
@@ -12,20 +12,9 @@ export default async function EditDocumentBoxPage({
     const user = await ensureAuthenticated();
     const { id } = await params;
 
-    // Fetch document box with all related data
-    const documentBox = await prisma.documentBox.findUnique({
-        where: {
-            documentBoxId: id,
-        },
-        include: {
-            submitters: true,
-            requiredDocuments: true,
-            documentBoxRemindTypes: true,
-        },
-    });
+    const documentBox = await getDocumentBoxForEdit(id, user.id);
 
-    // Check if document box exists and user owns it
-    if (!documentBox || documentBox.userId !== user.id) {
+    if (!documentBox) {
         notFound();
     }
 

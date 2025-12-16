@@ -1,54 +1,31 @@
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { FileText, History, Bell, Edit } from 'lucide-react';
-import Link from "next/link";
-import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { AutoReminderSettings } from "@/components/dashboard/AutoReminderSettings";
 import { SubmittersList } from "@/components/dashboard/SubmittersList";
+import { Button } from "@/components/ui/Button";
 import { ensureAuthenticated } from "@/lib/auth";
+import { getDocumentBoxWithSubmissionStatus } from "@/lib/queries/document-box";
+import Link from "next/link";
 
-//TODO 수정 진행중
 export default async function DocumentBoxDetailPage({
     params,
 }: {
     params: Promise<{ id: string }>;
 }) {
     const user = await ensureAuthenticated();
-
-    // Await params in Next.js 15
     const { id } = await params;
 
-    // Fetch document box with all related data
-    const documentBox = await prisma.documentBox.findUnique({
-        where: {
-            documentBoxId: id,
-        },
-        include: {
-            submitters: true,
-            requiredDocuments: true,
-            documentBoxRemindTypes: true,
-            reminderLogs: {
-                orderBy: {
-                    sentAt: 'desc',
-                },
-                include: {
-                    recipients: {
-                        include: {
-                            submitter: true
-                        }
-                    }
-                }
-            },
-        },
-    });
+    const documentBox = await getDocumentBoxWithSubmissionStatus(id, user.id);
 
-    // Check if document box exists and user owns it
-    if (!documentBox || documentBox.userId !== user.id) {
+    if (!documentBox) {
         notFound();
     }
 
     const totalSubmitters = documentBox.submitters.length;
-    const submittedCount = 0; // TODO: Calculate from submitted documents
+    const submittedCount = documentBox.submitters.filter(
+        s => s.submittedCount >= documentBox.totalRequiredDocuments && documentBox.totalRequiredDocuments > 0
+    ).length;
     const submissionRate = totalSubmitters > 0 ? Math.round((submittedCount / totalSubmitters) * 100) : 0;
 
     return (
@@ -67,13 +44,15 @@ export default async function DocumentBoxDetailPage({
                                 {documentBox.boxDescription || '제출할 서류를 확인하세요.'}
                             </p>
                         </div>
-                        <Link
+                        <Button
+                            as="link"
                             href={`/dashboard/${id}/edit`}
-                            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                            variant="primary"
+                            size="md"
+                            icon={<Edit size={16} />}
                         >
-                            <Edit size={16} />
                             문서함 수정
-                        </Link>
+                        </Button>
                     </div>
                 </div>
 
@@ -117,6 +96,7 @@ export default async function DocumentBoxDetailPage({
                     <SubmittersList
                         submitters={documentBox.submitters}
                         documentBoxTitle={documentBox.boxTitle}
+                        totalRequiredDocuments={documentBox.totalRequiredDocuments}
                     />
                 )}
 
@@ -132,8 +112,8 @@ export default async function DocumentBoxDetailPage({
                             <div key={doc.requiredDocumentId} className="border border-gray-200 rounded-lg p-4">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-sm font-medium text-gray-900">{doc.documentTitle}</span>
-                                    <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
-                                        필수
+                                    <span className={`px-2 py-0.5 text-xs rounded-full ${doc.isRequired ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                                        {doc.isRequired ? '필수' : '옵션'}
                                     </span>
                                 </div>
                                 {doc.documentDescription && (
@@ -151,13 +131,15 @@ export default async function DocumentBoxDetailPage({
                             <History className="w-5 h-5 text-gray-700" />
                             <h2 className="text-xl font-bold text-gray-900">리마인드 내역</h2>
                         </div>
-                        <Link
+                        <Button
+                            as="link"
                             href={`/dashboard/${id}/send`}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+                            variant="outline-primary"
+                            size="md"
+                            icon={<Bell className="w-4 h-4" />}
                         >
-                            <Bell className="w-4 h-4" />
                             리마인드 발송
-                        </Link>
+                        </Button>
                     </div>
 
                     <AutoReminderSettings
