@@ -194,10 +194,13 @@ export default async function DocumentBoxDetailPage({
                             <History className="w-5 h-5 text-gray-700" />
                             <h2 className="text-xl font-bold text-gray-900">리마인드 내역</h2>
                         </div>
-                        <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors">
+                        <Link
+                            href={`/dashboard/${id}/send`}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+                        >
                             <Bell className="w-4 h-4" />
                             리마인드 발송
-                        </button>
+                        </Link>
                     </div>
 
                     <AutoReminderSettings

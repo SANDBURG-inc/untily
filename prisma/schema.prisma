@@ -42,6 +42,7 @@ model RequiredDocument {
   requiredDocumentId  String      @id @default(cuid())
   documentTitle       String
   documentDescription String?
+  isRequired          Boolean     @default(true)
   documentBoxId       String
   documentBox         DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
 
