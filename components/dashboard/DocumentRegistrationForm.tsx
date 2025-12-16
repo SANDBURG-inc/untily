@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, X, FileText, Users, Settings, ChevronDown, Loader2 } from 'lucide-react';
 import type { Submitter, DocumentRequirement } from '@/lib/types/document';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface DocumentBoxInitialData {
     documentName: string;
@@ -170,16 +171,15 @@ export default function DocumentRegistrationForm({
     return (
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
             {/* Header */}
-            <div className="mb-8 text-center">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                    {isEditMode ? '문서함 수정' : '문서함 등록'}
-                </h1>
-                <p className="text-sm text-gray-600">
-                    {isEditMode
+            <PageHeader
+                title={isEditMode ? '문서함 수정' : '문서함 등록'}
+                description={
+                    isEditMode
                         ? '문서함 정보를 수정하세요.'
-                        : '문서함 등록하고, 필요한 서류를 쉽게 취합해보세요!'}
-                </p>
-            </div>
+                        : '문서함 등록하고, 필요한 서류를 쉽게 취합해보세요!'
+                }
+                align="center"
+            />
 
             {/* Error Message */}
             {error && (

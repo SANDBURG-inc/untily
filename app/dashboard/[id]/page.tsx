@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { IconButton } from '@/components/shared/IconButton';
+import { PageHeader } from '@/components/shared/PageHeader';
 import {
     SubmissionStats,
     SubmittersList,
@@ -48,17 +49,11 @@ export default async function DocumentBoxDetailPage({
 
             <main className="container mx-auto px-4 py-8 max-w-6xl">
                 {/* 페이지 헤더: 문서함 제목 + 수정 버튼 */}
-                <header className="mb-8">
-                    <div className="flex justify-between items-start mb-2">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900 mb-1">
-                                {documentBox.boxTitle}
-                            </h1>
-                            <p className="text-lg text-muted-foreground">
-                                {documentBox.boxDescription || '제출할 서류를 확인하세요.'}
-                            </p>
-                        </div>
-                        <div className="flex gap-2">
+                <PageHeader
+                    title={documentBox.boxTitle}
+                    description={documentBox.boxDescription || '제출할 서류를 확인하세요.'}
+                    actions={
+                        <>
                             <IconButton
                                 as="link"
                                 href={`/dashboard/${id}/edit`}
@@ -75,9 +70,9 @@ export default async function DocumentBoxDetailPage({
                             >
                                 서류 제출 요청
                             </IconButton>
-                        </div>
-                    </div>
-                </header>
+                        </>
+                    }
+                />
 
                 {/* 1. 제출 현황 */}
                 <SubmissionStats
