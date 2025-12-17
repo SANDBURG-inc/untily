@@ -241,6 +241,7 @@ export default function DocumentRegistrationForm({
                                 setReminderEnabled(false);
                             }
                         }}
+                        disabled={isEditMode}
                     />
                 </div>
 
