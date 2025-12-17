@@ -56,8 +56,8 @@ export function DesignSystemSidebar({ className }: { className?: string }) {
   return (
     <div className={cn("w-64 shrink-0 h-screen sticky top-0 border-r bg-card/50 backdrop-blur-xl p-6 hidden lg:flex flex-col gap-6", className)}>
       <div className="flex flex-col gap-2">
-        <h1 className="font-bold text-xl tracking-tight">Design System</h1>
-        <p className="text-sm text-muted-foreground">Untily Experience Language</p>
+        <h1 className="font-bold text-xl tracking-tight">디자인 시스템</h1>
+        <p className="text-sm text-muted-foreground">Untily 컴포넌트 라이브러리</p>
       </div>
 
       <div className="relative">
