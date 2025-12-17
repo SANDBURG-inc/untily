@@ -42,8 +42,6 @@ export async function PUT(
         const {
             documentName,
             description,
-            submittersEnabled,
-            submitters,
             requirements,
             deadline,
             reminderEnabled,
@@ -81,21 +79,7 @@ export async function PUT(
                 },
             });
 
-            // Delete existing submitters and create new ones
-            await tx.submitter.deleteMany({
-                where: { documentBoxId: id },
-            });
-
-            if (submittersEnabled && submitters.length > 0) {
-                await tx.submitter.createMany({
-                    data: submitters.map((submitter) => ({
-                        name: submitter.name,
-                        email: submitter.email,
-                        phone: submitter.phone,
-                        documentBoxId: box.documentBoxId,
-                    })),
-                });
-            }
+            // 제출자(submitter)는 수정 불가 - 생성 시에만 설정 가능
 
             // Delete existing required documents and create new ones
             await tx.requiredDocument.deleteMany({
