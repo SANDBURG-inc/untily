@@ -11,6 +11,7 @@ import {
 } from '@/components/dashboard/detail';
 import { ensureAuthenticated } from '@/lib/auth';
 import { getDocumentBoxWithSubmissionStatus } from '@/lib/queries/document-box';
+import { calculateSubmissionStats } from '@/lib/utils/document-box';
 
 /**
  * 문서함 상세 페이지
@@ -33,14 +34,12 @@ export default async function DocumentBoxDetailPage({
         notFound();
     }
 
-    // 제출률 계산: 전체 필수 서류를 모두 제출한 제출자 비율
-    const totalSubmitters = documentBox.submitters.length;
-    const submittedCount = documentBox.submitters.filter(
-        s => s.submittedCount >= documentBox.totalRequiredDocuments && documentBox.totalRequiredDocuments > 0
-    ).length;
-    const submissionRate = totalSubmitters > 0
-        ? Math.round((submittedCount / totalSubmitters) * 100)
-        : 0;
+    // 제출 통계 계산 (유틸리티 함수 사용)
+    const stats = calculateSubmissionStats(
+        documentBox.submitters,
+        documentBox.totalRequiredDocuments,
+        documentBox.hasSubmitter
+    );
 
     return (
         <main className="container mx-auto px-4 py-8">
@@ -73,12 +72,15 @@ export default async function DocumentBoxDetailPage({
             <SubmissionStats
                 createdAt={documentBox.createdAt}
                 endDate={documentBox.endDate}
-                totalSubmitters={totalSubmitters}
-                submissionRate={submissionRate}
+                totalSubmitters={stats.totalSubmitters}
+                submittedCount={stats.submittedCount}
+                notSubmittedCount={stats.notSubmittedCount}
+                submissionRate={stats.submissionRate}
+                hasDesignatedSubmitters={stats.hasDesignatedSubmitters}
             />
 
             {/* 2. 제출자 목록 */}
-            {totalSubmitters > 0 && (
+            {stats.totalSubmitters > 0 && (
                 <SubmittersList
                     submitters={documentBox.submitters}
                     documentBoxTitle={documentBox.boxTitle}
