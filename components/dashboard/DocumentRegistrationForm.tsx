@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, X, FileText, Users, Settings, ChevronDown, Loader2 } from 'lucide-react';
 import type { Submitter, DocumentRequirement } from '@/lib/types/document';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { Switch } from '@/components/ui/switch';
 
 interface DocumentBoxInitialData {
     documentName: string;
@@ -232,23 +233,15 @@ export default function DocumentRegistrationForm({
                         <Users className="w-5 h-5 text-gray-700" />
                         <h2 className="text-base font-semibold text-gray-900">서류 제출자 등록</h2>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            const newValue = !submittersEnabled;
-                            setSubmittersEnabled(newValue);
-                            if (!newValue) {
+                    <Switch
+                        checked={submittersEnabled}
+                        onCheckedChange={(checked) => {
+                            setSubmittersEnabled(checked);
+                            if (!checked) {
                                 setReminderEnabled(false);
                             }
                         }}
-                        className={`relative w-11 h-6 rounded-full transition-colors ${submittersEnabled ? 'bg-blue-600' : 'bg-gray-300'
-                            }`}
-                    >
-                        <span
-                            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${submittersEnabled ? 'translate-x-5' : 'translate-x-0'
-                                }`}
-                        />
-                    </button>
+                    />
                 </div>
 
                 {submittersEnabled ? (
@@ -436,18 +429,12 @@ export default function DocumentRegistrationForm({
                                 </p>
                             </div>
                             <div className="relative group">
-                                <button
-                                    type="button"
-                                    onClick={() => setReminderEnabled(!reminderEnabled)}
+                                <Switch
+                                    checked={reminderEnabled}
+                                    onCheckedChange={setReminderEnabled}
                                     disabled={!submittersEnabled}
-                                    className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-4 ${reminderEnabled ? 'bg-blue-600' : 'bg-gray-300'
-                                        } ${!submittersEnabled ? 'cursor-not-allowed opacity-50' : ''}`}
-                                >
-                                    <span
-                                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${reminderEnabled ? 'translate-x-5' : 'translate-x-0'
-                                            }`}
-                                    />
-                                </button>
+                                    className="ml-4"
+                                />
                                 {!submittersEnabled && (
                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                                         서류 제출자가 없는 경우, 리마인드 기능이 비활성화 됩니다

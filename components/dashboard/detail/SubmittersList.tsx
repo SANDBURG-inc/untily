@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Users, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
-import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/shared/IconButton';
 import { Table, Column } from '@/components/shared/Table';
 import { downloadCsv } from '@/lib/utils/csv-export';
 import type { SubmitterWithStatus } from '@/lib/queries/document-box';
@@ -192,10 +192,14 @@ export function SubmittersList({
                             {showAll ? '접기' : '모두보기'}
                         </button>
                     )}
-                    <Button variant="secondary" size="sm" onClick={handleDownload}>
-                        <Download className="w-4 h-4" />
+                    <IconButton
+                        variant="secondary"
+                        size="sm"
+                        icon={<Download className="w-4 h-4" />}
+                        onClick={handleDownload}
+                    >
                         다운로드
-                    </Button>
+                    </IconButton>
                 </CardAction>
             </CardHeader>
 

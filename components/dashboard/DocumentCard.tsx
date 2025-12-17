@@ -1,5 +1,6 @@
 import { ProgressBar } from "./ProgressBar";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 interface DocumentCardProps {
     title: string;
@@ -29,9 +30,9 @@ export function DocumentCard({
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col">
             <div className="mb-4">
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-blue-600 text-white mb-3">
+                <Badge variant="primary" className="mb-3">
                     {status === "In Progress" ? "진행중" : "완료"}
-                </span>
+                </Badge>
                 <h3 className="text-xl font-bold text-slate-900 mb-1">{title}</h3>
                 <p className="text-slate-500 text-sm">{description}</p>
             </div>
