@@ -32,9 +32,9 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
-        // 프로젝트 커스텀 variants
-        primary: "bg-blue-600 hover:bg-blue-700 text-white",
-        "outline-primary": "bg-white hover:bg-blue-50 text-blue-600 border border-blue-600",
+        // 프로젝트 커스텀 variants (Primary Blue: #155DFC)
+        primary: "bg-[#155DFC] hover:bg-[#155DFC]/90 text-white",
+        "outline-primary": "bg-white hover:bg-[#155DFC]/10 text-[#155DFC] border border-[#155DFC]",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
