@@ -1,9 +1,11 @@
+import { History } from "lucide-react";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { PageHeader } from "@/components/shared/PageHeader";
 import prisma from "@/lib/db";
 import { stackServerApp } from "@/stack/server";
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { History } from "lucide-react";
 
 export default async function ReminderLogDetailPage({
     params,
@@ -84,11 +86,10 @@ export default async function ReminderLogDetailPage({
         <div className="min-h-screen bg-white">
             <DashboardHeader />
             <main className="container mx-auto px-4 py-8 max-w-6xl">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-1">{title}</h1>
-                    <p className="text-sm text-gray-600">리마인드 상세 내용을 확인해보세요.</p>
-                </div>
+                <PageHeader
+                    title={title}
+                    description="리마인드 상세 내용을 확인해보세요."
+                />
 
                 {/* Table */}
                 <div className="bg-white border border-gray-200 rounded-lg p-6">

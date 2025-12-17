@@ -1,9 +1,12 @@
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { DocumentCard } from "@/components/dashboard/DocumentCard";
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import prisma from "@/lib/db";
+
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DocumentCard } from "@/components/dashboard/DocumentCard";
+import { IconButton } from "@/components/shared/IconButton";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { ensureAuthenticated } from "@/lib/auth";
+import prisma from "@/lib/db";
 
 export default async function DashboardPage() {
     const user = await ensureAuthenticated();
@@ -27,23 +30,33 @@ export default async function DashboardPage() {
             <DashboardHeader />
 
             <main className="container mx-auto px-4 py-8">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">
-                    <h1 className="text-2xl font-bold text-slate-900">내 문서함</h1>
-                    <Link href="/dashboard/register" className="hidden md:flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                        <Plus size={16} />
-                        문서함 등록
-                    </Link>
-                </div>
-
-                <p className="text-slate-500 mb-8">
-                    서류 제출 현황을 한눈에 확인하고 관리하세요
-                </p>
+                <PageHeader
+                    title="내 문서함"
+                    description="서류 제출 현황을 한눈에 확인하고 관리하세요"
+                    actions={
+                        <div className="hidden md:block">
+                            <IconButton
+                                as="link"
+                                href="/dashboard/register"
+                                variant="primary"
+                                icon={<Plus size={16} />}
+                            >
+                                문서함 등록
+                            </IconButton>
+                        </div>
+                    }
+                />
 
                 {/* Mobile button */}
-                <Link href="/dashboard/register" className="md:hidden w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors mb-8">
-                    <Plus size={16} />
+                <IconButton
+                    as="link"
+                    href="/dashboard/register"
+                    variant="primary"
+                    icon={<Plus size={16} />}
+                    className="md:hidden w-full justify-center mb-8"
+                >
                     문서함 등록
-                </Link>
+                </IconButton>
 
                 {documentBoxes.length === 0 ? (
                     <div className="text-center py-16">
