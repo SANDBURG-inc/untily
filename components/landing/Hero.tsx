@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Modal from '../shared/Modal';
 import ContactForm from '../shared/ContactForm';
 import DemoModal from './DemoModal';
+import { IconButton } from '../shared/IconButton';
+import { Button } from '../ui/Button';
 
 export default function Hero() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,12 +24,23 @@ export default function Hero() {
                         이메일 요청·재촉·누락 걱정 없이,<br className="md:hidden" /> 누구나 쉽게 문서 제출을 관리할 수 있는<br /> 올인원 파일 제출 플랫폼
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
-                        <Link href="/dashboard" className="bg-primary text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                            프로젝트 만들기 <ArrowRight className="w-5 h-5" />
-                        </Link>
-                        <button onClick={() => setIsDemoModalOpen(true)} className="bg-white text-gray-900 border border-gray-200 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-colors dark:bg-gray-900 dark:text-white dark:border-gray-700 dark:hover:bg-gray-800">
+                        <IconButton
+                            as="link"
+                            href="/dashboard"
+                            variant="primary"
+                            size="xl"
+                            icon={<ArrowRight className="w-5 h-5" />}
+                            iconPosition="right"
+                        >
+                            프로젝트 만들기
+                        </IconButton>
+                        <Button
+                            variant="secondary"
+                            size="xl"
+                            onClick={() => setIsDemoModalOpen(true)}
+                        >
                             데모 보기
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
