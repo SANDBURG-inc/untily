@@ -49,6 +49,10 @@ export function ButtonSection() {
         {/* Icon Buttons (Shared) */}
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">아이콘 버튼 (IconButton)</h3>
+          <p className="text-sm text-muted-foreground mb-2">
+            <code className="bg-muted px-1.5 py-0.5 rounded text-xs">@/components/shared/IconButton</code>
+            {" "}- shadcn Button을 래핑하여 아이콘 + 텍스트 조합을 편리하게 제공. <code className="bg-muted px-1.5 py-0.5 rounded text-xs">as=&quot;link&quot;</code>로 Next.js Link 지원.
+          </p>
           <div className="flex flex-wrap gap-4">
             <IconButton icon={<Plus />}>새로 만들기</IconButton>
             <IconButton icon={<Save />} variant="secondary">변경사항 저장</IconButton>
