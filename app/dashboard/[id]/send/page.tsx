@@ -2,7 +2,6 @@ import prisma from "@/lib/db";
 import { stackServerApp } from "@/stack/server";
 import { redirect, notFound } from "next/navigation";
 import { ReminderSendForm } from "@/components/dashboard/SendForm";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 
 export default async function ReminderSendPage({
     params,
@@ -38,27 +37,24 @@ export default async function ReminderSendPage({
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <DashboardHeader />
-            <div className="py-8 px-4">
-                <ReminderSendForm
-                    documentBoxId={documentBox.documentBoxId}
-                    documentBoxTitle={documentBox.boxTitle}
-                    endDate={documentBox.endDate}
-                    submitters={documentBox.submitters.map(s => ({
-                        submitterId: s.submitterId,
-                        name: s.name,
-                        email: s.email,
-                        submittedDocuments: s.submittedDocuments
-                    }))}
-                    requiredDocuments={documentBox.requiredDocuments.map(d => ({
-                        id: d.requiredDocumentId,
-                        name: d.documentTitle,
-                        description: d.documentDescription,
-                        isRequired: d.isRequired
-                    }))}
-                />
-            </div>
-        </div>
+        <main className="container mx-auto max-w-6xl px-4 py-8">
+            <ReminderSendForm
+                documentBoxId={documentBox.documentBoxId}
+                documentBoxTitle={documentBox.boxTitle}
+                endDate={documentBox.endDate}
+                submitters={documentBox.submitters.map(s => ({
+                    submitterId: s.submitterId,
+                    name: s.name,
+                    email: s.email,
+                    submittedDocuments: s.submittedDocuments
+                }))}
+                requiredDocuments={documentBox.requiredDocuments.map(d => ({
+                    id: d.requiredDocumentId,
+                    name: d.documentTitle,
+                    description: d.documentDescription,
+                    isRequired: d.isRequired
+                }))}
+            />
+        </main>
     );
 }

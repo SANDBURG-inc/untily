@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Info, FileText, Check } from "lucide-react";
 import { sendManualReminder } from "@/app/dashboard/[id]/actions";
 import { generateReminderEmailHtml } from '@/lib/email-templates';
+import { PageHeader } from "@/components/shared/PageHeader";
 
 interface Submitter {
     submitterId: string;
@@ -84,11 +84,11 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
 
     return (
         <div className="max-w-3xl mx-auto pb-20">
-            {/* Header */}
-            <div className="text-center mb-10">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">서류 제출 요청하기</h1>
-                <p className="text-sm text-gray-600">수신자에게 서류 제출 요청 이메일을 발송합니다.</p>
-            </div>
+            <PageHeader
+                title="서류 제출 요청하기"
+                description="수신자에게 서류 제출 요청 이메일을 발송합니다."
+                align="center"
+            />
 
             {/* Recipient List */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">

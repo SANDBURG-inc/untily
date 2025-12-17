@@ -1,3 +1,16 @@
+/**
+ * Button 컴포넌트 (shadcn/ui)
+ *
+ * 프로젝트의 기본 버튼 컴포넌트입니다.
+ *
+ * ## 아이콘이 포함된 버튼이 필요하다면?
+ *
+ * `IconButton` 컴포넌트를 사용하세요. Button을 래핑하여 아이콘 + 텍스트 조합을
+ * 더 편리하게 사용할 수 있습니다.
+ *
+ * @see {@link ../shared/IconButton} - 아이콘 버튼 래퍼 컴포넌트
+ */
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -19,9 +32,9 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
-        // 프로젝트 커스텀 variants
-        primary: "bg-blue-600 hover:bg-blue-700 text-white",
-        "outline-primary": "bg-white hover:bg-blue-50 text-blue-600 border border-blue-600",
+        // 프로젝트 커스텀 variants (Primary Blue: #155DFC)
+        primary: "bg-[#155DFC] hover:bg-[#155DFC]/90 text-white",
+        "outline-primary": "bg-white hover:bg-[#155DFC]/10 text-[#155DFC] border border-[#155DFC]",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

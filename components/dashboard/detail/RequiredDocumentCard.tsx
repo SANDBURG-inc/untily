@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 /**
  * 수집 서류 목록의 개별 서류 카드
@@ -22,16 +22,9 @@ export function RequiredDocumentCard({
         <div className="border border-gray-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-900">{title}</span>
-                <span
-                    className={cn(
-                        'px-2 py-0.5 text-xs rounded-full',
-                        isRequired
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-gray-100 text-gray-700'
-                    )}
-                >
+                <Badge variant={isRequired ? 'required' : 'optional'}>
                     {isRequired ? '필수' : '선택'}
-                </span>
+                </Badge>
             </div>
             {description && (
                 <p className="text-xs text-gray-500">{description}</p>

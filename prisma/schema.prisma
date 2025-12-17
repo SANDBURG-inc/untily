@@ -30,6 +30,13 @@ model DocumentBox {
   endDate        DateTime
   userId         String
 
+  // 제출자 지정 여부 플래그
+  // - true: 지정 제출자가 있는 문서함 (예: 연말정산, 신청서)
+  // - false: 지정 제출자가 없는 문서함 (예: 설문조사, 공개 수집)
+  // [후방호환성] 기존 데이터는 null이며, null인 경우 true로 취급
+  // 관련 유틸: lib/utils/document-box.ts > hasDesignatedSubmitters()
+  hasSubmitter Boolean?
+
   submitters             Submitter[]
   requiredDocuments      RequiredDocument[]
   documentBoxRemindTypes DocumentBoxRemindType[]

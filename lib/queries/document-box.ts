@@ -23,6 +23,9 @@ export interface DocumentBoxDetail {
     createdAt: Date;
     endDate: Date;
     userId: string;
+    // 지정 제출자 여부 (null은 true로 취급 - 후방호환성)
+    // 관련 유틸: lib/utils/document-box.ts > hasDesignatedSubmitters()
+    hasSubmitter: boolean | null;
     submitters: SubmitterWithStatus[];
     requiredDocuments: {
         requiredDocumentId: string;
@@ -110,6 +113,7 @@ export async function getDocumentBoxWithSubmissionStatus(
         createdAt: documentBox.createdAt,
         endDate: documentBox.endDate,
         userId: documentBox.userId,
+        hasSubmitter: documentBox.hasSubmitter,
         submitters: submittersWithStatus,
         requiredDocuments: documentBox.requiredDocuments,
         documentBoxRemindTypes: documentBox.documentBoxRemindTypes,

@@ -1,7 +1,7 @@
 import { History, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
-import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/shared/IconButton';
 import { Table, Column } from '@/components/shared/Table';
 import { AutoReminderSettings } from '../AutoReminderSettings';
 
@@ -110,12 +110,14 @@ export function ReminderHistory({
                     리마인드 내역
                 </CardTitle>
                 <CardAction>
-                    <Button variant="outline-primary" asChild>
-                        <Link href={`/dashboard/${documentBoxId}/send`}>
-                            <Bell className="w-4 h-4" />
-                            리마인드 발송
-                        </Link>
-                    </Button>
+                    <IconButton
+                        as="link"
+                        href={`/dashboard/${documentBoxId}/send`}
+                        variant="outline-primary"
+                        icon={<Bell className="w-4 h-4" />}
+                    >
+                        리마인드 발송
+                    </IconButton>
                 </CardAction>
             </CardHeader>
 
