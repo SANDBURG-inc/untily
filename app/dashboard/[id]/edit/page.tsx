@@ -1,4 +1,3 @@
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import DocumentRegistrationForm from "@/components/dashboard/DocumentRegistrationForm";
 import { ensureAuthenticated } from "@/lib/auth";
 import { getDocumentBoxForEdit } from "@/lib/queries/document-box";
@@ -47,16 +46,12 @@ export default async function EditDocumentBoxPage({
     };
 
     return (
-        <div className="min-h-screen bg-white">
-            <DashboardHeader />
-
-            <main className="container mx-auto px-4 py-8">
-                <DocumentRegistrationForm
-                    mode="edit"
-                    documentBoxId={id}
-                    initialData={initialData}
-                />
-            </main>
-        </div>
+        <main className="container mx-auto max-w-6xl px-4 py-8">
+            <DocumentRegistrationForm
+                mode="edit"
+                documentBoxId={id}
+                initialData={initialData}
+            />
+        </main>
     );
 }
