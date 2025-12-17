@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { stackServerApp } from '@/stack/server';
+import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse } from '@/lib/types/document';
 
 export async function POST(request: Request) {
     try {
         // Check authentication
-        const user = await stackServerApp.getUser();
+        const { user } = await neonAuth();
         if (!user) {
             return NextResponse.json<CreateDocumentBoxResponse>(
                 { success: false, error: 'Unauthorized' },

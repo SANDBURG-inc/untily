@@ -1,10 +1,10 @@
 import { History } from "lucide-react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import prisma from "@/lib/db";
-import { stackServerApp } from "@/stack/server";
+import { ensureAuthenticated } from "@/lib/auth";
 
 export default async function ReminderLogDetailPage({
     params,
@@ -13,8 +13,7 @@ export default async function ReminderLogDetailPage({
     params: Promise<{ id: string; logId: string }>;
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-    const user = await stackServerApp.getUser();
-    if (!user) redirect("/sign-in");
+    await ensureAuthenticated();
 
     const { id, logId } = await params;
 

@@ -1,16 +1,58 @@
+/**
+ * @fileoverview 제출자(Submitter) 전용 인증 모듈
+ *
+ * 이 파일은 서류 제출자의 인증을 처리합니다.
+ * 일반 사용자 인증과 달리, 제출자는 이메일 링크를 통해 접근하며
+ * 해당 이메일로 로그인해야만 서류를 제출할 수 있습니다.
+ *
+ * @remarks
+ * - 서버 전용 모듈입니다 (import "server-only")
+ * - 일반 사용자 인증은 `@/lib/auth`를 사용하세요
+ * - 클라이언트 인증은 `@/lib/auth/client`를 사용하세요
+ *
+ * @example 제출자 인증 검증
+ * ```tsx
+ * import { validateSubmitterAuth } from '@/lib/auth/submitter-auth';
+ *
+ * export default async function SubmitPage({ params }) {
+ *   const result = await validateSubmitterAuth(documentBoxId, submitterId);
+ *
+ *   switch (result.status) {
+ *     case 'success': return <UploadForm />;
+ *     case 'not_authenticated': return <LoginPrompt />;
+ *     case 'email_mismatch': return <EmailMismatchView />;
+ *     case 'not_found': redirect('/submit/not-found');
+ *     case 'expired': redirect('/submit/expired');
+ *   }
+ * }
+ * ```
+ *
+ * @see {@link file://@/lib/auth.ts} 일반 사용자 서버 인증
+ * @see {@link file://@/lib/auth/client.ts} 클라이언트 인증
+ * @module lib/auth/submitter-auth
+ */
 import "server-only";
 
-import { stackServerApp } from '@/stack/server';
+import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import prisma from '@/lib/db';
 import type { DocumentBox, RequiredDocument, Submitter, SubmitterStatus, SubmittedDocument } from '@/lib/generated/prisma/client';
+import type { AuthenticatedUser } from '@/lib/auth';
+
+/**
+ * Neon Auth 사용자 타입
+ *
+ * @deprecated AuthenticatedUser를 사용하세요. 하위 호환성을 위해 유지됩니다.
+ * @see {@link AuthenticatedUser}
+ */
+export type NeonAuthUser = AuthenticatedUser;
 
 /**
  * 제출자 인증 결과 타입
  */
 export type SubmitterAuthResult =
-  | { status: 'success'; user: NonNullable<Awaited<ReturnType<typeof stackServerApp.getUser>>>; submitter: SubmitterWithDocumentBox }
+  | { status: 'success'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox }
   | { status: 'not_authenticated'; submitter: SubmitterWithDocumentBox }
-  | { status: 'email_mismatch'; user: NonNullable<Awaited<ReturnType<typeof stackServerApp.getUser>>>; submitter: SubmitterWithDocumentBox }
+  | { status: 'email_mismatch'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox }
   | { status: 'not_found' }
   | { status: 'expired'; documentBox: DocumentBox };
 
@@ -31,7 +73,7 @@ export type SubmitterWithDocumentBox = Submitter & {
  * 1. 문서함 존재 여부 확인
  * 2. 문서함 만료 여부 확인
  * 3. 제출자 존재 여부 확인
- * 4. Stack Auth 로그인 여부 확인
+ * 4. Neon Auth 로그인 여부 확인
  * 5. 이메일 일치 여부 확인
  * 6. userId 연결 (최초 로그인 시)
  *
@@ -84,19 +126,19 @@ export async function validateSubmitterAuth(
     submittedDocuments: submitter.submittedDocuments,
   };
 
-  // 4. Stack Auth 로그인 확인
-  const user = await stackServerApp.getUser();
+  // 4. Neon Auth 로그인 확인
+  const { user } = await neonAuth();
 
   if (!user) {
     return { status: 'not_authenticated', submitter: submitterWithDocBox };
   }
 
   // 5. 이메일 일치 확인 (대소문자 무시)
-  const userEmail = user.primaryEmail?.toLowerCase();
+  const userEmail = user.email?.toLowerCase();
   const submitterEmail = submitter.email.toLowerCase();
 
   if (userEmail !== submitterEmail) {
-    return { status: 'email_mismatch', user, submitter: submitterWithDocBox };
+    return { status: 'email_mismatch', user: user as NeonAuthUser, submitter: submitterWithDocBox };
   }
 
   // 6. userId 연결 (최초 로그인 시)
@@ -109,7 +151,7 @@ export async function validateSubmitterAuth(
     submitterWithDocBox.userId = user.id;
   }
 
-  return { status: 'success', user, submitter: submitterWithDocBox };
+  return { status: 'success', user: user as NeonAuthUser, submitter: submitterWithDocBox };
 }
 
 /**

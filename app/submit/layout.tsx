@@ -1,0 +1,14 @@
+import { SubmitHeader } from '@/components/layout/SubmitHeader';
+
+interface SubmitLayoutProps {
+  children: React.ReactNode;
+}
+
+export default function SubmitLayout({ children }: SubmitLayoutProps) {
+  return (
+    <div className="min-h-screen bg-white flex flex-col">
+      <SubmitHeader />
+      {children}
+    </div>
+  );
+}

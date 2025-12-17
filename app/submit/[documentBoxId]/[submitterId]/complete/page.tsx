@@ -2,8 +2,6 @@ import { validateSubmitterAuth } from '@/lib/auth/submitter-auth';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/db';
 import { CheckCircle, FileText, Calendar } from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
 
 interface CompletePageProps {
   params: Promise<{ documentBoxId: string; submitterId: string }>;
@@ -32,21 +30,7 @@ export default async function CompletePage({ params }: CompletePageProps) {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <Link href="/">
-          <Image
-            src="/logo_light.svg"
-            alt="오늘까지"
-            width={120}
-            height={32}
-            className="h-8 w-auto"
-          />
-        </Link>
-      </header>
-
-      <main className="flex-1 flex items-center justify-center p-6">
+    <main className="flex-1 flex items-center justify-center p-6 bg-gray-50">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 max-w-lg w-full p-8 text-center">
           {/* 성공 아이콘 */}
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -103,7 +87,6 @@ export default async function CompletePage({ params }: CompletePageProps) {
             이 페이지를 닫으셔도 됩니다.
           </p>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }

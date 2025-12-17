@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stackServerApp } from '@/stack/server';
+import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import prisma from '@/lib/db';
 import { generateUploadUrl } from '@/lib/s3/presigned';
 import { generateS3Key, getContentType, getFileUrl } from '@/lib/s3/utils';
@@ -7,8 +7,8 @@ import { S3_BUCKET, S3_REGION } from '@/lib/s3/client';
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Stack Auth 인증 확인
-    const user = await stackServerApp.getUser();
+    // 1. Neon Auth 인증 확인
+    const { user } = await neonAuth();
     if (!user) {
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
     }
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 이메일 검증
-    if (submitter.email.toLowerCase() !== user.primaryEmail?.toLowerCase()) {
+    if (submitter.email.toLowerCase() !== user.email?.toLowerCase()) {
       return NextResponse.json({ error: '이메일이 일치하지 않습니다.' }, { status: 403 });
     }
 

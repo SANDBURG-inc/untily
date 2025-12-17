@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stackServerApp } from '@/stack/server';
+import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import prisma from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Stack Auth 인증 확인
-    const user = await stackServerApp.getUser();
+    // 1. Neon Auth 인증 확인
+    const { user } = await neonAuth();
     if (!user) {
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
     }
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 이메일 검증
-    if (submitter.email.toLowerCase() !== user.primaryEmail?.toLowerCase()) {
+    if (submitter.email.toLowerCase() !== user.email?.toLowerCase()) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 

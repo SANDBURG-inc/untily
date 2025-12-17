@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Upload, CheckCircle, X, FileText, Loader2 } from 'lucide-react';
-import { uploadFile, replaceFile } from '@/lib/s3/upload';
+import { useState, useCallback } from 'react';
+import { FileText, X, Upload } from 'lucide-react';
+import { uploadFile, replaceFile, deleteFile } from '@/lib/s3/upload';
+import FileUploadModal from './FileUploadModal';
 
 interface UploadedDocument {
   submittedDocumentId: string;
   filename: string;
   s3Key: string;
+  size?: number;
 }
 
 interface DocumentUploadItemProps {
@@ -22,6 +24,7 @@ interface DocumentUploadItemProps {
   existingUpload?: UploadedDocument | null;
   onUploadComplete?: (upload: UploadedDocument) => void;
   onUploadError?: (error: string) => void;
+  onUploadRemove?: () => void;
 }
 
 export default function DocumentUploadItem({
@@ -31,36 +34,16 @@ export default function DocumentUploadItem({
   existingUpload,
   onUploadComplete,
   onUploadError,
+  onUploadRemove,
 }: DocumentUploadItemProps) {
   const [upload, setUpload] = useState<UploadedDocument | null>(existingUpload ?? null);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // 파일 유효성 검사
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-      const errorMsg = 'PDF, JPG, PNG 파일만 업로드 가능합니다.';
-      setError(errorMsg);
-      onUploadError?.(errorMsg);
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      const errorMsg = '파일 크기는 10MB 이하여야 합니다.';
-      setError(errorMsg);
-      onUploadError?.(errorMsg);
-      return;
-    }
-
-    setUploading(true);
-    setProgress(0);
-    setError(null);
+  const handleUpload = useCallback(async (file: File) => {
+    setIsUploading(true);
+    setUploadProgress(0);
 
     try {
       let result;
@@ -73,7 +56,7 @@ export default function DocumentUploadItem({
           submitterId,
           requiredDocumentId: requiredDocument.requiredDocumentId,
           existingDocumentId: upload.submittedDocumentId,
-          onProgress: setProgress,
+          onProgress: setUploadProgress,
         });
       } else {
         // 새 파일 업로드
@@ -82,7 +65,7 @@ export default function DocumentUploadItem({
           documentBoxId,
           submitterId,
           requiredDocumentId: requiredDocument.requiredDocumentId,
-          onProgress: setProgress,
+          onProgress: setUploadProgress,
         });
       }
 
@@ -90,107 +73,101 @@ export default function DocumentUploadItem({
         submittedDocumentId: result.submittedDocumentId,
         filename: file.name,
         s3Key: result.s3Key,
+        size: file.size,
       };
 
       setUpload(newUpload);
       onUploadComplete?.(newUpload);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : '업로드 중 오류가 발생했습니다.';
-      setError(errorMsg);
       onUploadError?.(errorMsg);
+      throw err;
     } finally {
-      setUploading(false);
-      setProgress(0);
-      // 파일 입력 초기화
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  }, [upload, documentBoxId, submitterId, requiredDocument.requiredDocumentId, onUploadComplete, onUploadError]);
+
+  const handleRemove = async () => {
+    if (!upload) return;
+
+    try {
+      await deleteFile(upload.submittedDocumentId);
+      setUpload(null);
+      onUploadRemove?.();
+    } catch (err) {
+      onUploadError?.(err instanceof Error ? err.message : '삭제 중 오류가 발생했습니다.');
     }
   };
 
-  const formatFileSize = (bytes: number): string => {
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes) return '';
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white">
-      {/* 헤더 */}
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex-1">
+    <>
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-gray-900">{requiredDocument.documentTitle}</h3>
             {requiredDocument.isRequired && (
-              <span className="text-xs text-red-500 font-medium">필수</span>
+              <span className="px-2 py-0.5 bg-red-50 text-red-600 text-xs font-medium rounded">
+                필수
+              </span>
             )}
           </div>
-          {requiredDocument.documentDescription && (
-            <p className="text-sm text-gray-500 mt-1">{requiredDocument.documentDescription}</p>
-          )}
         </div>
-        {upload && (
-          <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+
+        {/* Description */}
+        {requiredDocument.documentDescription && (
+          <p className="text-sm text-gray-500 mb-4">{requiredDocument.documentDescription}</p>
+        )}
+
+        {/* Upload Area */}
+        {upload ? (
+          // 업로드 완료 상태
+          <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
+            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+              <FileText className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{upload.filename}</p>
+              {upload.size && (
+                <p className="text-xs text-gray-500">{formatFileSize(upload.size)}</p>
+              )}
+            </div>
+            <button
+              onClick={handleRemove}
+              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          // 업로드 전 상태
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="text-sm font-medium">파일 업로드하기</span>
+          </button>
         )}
       </div>
 
-      {/* 업로드 영역 */}
-      {upload ? (
-        // 업로드 완료 상태
-        <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
-          <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{upload.filename}</p>
-          </div>
-          <label className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer font-medium">
-            변경
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".pdf,.jpg,.jpeg,.png"
-              onChange={handleFileSelect}
-              disabled={uploading}
-            />
-          </label>
-        </div>
-      ) : uploading ? (
-        // 업로드 중 상태
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex items-center gap-3 mb-2">
-            <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-            <span className="text-sm text-gray-600">업로드 중... {progress}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      ) : (
-        // 업로드 대기 상태
-        <label className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-          <p className="text-sm text-gray-600">클릭하여 파일 선택</p>
-          <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (최대 10MB)</p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={handleFileSelect}
-          />
-        </label>
-      )}
-
-      {/* 에러 메시지 */}
-      {error && (
-        <div className="flex items-center gap-2 mt-2 text-sm text-red-600">
-          <X className="w-4 h-4" />
-          <span>{error}</span>
-        </div>
-      )}
-    </div>
+      {/* Upload Modal */}
+      <FileUploadModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        documentTitle={requiredDocument.documentTitle}
+        onUpload={handleUpload}
+        isUploading={isUploading}
+        uploadProgress={uploadProgress}
+      />
+    </>
   );
 }

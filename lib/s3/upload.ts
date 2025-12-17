@@ -84,6 +84,20 @@ export async function uploadFile(params: UploadFileParams): Promise<UploadResult
 }
 
 /**
+ * 파일 삭제
+ */
+export async function deleteFile(submittedDocumentId: string): Promise<void> {
+  const res = await fetch(`/api/upload/${submittedDocumentId}`, {
+    method: 'DELETE',
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || '파일 삭제에 실패했습니다.');
+  }
+}
+
+/**
  * 파일 교체 (기존 파일 삭제 후 새 파일 업로드)
  */
 export async function replaceFile(params: UploadFileParams & {
@@ -92,9 +106,7 @@ export async function replaceFile(params: UploadFileParams & {
   const { existingDocumentId, ...uploadParams } = params;
 
   // 기존 파일 삭제 요청
-  await fetch(`/api/upload/${existingDocumentId}`, {
-    method: 'DELETE',
-  });
+  await deleteFile(existingDocumentId);
 
   // 새 파일 업로드
   return uploadFile(uploadParams);

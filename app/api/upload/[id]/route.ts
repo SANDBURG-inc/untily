@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stackServerApp } from '@/stack/server';
+import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import prisma from '@/lib/db';
 import { deleteFromS3 } from '@/lib/s3/presigned';
 
@@ -11,8 +11,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id: submittedDocumentId } = await params;
 
-    // 1. Stack Auth 인증 확인
-    const user = await stackServerApp.getUser();
+    // 1. Neon Auth 인증 확인
+    const { user } = await neonAuth();
     if (!user) {
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
     }
@@ -32,7 +32,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // 3. 권한 체크 (제출자 본인만 삭제 가능)
-    if (submittedDocument.submitter.email.toLowerCase() !== user.primaryEmail?.toLowerCase()) {
+    if (submittedDocument.submitter.email.toLowerCase() !== user.email?.toLowerCase()) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 

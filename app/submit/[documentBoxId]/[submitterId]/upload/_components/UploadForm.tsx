@@ -2,10 +2,9 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import DocumentUploadItem from '@/components/upload/DocumentUploadItem';
+import SubmitPageHeader from '@/components/submit/SubmitPageHeader';
 
 interface RequiredDocument {
   requiredDocumentId: string;
@@ -18,6 +17,7 @@ interface SubmittedDocument {
   submittedDocumentId: string;
   requiredDocumentId: string;
   filename: string;
+  size?: number;
 }
 
 interface UploadFormProps {
@@ -37,6 +37,7 @@ interface UploadedDocument {
   submittedDocumentId: string;
   filename: string;
   s3Key: string;
+  size?: number;
 }
 
 export default function UploadForm({
@@ -54,6 +55,7 @@ export default function UploadForm({
       submittedDocumentId: doc.submittedDocumentId,
       filename: doc.filename,
       s3Key: '',
+      size: doc.size,
     });
   });
 
@@ -68,6 +70,14 @@ export default function UploadForm({
       return newMap;
     });
     setError(null);
+  }, []);
+
+  const handleUploadRemove = useCallback((requiredDocumentId: string) => {
+    setUploadedDocs((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(requiredDocumentId);
+      return newMap;
+    });
   }, []);
 
   const handleUploadError = useCallback((errorMsg: string) => {
@@ -115,35 +125,16 @@ export default function UploadForm({
   const allRequiredUploaded = uploadedCount >= requiredCount;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-3xl mx-auto">
-          <Link href="/">
-            <Image
-              src="/logo_light.svg"
-              alt="오늘까지"
-              width={100}
-              height={28}
-              className="h-7 w-auto"
-            />
-          </Link>
-        </div>
-      </header>
-
-      {/* Sub Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-xl font-bold text-gray-900">{documentBox.boxTitle}</h1>
-          <p className="text-sm text-gray-500 mt-1">{submitter.name}님의 서류 제출</p>
-        </div>
-      </div>
-
-      <main className="flex-1 max-w-3xl mx-auto w-full p-6">
+    <div className="flex-1 flex flex-col bg-white">
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
+        <SubmitPageHeader
+          title={documentBox.boxTitle}
+          description={`${submitter.name} 님, 아래 서류를 업로드해주세요.`}
+        />
         {/* 진행 상황 */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">제출 진행률</span>
+            <span className="text-sm font-medium text-gray-700">제출 진행률</span>
             <span className="text-sm font-medium text-blue-600">
               {uploadedCount}/{totalCount}
             </span>
@@ -151,21 +142,21 @@ export default function UploadForm({
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(uploadedCount / totalCount) * 100}%` }}
+              style={{ width: `${totalCount > 0 ? (uploadedCount / totalCount) * 100 : 0}%` }}
             />
           </div>
         </div>
 
         {/* 에러 메시지 */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-start gap-2">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-start gap-2">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <span className="text-sm">{error}</span>
           </div>
         )}
 
         {/* 서류 업로드 영역 */}
-        <div className="space-y-4 mb-8">
+        <div className="space-y-4 mb-24">
           {documentBox.requiredDocuments.map((doc) => {
             const existingUpload = uploadedDocs.get(doc.requiredDocumentId);
             return (
@@ -177,34 +168,39 @@ export default function UploadForm({
                 existingUpload={existingUpload}
                 onUploadComplete={(upload) => handleUploadComplete(doc.requiredDocumentId, upload)}
                 onUploadError={handleUploadError}
+                onUploadRemove={() => handleUploadRemove(doc.requiredDocumentId)}
               />
             );
           })}
         </div>
-
-        {/* 제출 버튼 */}
-        <button
-          onClick={handleSubmit}
-          disabled={isSubmitting || !allRequiredUploaded}
-          className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              제출 중...
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-5 h-5" />
-              서류 제출하기
-            </>
-          )}
-        </button>
-
-        <p className="text-xs text-gray-400 text-center mt-4">
-          제출 후에는 수정이 불가능합니다. 서류를 다시 확인해 주세요.
-        </p>
       </main>
+
+      {/* 하단 고정 버튼 영역 */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4">
+        <div className="max-w-2xl mx-auto flex gap-3">
+          <button
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+            className="flex-1 py-3.5 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          >
+            임시저장
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !allRequiredUploaded}
+            className="flex-1 py-3.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                제출 중...
+              </>
+            ) : (
+              '제출하기'
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -35,7 +35,7 @@ export default async function SubmitLandingPage({ params }: SubmitLandingPagePro
   if (result.status === 'email_mismatch') {
     return (
       <EmailMismatchView
-        userEmail={result.user.primaryEmail || ''}
+        userEmail={result.user.email || ''}
         submitterEmail={result.submitter.email}
         submitterName={result.submitter.name}
       />
