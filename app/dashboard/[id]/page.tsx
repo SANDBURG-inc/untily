@@ -47,7 +47,7 @@ export default async function DocumentBoxDetailPage({
         <div className="min-h-screen bg-white">
             <DashboardHeader />
 
-            <main className="container mx-auto px-4 py-8 max-w-6xl">
+            <main className="container mx-auto px-4 py-8">
                 {/* 페이지 헤더: 문서함 제목 + 수정 버튼 */}
                 <PageHeader
                     title={documentBox.boxTitle}
