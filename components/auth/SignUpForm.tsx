@@ -1,17 +1,26 @@
 'use client';
 
 import { useRouter } from "next/navigation";
-import { useStackApp } from "@stackframe/stack";
+import { authClient } from "@/lib/auth/client";
 import { useState } from "react";
 import Image from "next/image";
 
-export default function SignUpForm() {
+interface SignUpFormProps {
+    callbackURL?: string;
+}
+
+const DEFAULT_REDIRECT = '/dashboard';
+
+export default function SignUpForm({ callbackURL }: SignUpFormProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
+    const [name, setName] = useState('');
     const [error, setError] = useState('');
-    const app = useStackApp();
+    const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+
+    const redirectUrl = callbackURL || DEFAULT_REDIRECT;
 
     const onSubmit = async () => {
         if (!email || !password || !passwordConfirm) {
@@ -24,13 +33,42 @@ export default function SignUpForm() {
             return;
         }
 
-        // Attempt to sign up
-        const result = await app.signUpWithCredential({ email, password });
-
-        if (result.status === 'error') {
-            setError(result.error.message);
+        if (password.length < 8) {
+            setError('비밀번호는 8자 이상이어야 합니다.');
+            return;
         }
-        // Success is handled by automatic redirect
+
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const result = await authClient.signUp.email({
+                email,
+                password,
+                name: name || email.split('@')[0],
+            });
+
+            if (result.error) {
+                setError(result.error.message || '회원가입에 실패했습니다.');
+            } else {
+                router.push(redirectUrl);
+            }
+        } catch {
+            setError('회원가입 중 오류가 발생했습니다.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleOAuthSignIn = async () => {
+        try {
+            await authClient.signIn.social({
+                provider: 'google',
+                callbackURL: redirectUrl,
+            });
+        } catch {
+            setError('Google 로그인 중 오류가 발생했습니다.');
+        }
     };
 
     return (
@@ -52,8 +90,9 @@ export default function SignUpForm() {
 
                 <div className="w-full mb-6">
                     <button
-                        onClick={() => app.signInWithOAuth('google')}
-                        className="w-full py-3 px-4 bg-white border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                        onClick={handleOAuthSignIn}
+                        disabled={isLoading}
+                        className="w-full py-3 px-4 bg-white border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M22.56 12.25C22.56 11.47 22.49 10.72 22.36 10H12V14.26H17.92C17.66 15.63 16.88 16.79 15.71 17.57V20.34H19.28C21.36 18.42 22.56 15.6 22.56 12.25Z" fill="#4285F4" />
@@ -79,6 +118,18 @@ export default function SignUpForm() {
                     )}
 
                     <div className="space-y-1">
+                        <label className="block text-sm font-bold text-gray-700">이름 (선택)</label>
+                        <input
+                            type="text"
+                            placeholder="이름을 입력해주세요"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400 text-black"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            disabled={isLoading}
+                        />
+                    </div>
+
+                    <div className="space-y-1">
                         <label className="block text-sm font-bold text-gray-700">이메일</label>
                         <input
                             type="email"
@@ -86,6 +137,7 @@ export default function SignUpForm() {
                             className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400 text-black"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -97,6 +149,7 @@ export default function SignUpForm() {
                             className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400 text-black"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -108,14 +161,16 @@ export default function SignUpForm() {
                             className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400 text-black"
                             value={passwordConfirm}
                             onChange={(e) => setPasswordConfirm(e.target.value)}
+                            disabled={isLoading}
                         />
                     </div>
 
                     <button
                         type="submit"
-                        className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors mt-2"
+                        disabled={isLoading}
+                        className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors mt-2 disabled:opacity-50"
                     >
-                        회원가입
+                        {isLoading ? '회원가입 중...' : '회원가입'}
                     </button>
                 </form>
 
@@ -132,7 +187,7 @@ export default function SignUpForm() {
                         <button
                             type="button"
                             className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                            onClick={() => router.push('/sign-in')}
+                            onClick={() => router.push(callbackURL ? `/sign-in?callbackURL=${encodeURIComponent(callbackURL)}` : '/sign-in')}
                         >
                             로그인
                         </button>

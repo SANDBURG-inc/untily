@@ -57,25 +57,46 @@ model RequiredDocument {
 }
 
 model Submitter {
-  submitterId   String      @id @default(cuid())
+  submitterId   String          @id @default(cuid())
   name          String
   email         String
   phone         String
   documentBoxId String
-  documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
+  documentBox   DocumentBox     @relation(fields: [documentBoxId], references: [documentBoxId])
+
+  // 제출자 인증 관련 필드
+  userId        String?         // Stack Auth 사용자 ID (로그인 시 연결)
+  status        SubmitterStatus @default(PENDING)
+  submittedAt   DateTime?       // 제출 완료 시간
 
   submittedDocuments SubmittedDocument[]
   reminderRecipients ReminderRecipient[]
+
+  @@index([userId])
+  @@index([email])
 }
 
 model SubmittedDocument {
   submittedDocumentId String           @id @default(cuid())
+
+  // S3 관련 필드
+  s3Key               String
+  filename            String
+  size                Int
+  mimeType            String
+
+  // 기존 필드
   fileUrl             String
   createdAt           DateTime         @default(now())
+
+  // 관계 필드
   requiredDocumentId  String
   requiredDocument    RequiredDocument @relation(fields: [requiredDocumentId], references: [requiredDocumentId])
   submitterId         String
   submitter           Submitter        @relation(fields: [submitterId], references: [submitterId])
+
+  @@index([submitterId])
+  @@index([requiredDocumentId])
 }
 
 model DocumentBoxRemindType {
@@ -90,6 +111,11 @@ enum RemindType {
   EMAIL
   SMS
   PUSH
+}
+
+enum SubmitterStatus {
+  PENDING
+  SUBMITTED
 }
 
 model ReminderLog {

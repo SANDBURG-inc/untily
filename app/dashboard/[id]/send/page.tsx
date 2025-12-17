@@ -1,6 +1,6 @@
 import prisma from "@/lib/db";
-import { stackServerApp } from "@/stack/server";
-import { redirect, notFound } from "next/navigation";
+import { ensureAuthenticated } from "@/lib/auth";
+import { notFound } from "next/navigation";
 import { ReminderSendForm } from "@/components/dashboard/SendForm";
 
 export default async function ReminderSendPage({
@@ -8,10 +8,7 @@ export default async function ReminderSendPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const user = await stackServerApp.getUser();
-    if (!user) {
-        redirect("/sign-in");
-    }
+    const user = await ensureAuthenticated();
 
     const { id } = await params;
 

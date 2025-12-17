@@ -1,6 +1,6 @@
 'use client';
 
-import { useStackApp } from "@stackframe/stack";
+import { authClient } from "@/lib/auth/client";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,7 +9,7 @@ export default function ForgotPasswordForm() {
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
-    const app = useStackApp();
+    const [isLoading, setIsLoading] = useState(false);
 
     const onSubmit = async () => {
         if (!email) {
@@ -17,14 +17,24 @@ export default function ForgotPasswordForm() {
             return;
         }
 
-        const result = await app.sendForgotPasswordEmail(email);
+        setIsLoading(true);
+        setError('');
+        setMessage('');
 
-        if (result.status === 'error') {
-            setError(result.error.message);
-            setMessage('');
-        } else {
-            setError('');
-            setMessage('비밀번호 재설정 링크를 이메일로 보냈습니다. 메일함을 확인해주세요.');
+        try {
+            const result = await authClient.forgetPassword.emailOtp({
+                email,
+            });
+
+            if (result.error) {
+                setError(result.error.message || '비밀번호 재설정 요청에 실패했습니다.');
+            } else {
+                setMessage('비밀번호 재설정 링크를 이메일로 보냈습니다. 메일함을 확인해주세요.');
+            }
+        } catch {
+            setError('비밀번호 재설정 요청 중 오류가 발생했습니다.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -65,14 +75,16 @@ export default function ForgotPasswordForm() {
                             className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400 text-black"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            disabled={isLoading}
                         />
                     </div>
 
                     <button
                         type="submit"
-                        className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors mt-2"
+                        disabled={isLoading}
+                        className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors mt-2 disabled:opacity-50"
                     >
-                        비밀번호 재설정 링크 보내기
+                        {isLoading ? '전송 중...' : '비밀번호 재설정 링크 보내기'}
                     </button>
                 </form>
 

@@ -1,7 +1,13 @@
 import SignInForm from "@/components/auth/SignInForm";
 import Image from "next/image";
 
-export default function SignInPage() {
+interface SignInPageProps {
+    searchParams: Promise<{ callbackURL?: string }>;
+}
+
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+    const { callbackURL } = await searchParams;
+
     return (
         <div className="min-h-screen bg-white flex flex-col items-center">
             {/* Top Bar with Logo */}
@@ -18,7 +24,7 @@ export default function SignInPage() {
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col items-center justify-center p-4">
-                <SignInForm />
+                <SignInForm callbackURL={callbackURL} />
 
                 <footer className="mt-12 text-center text-xs text-gray-400">
                     문서 제출 관리 플랫폼 v1.0

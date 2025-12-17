@@ -1,17 +1,24 @@
-
 'use client';
 
 import { useRouter } from "next/navigation";
-import { useStackApp } from "@stackframe/stack";
+import { authClient } from "@/lib/auth/client";
 import { useState } from "react";
 import Image from "next/image";
 
-export default function SignInForm() {
+interface SignInFormProps {
+    callbackURL?: string;
+}
+
+const DEFAULT_REDIRECT = '/dashboard';
+
+export default function SignInForm({ callbackURL }: SignInFormProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const app = useStackApp();
+    const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+
+    const redirectUrl = callbackURL || DEFAULT_REDIRECT;
 
     const onSubmit = async () => {
         if (!email || !password) {
@@ -19,13 +26,36 @@ export default function SignInForm() {
             return;
         }
 
-        // Attempt to sign in
-        const result = await app.signInWithCredential({ email, password });
+        setIsLoading(true);
+        setError('');
 
-        if (result.status === 'error') {
-            setError(result.error.message);
+        try {
+            const result = await authClient.signIn.email({
+                email,
+                password,
+            });
+
+            if (result.error) {
+                setError(result.error.message || '로그인에 실패했습니다.');
+            } else {
+                router.push(redirectUrl);
+            }
+        } catch {
+            setError('로그인 중 오류가 발생했습니다.');
+        } finally {
+            setIsLoading(false);
         }
-        // Success is handled by automatic redirect
+    };
+
+    const handleOAuthSignIn = async () => {
+        try {
+            await authClient.signIn.social({
+                provider: 'google',
+                callbackURL: redirectUrl,
+            });
+        } catch {
+            setError('Google 로그인 중 오류가 발생했습니다.');
+        }
     };
 
     return (
@@ -41,14 +71,15 @@ export default function SignInForm() {
 
             <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm w-[400px]">
                 <div className="flex flex-col items-center mb-8">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">관리자 로그인</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">로그인</h3>
                     <p className="text-gray-500 text-sm">서류 취합, 간편하게 관리하세요.</p>
                 </div>
 
                 <div className="w-full mb-6">
                     <button
-                        onClick={() => app.signInWithOAuth('google')}
-                        className="w-full py-3 px-4 bg-white border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                        onClick={handleOAuthSignIn}
+                        disabled={isLoading}
+                        className="w-full py-3 px-4 bg-white border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M22.56 12.25C22.56 11.47 22.49 10.72 22.36 10H12V14.26H17.92C17.66 15.63 16.88 16.79 15.71 17.57V20.34H19.28C21.36 18.42 22.56 15.6 22.56 12.25Z" fill="#4285F4" />
@@ -81,6 +112,7 @@ export default function SignInForm() {
                             className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400 text-black"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -92,14 +124,16 @@ export default function SignInForm() {
                             className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400 text-black"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            disabled={isLoading}
                         />
                     </div>
 
                     <button
                         type="submit"
-                        className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors mt-2"
+                        disabled={isLoading}
+                        className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors mt-2 disabled:opacity-50"
                     >
-                        로그인
+                        {isLoading ? '로그인 중...' : '로그인'}
                     </button>
                 </form>
 
@@ -123,7 +157,7 @@ export default function SignInForm() {
                         <button
                             type="button"
                             className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                            onClick={() => router.push('/sign-up')}
+                            onClick={() => router.push(callbackURL ? `/sign-up?callbackURL=${encodeURIComponent(callbackURL)}` : '/sign-up')}
                         >
                             회원가입
                         </button>
