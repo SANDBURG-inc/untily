@@ -1,3 +1,16 @@
+/**
+ * Button 컴포넌트 (shadcn/ui)
+ *
+ * 프로젝트의 기본 버튼 컴포넌트입니다.
+ *
+ * ## 아이콘이 포함된 버튼이 필요하다면?
+ *
+ * `IconButton` 컴포넌트를 사용하세요. Button을 래핑하여 아이콘 + 텍스트 조합을
+ * 더 편리하게 사용할 수 있습니다.
+ *
+ * @see {@link ../shared/IconButton} - 아이콘 버튼 래퍼 컴포넌트
+ */
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"

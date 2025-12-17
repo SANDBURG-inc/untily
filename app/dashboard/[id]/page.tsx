@@ -65,7 +65,6 @@ export default async function DocumentBoxDetailPage({
                             </IconButton>
                             <IconButton
                                 variant="primary"
-                                size="md"
                                 icon={<Send size={16} />}
                             >
                                 서류 제출 요청
