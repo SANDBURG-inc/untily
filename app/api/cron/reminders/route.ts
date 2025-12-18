@@ -75,7 +75,7 @@ export async function GET(request: Request) {
             const resend = new Resend(process.env.RESEND_API_KEY || process.env.SMTP_PASS);
 
             const emails = incompleteSubmitters.map(submitter => {
-                const submissionLink = `https://submit.untily.kr/${box.documentBoxId}/${submitter.submitterId}`;
+                const submissionLink = `https://dev.untily.kr/submit/${box.documentBoxId}/${submitter.submitterId}`;
 
                 const emailHtml = generateReminderEmailHtml({
                     submitterName: submitter.name,
