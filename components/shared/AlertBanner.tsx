@@ -1,4 +1,4 @@
-import { Info, AlertCircle } from 'lucide-react';
+import { Info, AlertCircle, CheckCircle } from 'lucide-react';
 
 type AlertType = 'info' | 'error' | 'warning' | 'success';
 
@@ -27,11 +27,11 @@ const alertStyles: Record<AlertType, { bg: string; text: string; icon: typeof In
   success: {
     bg: 'bg-green-50 border-green-200',
     text: 'text-green-700',
-    icon: Info,
+    icon: CheckCircle,
   },
 };
 
-export default function AlertBanner({
+export function AlertBanner({
   type,
   message,
   className = '',
@@ -42,13 +42,13 @@ export default function AlertBanner({
   return (
     <div
       role="alert"
-      className={`flex items-start gap-2 px-4 py-3 rounded-xl border ${styles.bg} ${className}`}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${styles.bg} ${className}`}
     >
       <Icon
-        className={`w-5 h-5 flex-shrink-0 mt-0.5 ${styles.text}`}
+        className={`w-5 h-5 shrink-0 ${styles.text}`}
         aria-hidden="true"
       />
-      <p className={`text-sm ${styles.text}`}>{message}</p>
+      <p className={`text-sm leading-5 ${styles.text}`}>{message}</p>
     </div>
   );
 }

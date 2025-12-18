@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { AlertBanner } from '@/components/shared/AlertBanner';
 import { SubmitActionFooter } from '@/app/submit/_components';
 import InfoCard from './InfoCard';
 import FileListCard from './FileListCard';
-import AlertBanner from './AlertBanner';
 
 interface RequiredDocument {
   requiredDocumentId: string;
@@ -118,7 +118,7 @@ export default function CheckoutView({
 
         {/* 경고 알림 */}
         <AlertBanner
-          type="info"
+          type="error"
           message="제출 후에는 내용을 수정할 수 없습니다. 정확한지 다시 한 번 확인해주세요."
           className="mb-6"
         />

@@ -1,5 +1,5 @@
 import { FileEdit } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/badge';
 
@@ -24,10 +24,11 @@ export default function FileListCard({
 }: FileListCardProps) {
   return (
     <Card className={className}>
-      <CardHeader className="border-b pb-4">
-        <CardTitle className="text-base">{title}</CardTitle>
-        {onEdit && (
-          <CardAction>
+      <CardContent>
+        {/* 섹션 헤더 */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-foreground">{title}</h3>
+          {onEdit && (
             <Button
               variant="outline"
               size="sm"
@@ -37,25 +38,27 @@ export default function FileListCard({
               <FileEdit className="w-4 h-4" aria-hidden="true" />
               파일수정
             </Button>
-          </CardAction>
-        )}
-      </CardHeader>
+          )}
+        </div>
 
-      <CardContent className="pt-0">
-        <ul className="divide-y divide-border" role="list">
+        {/* 파일 목록 - 각 파일이 개별 박스 */}
+        <ul className="space-y-3" role="list">
           {files.map((file, index) => (
-            <li key={index} className="py-3 first:pt-4">
+            <li
+              key={index}
+              className="border border-border rounded-lg px-4 py-3"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground mb-0.5">
+                  <p className="text-lg font-medium text-foreground mb-0.5">
                     {file.documentTitle}
                   </p>
                   {file.filename ? (
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-base text-muted-foreground truncate">
                       {file.filename}
                     </p>
                   ) : (
-                    <p className="text-xs text-muted-foreground/60 italic">
+                    <p className="text-base text-muted-foreground/60 italic">
                       파일 없음
                     </p>
                   )}

@@ -7,8 +7,8 @@ import DocumentUploadItem from '@/components/submit/upload/DocumentUploadItem';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { LabeledProgress } from '@/components/shared/LabeledProgress';
 import { Card, CardContent } from '@/components/ui/card';
+import { AlertBanner } from '@/components/shared/AlertBanner';
 import { SubmitActionFooter } from '@/app/submit/_components';
-import AlertBanner from '../../checkout/_components/AlertBanner';
 
 interface RequiredDocument {
   requiredDocumentId: string;
