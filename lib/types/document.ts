@@ -15,6 +15,7 @@ export interface DocumentRequirement {
 export interface CreateDocumentBoxRequest {
     documentName: string;
     description: string;
+    logoUrl?: string | null;
     submittersEnabled: boolean;
     submitters: Omit<Submitter, 'id'>[];
     requirements: Omit<DocumentRequirement, 'id'>[];

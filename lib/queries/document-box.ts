@@ -134,6 +134,10 @@ export async function getDocumentBoxForEdit(documentBoxId: string, userId: strin
             submitters: true,
             requiredDocuments: true,
             documentBoxRemindTypes: true,
+            logos: {
+                where: { type: 'DOCUMENT_BOX' },
+                take: 1,
+            },
         },
     });
 

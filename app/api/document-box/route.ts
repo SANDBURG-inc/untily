@@ -18,6 +18,7 @@ export async function POST(request: Request) {
         const {
             documentName,
             description,
+            logoUrl,
             submittersEnabled,
             submitters,
             requirements,
@@ -57,6 +58,18 @@ export async function POST(request: Request) {
                     hasSubmitter: submittersEnabled,
                 },
             });
+
+            // 문서함 로고가 있으면 Logo 테이블에 저장
+            if (logoUrl) {
+                await tx.logo.create({
+                    data: {
+                        imageUrl: logoUrl,
+                        userId: user.id,
+                        type: 'DOCUMENT_BOX',
+                        documentBoxId: box.documentBoxId,
+                    },
+                });
+            }
 
             // Create submitters if enabled
             if (submittersEnabled && submitters.length > 0) {

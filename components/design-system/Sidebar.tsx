@@ -19,23 +19,25 @@ const GROUPS: SidebarGroup[] = [
     category: "General",
     items: [
       { title: "소개", href: "#intro" },
+      { title: "색상 팔레트", href: "#colors" },
+      { title: "타이포그래피", href: "#typography" },
     ],
   },
   {
     category: "ShadCN",
     items: [
-      { title: "색상 팔레트", href: "#colors" },
-      { title: "타이포그래피", href: "#typography" },
-      { title: "버튼", href: "#buttons" },
-      { title: "뱃지", href: "#badges" },
-      { title: "카드", href: "#cards" },
-      { title: "선택 컨트롤", href: "#inputs" },
+      { title: "Button", href: "#buttons" },
+      { title: "Badge", href: "#badges" },
+      { title: "Card", href: "#cards" },
+      { title: "Switch", href: "#inputs" },
+      { title: "Dialog", href: "#dialog" },
     ],
   },
   {
     category: "Custom",
     items: [
-      { title: "커스텀 컴포넌트", href: "#custom-components" },
+      { title: "PageHeader", href: "#page-header" },
+      { title: "Table", href: "#table" },
     ],
   },
 ]

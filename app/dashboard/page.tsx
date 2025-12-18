@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
+import { DashboardHeaderActions } from "@/components/dashboard/DashboardHeaderActions";
 import { DocumentCard } from "@/components/dashboard/DocumentCard";
 import { IconButton } from "@/components/shared/IconButton";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -10,6 +11,15 @@ import { hasDesignatedSubmitters } from "@/lib/utils/document-box";
 
 export default async function DashboardPage() {
     const user = await ensureAuthenticated();
+
+    // Fetch default logo
+    const defaultLogo = await prisma.logo.findFirst({
+        where: {
+            userId: user.id,
+            type: 'DEFAULT',
+            documentBoxId: null,
+        },
+    });
 
     // Fetch document boxes from database
     const documentBoxes = await prisma.documentBox.findMany({
@@ -32,14 +42,7 @@ export default async function DashboardPage() {
                 description="서류 제출 현황을 한눈에 확인하고 관리하세요"
                 actions={
                     <div className="hidden md:block">
-                        <IconButton
-                            as="link"
-                            href="/dashboard/register"
-                            variant="primary"
-                            icon={<Plus size={16} />}
-                        >
-                            문서함 등록
-                        </IconButton>
+                        <DashboardHeaderActions existingLogoUrl={defaultLogo?.imageUrl} />
                     </div>
                 }
             />
