@@ -1,16 +1,20 @@
 import type { Metadata } from 'next'
 import { DesignSystemSidebar } from '@/components/design-system/Sidebar'
+import { ensureAuthenticated } from '@/lib/auth'
 
 export const metadata: Metadata = {
   title: 'Design System | Untily',
   description: 'Component library and style guide for Untily project.',
 }
 
-export default function DesignSystemLayout({
+export default async function DesignSystemLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // 인증된 사용자만 접근 가능
+  await ensureAuthenticated()
+
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <DesignSystemSidebar />

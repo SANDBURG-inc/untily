@@ -54,6 +54,7 @@ export async function POST(request: Request) {
                     boxDescription: description || null,
                     endDate,
                     userId: user.id,
+                    hasSubmitter: submittersEnabled,
                 },
             });
 
