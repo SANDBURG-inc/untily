@@ -114,3 +114,34 @@ export function formatReminderRecipients(recipients: ReminderRecipient[]): strin
 
     return `${recipients[0].submitter.name} 외 ${count - 1}명`;
 }
+
+/**
+ * 대표 이름과 총 인원수로 수신자 요약 텍스트를 생성합니다.
+ * 페이지네이션 환경에서 전체 수신자를 로드하지 않고 요약 텍스트를 생성할 때 사용합니다.
+ *
+ * @param firstName - 대표 수신자 이름
+ * @param totalCount - 전체 수신자 수
+ * @returns 포맷팅된 텍스트
+ *   - 0명: '수신자 없음'
+ *   - 1명: '홍길동'
+ *   - 2명 이상: '홍길동 외 N명'
+ *
+ * @example
+ * formatReminderRecipientsCount('홍길동', 0)  // '수신자 없음'
+ * formatReminderRecipientsCount('홍길동', 1)  // '홍길동'
+ * formatReminderRecipientsCount('홍길동', 5)  // '홍길동 외 4명'
+ */
+export function formatReminderRecipientsCount(
+    firstName: string,
+    totalCount: number
+): string {
+    if (totalCount === 0) {
+        return '수신자 없음';
+    }
+
+    if (totalCount === 1) {
+        return firstName;
+    }
+
+    return `${firstName} 외 ${totalCount - 1}명`;
+}
