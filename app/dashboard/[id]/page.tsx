@@ -59,6 +59,8 @@ export default async function DocumentBoxDetailPage({
                             문서함 수정
                         </IconButton>
                         <IconButton
+                            as="link"
+                            href={stats.hasDesignatedSubmitters ? `/dashboard/${id}/send` : `/dashboard/${id}/share`}
                             variant="primary"
                             icon={<Send size={16} />}
                         >
