@@ -1,0 +1,182 @@
+/**
+ * @fileoverview 공개 제출(Public Submit) 전용 인증 모듈
+ *
+ * 이 파일은 지정 제출자 없이 공개적으로 서류를 수집하는 문서함의 인증을 처리합니다.
+ * (hasSubmitter=false인 DocumentBox)
+ *
+ * 일반 제출자 인증과의 차이점:
+ * - 이메일 매칭 불필요 (로그인만 확인)
+ * - Submitter가 미리 생성되어 있지 않음 (로그인 시 자동 생성)
+ * - URL에 submitterId가 없음 (/submit/[documentBoxId])
+ *
+ * @remarks
+ * - 서버 전용 모듈입니다 (import "server-only")
+ * - 지정 제출자 인증은 `@/lib/auth/submitter-auth`를 사용하세요
+ *
+ * @example 공개 제출 인증 검증
+ * ```tsx
+ * import { validatePublicSubmitAuth } from '@/lib/auth/public-submit-auth';
+ *
+ * export default async function PublicSubmitPage({ params }) {
+ *   const result = await validatePublicSubmitAuth(documentBoxId);
+ *
+ *   switch (result.status) {
+ *     case 'success': return <UploadForm />;
+ *     case 'not_authenticated': return <LoginPrompt />;
+ *     case 'not_found': redirect('/submit/not-found');
+ *     case 'expired': redirect('/submit/expired');
+ *     case 'not_public': redirect('/submit/not-found');
+ *   }
+ * }
+ * ```
+ *
+ * @see {@link file://@/lib/auth/submitter-auth.ts} 지정 제출자 인증
+ * @module lib/auth/public-submit-auth
+ */
+import "server-only";
+
+import { neonAuth } from '@neondatabase/neon-js/auth/next';
+import prisma from '@/lib/db';
+import type { DocumentBox, RequiredDocument, SubmittedDocument } from '@/lib/generated/prisma/client';
+import type { AuthenticatedUser } from '@/lib/auth';
+import { hasDesignatedSubmitters } from '@/lib/utils/document-box';
+import { SubmitterWithDocumentBox, NeonAuthUser } from './submitter-auth';
+
+/**
+ * 필수서류를 포함한 DocumentBox 타입
+ */
+export type DocumentBoxWithRequiredDocs = DocumentBox & {
+  requiredDocuments: RequiredDocument[];
+};
+
+/**
+ * 공개 제출 인증 결과 타입
+ */
+export type PublicSubmitAuthResult =
+  | { status: 'success'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox }
+  | { status: 'not_authenticated'; documentBox: DocumentBoxWithRequiredDocs }
+  | { status: 'not_found' }
+  | { status: 'expired'; documentBox: DocumentBox }
+  | { status: 'not_public'; documentBox: DocumentBox };
+
+/**
+ * 공개 제출 인증 및 유효성 검증
+ *
+ * 검증 순서:
+ * 1. 문서함 존재 여부 확인
+ * 2. 공개 제출 문서함 여부 확인 (hasSubmitter=false)
+ * 3. 문서함 만료 여부 확인
+ * 4. Neon Auth 로그인 여부 확인
+ * 5. 기존 Submitter 조회 또는 새로 생성
+ *
+ * @param documentBoxId 문서함 ID
+ * @returns PublicSubmitAuthResult
+ */
+export async function validatePublicSubmitAuth(
+  documentBoxId: string
+): Promise<PublicSubmitAuthResult> {
+  // 1. 문서함 조회 (필수서류 포함)
+  const documentBox = await prisma.documentBox.findUnique({
+    where: { documentBoxId },
+    include: {
+      requiredDocuments: true,
+    },
+  });
+
+  if (!documentBox) {
+    return { status: 'not_found' };
+  }
+
+  // 2. 공개 제출 문서함 여부 확인
+  if (hasDesignatedSubmitters(documentBox.hasSubmitter)) {
+    return { status: 'not_public', documentBox };
+  }
+
+  // 3. 만료 체크
+  if (new Date() > documentBox.endDate) {
+    return { status: 'expired', documentBox };
+  }
+
+  // 4. Neon Auth 로그인 확인
+  const { user } = await neonAuth();
+
+  if (!user) {
+    return {
+      status: 'not_authenticated',
+      documentBox: {
+        ...documentBox,
+        requiredDocuments: documentBox.requiredDocuments,
+      },
+    };
+  }
+
+  // 5. 기존 Submitter 조회 (userId로)
+  let submitter = await prisma.submitter.findFirst({
+    where: {
+      documentBoxId,
+      userId: user.id,
+    },
+    include: {
+      submittedDocuments: true,
+    },
+  });
+
+  // 6. Submitter가 없으면 새로 생성
+  if (!submitter) {
+    submitter = await prisma.submitter.create({
+      data: {
+        name: user.name || user.email || '익명',
+        email: user.email || '',
+        phone: '',
+        documentBoxId,
+        userId: user.id,
+        status: 'PENDING',
+      },
+      include: {
+        submittedDocuments: true,
+      },
+    });
+  }
+
+  // SubmitterWithDocumentBox 형태로 조합
+  const submitterWithDocBox: SubmitterWithDocumentBox = {
+    ...submitter,
+    documentBox: {
+      ...documentBox,
+      requiredDocuments: documentBox.requiredDocuments,
+    },
+    submittedDocuments: submitter.submittedDocuments,
+  };
+
+  return { status: 'success', user: user as NeonAuthUser, submitter: submitterWithDocBox };
+}
+
+/**
+ * 공개 제출 문서함 정보 조회 (인증 없이)
+ *
+ * 랜딩 페이지에서 문서함 정보를 표시할 때 사용
+ *
+ * @param documentBoxId 문서함 ID
+ * @returns DocumentBox 정보 또는 null
+ */
+export async function getPublicDocumentBox(
+  documentBoxId: string
+): Promise<DocumentBoxWithRequiredDocs | null> {
+  const documentBox = await prisma.documentBox.findUnique({
+    where: { documentBoxId },
+    include: {
+      requiredDocuments: true,
+    },
+  });
+
+  if (!documentBox) {
+    return null;
+  }
+
+  // 공개 제출 문서함이 아니면 null 반환
+  if (hasDesignatedSubmitters(documentBox.hasSubmitter)) {
+    return null;
+  }
+
+  return documentBox;
+}
