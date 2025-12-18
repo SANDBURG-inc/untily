@@ -6,7 +6,7 @@ interface SubmitLayoutProps {
 
 export default function SubmitLayout({ children }: SubmitLayoutProps) {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col text-base">
       <SubmitHeader />
       {children}
     </div>
