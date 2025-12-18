@@ -10,7 +10,7 @@ interface DocumentCardProps {
     currentCount: number;
     totalCount: number;
     unsubmittedCount: number;
-    status: "In Progress" | "Completed";
+    status: "In Progress" | "Expired Incomplete" | "Completed";
     hasLimitedSubmitters?: boolean;
     documentBoxId: string;
 }
@@ -27,11 +27,26 @@ export function DocumentCard({
     hasLimitedSubmitters = true,
     documentBoxId,
 }: DocumentCardProps) {
+    const getStatusInfo = () => {
+        switch (status) {
+            case "In Progress":
+                return { label: "진행중", variant: "primary" as const };
+            case "Expired Incomplete":
+                return { label: "일정 마감, 미완료", variant: "warning" as const };
+            case "Completed":
+                return { label: "완료", variant: "success" as const };
+            default:
+                return { label: "진행중", variant: "primary" as const };
+        }
+    };
+
+    const statusInfo = getStatusInfo();
+
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col">
             <div className="mb-4">
-                <Badge variant="primary" className="mb-3">
-                    {status === "In Progress" ? "진행중" : "완료"}
+                <Badge variant={statusInfo.variant} className="mb-3">
+                    {statusInfo.label}
                 </Badge>
                 <h3 className="text-xl font-bold text-slate-900 mb-1">{title}</h3>
                 <p className="text-slate-500 text-sm">{description}</p>
