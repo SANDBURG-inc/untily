@@ -156,3 +156,9 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* GLOBAL button cursor-pointer setting */
+button,
+[role="button"] {
+  cursor: pointer;
+}
