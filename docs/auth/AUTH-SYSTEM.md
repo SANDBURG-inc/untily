@@ -13,11 +13,13 @@ Untily는 [Neon Auth](https://neon.com/docs/auth)를 사용하여 인증을 처�
 5. [서버 컴포넌트에서 인증](#서버-컴포넌트에서-인증)
 6. [클라이언트 컴포넌트에서 인증](#클라이언트-컴포넌트에서-인증)
 7. [API 라우트에서 인증](#api-라우트에서-인증)
-8. [제출자 인증 시스템](#제출자-인증-시스템)
-9. [User 객체](#user-객체)
-10. [핵심 파일 설명](#핵심-파일-설명)
-11. [트러블슈팅](#트러블슈팅)
-12. [참고 자료](#참고-자료)
+8. [Account 페이지](#account-페이지)
+9. [UserButton 컴포넌트](#userbutton-컴포넌트)
+10. [제출자 인증 시스템](#제출자-인증-시스템)
+11. [User 객체](#user-객체)
+12. [핵심 파일 설명](#핵심-파일-설명)
+13. [트러블슈팅](#트러블슈팅)
+14. [참고 자료](#참고-자료)
 
 ---
 
@@ -60,15 +62,20 @@ lib/
 
 app/
 ├── api/auth/[...path]/route.ts # Neon Auth API 핸들러 (catch-all)
-├── sign-in/page.tsx            # 로그인 페이지
-├── sign-up/page.tsx            # 회원가입 페이지
-└── forgot-password/page.tsx    # 비밀번호 찾기 페이지
+├── sign-in/page.tsx            # 로그인 페이지 (커스텀)
+├── sign-up/page.tsx            # 회원가입 페이지 (커스텀)
+├── forgot-password/page.tsx    # 비밀번호 찾기 페이지
+└── account/
+    ├── layout.tsx              # Account 레이아웃
+    └── [path]/page.tsx         # Account 페이지 (Neon AccountView 사용)
 
 components/
 ├── auth/
 │   ├── SignInForm.tsx          # 로그인 폼 컴포넌트
 │   ├── SignUpForm.tsx          # 회원가입 폼 컴포넌트
 │   └── ForgotPasswordForm.tsx  # 비밀번호 찾기 폼 컴포넌트
+├── shared/
+│   └── UserButton.tsx          # 공유 유저 버튼 (드롭다운 메뉴)
 └── providers/
     └── AuthProvider.tsx        # 앱 전역 Auth Provider
 ```
@@ -305,6 +312,117 @@ export async function POST(request: Request) {
   return NextResponse.json(newItem);
 }
 ```
+
+---
+
+## Account 페이지
+
+Neon Auth의 `AccountView` 컴포넌트를 사용하여 사용자 계정 관리 페이지를 제공합니다.
+
+### 지원 경로
+
+| 경로 | 설명 |
+|------|------|
+| `/account/settings` | 프로필 정보 관리 (이름, 이메일 등) |
+| `/account/security` | 비밀번호 변경, 활성 세션 목록 |
+| `/account/api-keys` | API 키 관리 |
+| `/account/organizations` | 조직 관리 |
+
+### 구현 코드
+
+```tsx
+// app/account/[path]/page.tsx
+import { AccountView } from '@neondatabase/neon-js/auth/react/ui';
+import { accountViewPaths } from '@neondatabase/neon-js/auth/react/ui/server';
+
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return Object.values(accountViewPaths).map((path) => ({ path }));
+}
+
+export default async function AccountPage({ params }: { params: Promise<{ path: string }> }) {
+  const { path } = await params;
+
+  return (
+    <main className="container mx-auto p-4 md:p-6">
+      <AccountView path={path} />
+    </main>
+  );
+}
+```
+
+### 레이아웃
+
+```tsx
+// app/account/layout.tsx
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+
+export default function AccountLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="min-h-screen bg-white">
+            <DashboardHeader />
+            {children}
+        </div>
+    );
+}
+```
+
+---
+
+## UserButton 컴포넌트
+
+공유 가능한 유저 버튼 컴포넌트로, 드롭다운 메뉴를 통해 사용자 정보와 계정 관련 기능을 제공합니다.
+
+### 위치
+
+```
+components/shared/UserButton.tsx
+```
+
+### Props
+
+| Prop | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `hideWhenLoggedOut` | `boolean` | `false` | 비로그인 시 버튼을 숨길지 여부 |
+
+### 기능
+
+- **로그인 상태**: 프로필 이미지/아이콘, 드롭다운 메뉴 (이름, 이메일, 계정 설정, 로그아웃)
+- **비로그인 상태**: 로그인 링크 표시 또는 숨김 (`hideWhenLoggedOut` 옵션)
+
+### 사용 예시
+
+```tsx
+// 기본 사용 (비로그인 시 로그인 버튼 표시)
+import { UserButton } from '@/components/shared/UserButton';
+
+<header>
+  <UserButton />
+</header>
+```
+
+```tsx
+// 비로그인 시 숨기기 (제출 페이지 등에서 사용)
+<header>
+  <UserButton hideWhenLoggedOut />
+</header>
+```
+
+### 드롭다운 메뉴 구성
+
+1. **사용자 정보**: 이름, 이메일
+2. **계정 설정**: `/account/settings`로 이동
+3. **로그아웃**: 로그아웃 후 홈으로 리다이렉트
+
+### 사용 중인 컴포넌트
+
+- `components/dashboard/DashboardHeader.tsx`
+- `components/submit/SubmitHeader.tsx`
 
 ---
 
