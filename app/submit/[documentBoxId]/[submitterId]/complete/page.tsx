@@ -2,6 +2,7 @@ import { validateSubmitterAuth } from '@/lib/auth/submitter-auth';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/db';
 import { CheckCircle, FileText, Calendar } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface CompletePageProps {
   params: Promise<{ documentBoxId: string; submitterId: string }>;
@@ -30,29 +31,30 @@ export default async function CompletePage({ params }: CompletePageProps) {
   });
 
   return (
-    <main className="flex-1 flex items-center justify-center p-6 bg-gray-50">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 max-w-lg w-full p-8 text-center">
+    <main className="flex-1 flex items-center justify-center p-6">
+      <Card className="max-w-lg w-full">
+        <CardContent className="pt-8 pb-8 text-center">
           {/* 성공 아이콘 */}
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
             제출이 완료되었습니다!
           </h1>
 
-          <p className="text-gray-600 mb-8">
+          <p className="text-muted-foreground mb-8">
             {result.submitter.name}님의 서류가 성공적으로 제출되었습니다.
           </p>
 
           {/* 제출 내역 */}
-          <div className="bg-gray-50 rounded-lg p-5 text-left mb-6">
-            <h3 className="font-medium text-gray-900 mb-4">제출 내역</h3>
+          <div className="bg-muted rounded-lg p-5 text-left mb-6">
+            <h3 className="font-medium text-foreground mb-4">제출 내역</h3>
 
             {/* 문서함 정보 */}
-            <div className="mb-4 pb-4 border-b border-gray-200">
-              <p className="text-sm text-gray-500 mb-1">문서함</p>
-              <p className="font-medium text-gray-900">{result.submitter.documentBox.boxTitle}</p>
+            <div className="mb-4 pb-4 border-b border-border">
+              <p className="text-sm text-muted-foreground mb-1">문서함</p>
+              <p className="font-medium text-foreground">{result.submitter.documentBox.boxTitle}</p>
             </div>
 
             {/* 제출 서류 목록 */}
@@ -60,14 +62,14 @@ export default async function CompletePage({ params }: CompletePageProps) {
               {submittedDocs.map((doc) => (
                 <li key={doc.submittedDocumentId} className="flex items-center gap-2 text-sm">
                   <FileText className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  <span className="text-gray-700">{doc.requiredDocument.documentTitle}</span>
+                  <span className="text-foreground/80">{doc.requiredDocument.documentTitle}</span>
                 </li>
               ))}
             </ul>
 
             {/* 제출 일시 */}
             {result.submitter.submittedAt && (
-              <div className="flex items-center gap-2 pt-3 border-t border-gray-200 text-sm text-gray-500">
+              <div className="flex items-center gap-2 pt-3 border-t border-border text-sm text-muted-foreground">
                 <Calendar className="w-4 h-4" />
                 <span>
                   제출일시:{' '}
@@ -83,10 +85,11 @@ export default async function CompletePage({ params }: CompletePageProps) {
             )}
           </div>
 
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-muted-foreground/60">
             이 페이지를 닫으셔도 됩니다.
           </p>
-        </div>
+        </CardContent>
+      </Card>
     </main>
   );
 }
