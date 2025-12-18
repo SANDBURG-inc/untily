@@ -61,6 +61,7 @@ export async function getDocumentBoxWithSubmissionStatus(
         where: { documentBoxId },
         include: {
             submitters: {
+                orderBy: { name: 'asc' },
                 include: {
                     submittedDocuments: {
                         select: {
@@ -75,6 +76,7 @@ export async function getDocumentBoxWithSubmissionStatus(
                 orderBy: { sentAt: 'desc' },
                 include: {
                     recipients: {
+                        orderBy: { submitter: { name: 'asc' } },
                         include: {
                             submitter: { select: { name: true } },
                         },

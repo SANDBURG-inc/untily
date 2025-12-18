@@ -16,6 +16,7 @@ export default async function ReminderSendPage({
         where: { documentBoxId: id },
         include: {
             submitters: {
+                orderBy: { name: 'asc' },
                 include: {
                     submittedDocuments: true // To check submission status
                 }
