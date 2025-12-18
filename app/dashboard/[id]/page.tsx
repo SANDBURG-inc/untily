@@ -53,7 +53,6 @@ export default async function DocumentBoxDetailPage({
                             as="link"
                             href={`/dashboard/${id}/edit`}
                             variant="secondary"
-                            size="sm"
                             icon={<Edit size={16} />}
                         >
                             문서함 수정
