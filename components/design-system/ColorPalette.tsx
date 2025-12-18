@@ -17,7 +17,7 @@ const COLORS: { category: string; colors: ColorItem[] }[] = [
   {
     category: "브랜드 색상 (Brand)",
     colors: [
-      { name: "Primary", variable: "bg-primary", text: "text-primary-foreground", oklch: "oklch(0.205 0 0)", hex: "#030712" },
+      { name: "Primary", variable: "bg-primary", text: "text-primary-foreground", oklch: "oklch(0.5465 0.2455 262.87)", hex: "#155DFC" },
       { name: "Primary Foreground", variable: "bg-primary-foreground", text: "text-primary", oklch: "oklch(0.985 0 0)", hex: "#FAFAFA" },
       { name: "Secondary", variable: "bg-secondary", text: "text-secondary-foreground", oklch: "oklch(0.97 0 0)", hex: "#F5F5F5" },
       { name: "Secondary Foreground", variable: "bg-secondary-foreground", text: "text-secondary", oklch: "oklch(0.205 0 0)", hex: "#030712" },
@@ -93,9 +93,9 @@ export function ColorPalette() {
                 <div
                   className={cn(
                     "h-24 rounded-lg shadow-sm flex items-end p-3 transition-transform hover:scale-105",
-                    color.variable,
                     color.border && "border"
                   )}
+                  style={{ backgroundColor: color.hex }}
                 >
                   <span className={cn("text-xs font-medium opacity-90", color.text)}>
                     {color.name}
