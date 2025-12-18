@@ -42,6 +42,7 @@ export function ButtonSection() {
             <Button size="sm">Small</Button>
             <Button size="default">Default</Button>
             <Button size="lg">Large</Button>
+            <Button size="xl">Extra Large</Button>
             <Button size="icon"><Settings className="h-4 w-4" /></Button>
           </div>
         </div>

@@ -53,12 +53,13 @@ export default async function DocumentBoxDetailPage({
                             as="link"
                             href={`/dashboard/${id}/edit`}
                             variant="secondary"
-                            size="sm"
                             icon={<Edit size={16} />}
                         >
                             문서함 수정
                         </IconButton>
                         <IconButton
+                            as="link"
+                            href={stats.hasDesignatedSubmitters ? `/dashboard/${id}/send` : `/dashboard/${id}/share`}
                             variant="primary"
                             icon={<Send size={16} />}
                         >
@@ -80,23 +81,22 @@ export default async function DocumentBoxDetailPage({
             />
 
             {/* 2. 제출자 목록 */}
-            {stats.totalSubmitters > 0 && (
-                <SubmittersList
-                    submitters={documentBox.submitters}
-                    documentBoxTitle={documentBox.boxTitle}
-                    totalRequiredDocuments={documentBox.totalRequiredDocuments}
-                />
-            )}
-
+            <SubmittersList
+                submitters={documentBox.submitters}
+                documentBoxTitle={documentBox.boxTitle}
+                totalRequiredDocuments={documentBox.totalRequiredDocuments}
+            />
             {/* 3. 수집 서류 목록 */}
             <RequiredDocumentsList documents={documentBox.requiredDocuments} />
 
             {/* 4. 리마인드 내역 */}
-            <ReminderHistory
-                documentBoxId={id}
-                autoReminderEnabled={documentBox.documentBoxRemindTypes.length > 0}
-                reminderLogs={documentBox.reminderLogs}
-            />
+            {stats.hasDesignatedSubmitters && (
+                <ReminderHistory
+                    documentBoxId={id}
+                    autoReminderEnabled={documentBox.documentBoxRemindTypes.length > 0}
+                    reminderLogs={documentBox.reminderLogs}
+                />
+            )}
         </main>
     );
 }

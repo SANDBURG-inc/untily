@@ -1,26 +1,19 @@
 import prisma from "@/lib/db";
 import { ensureAuthenticated } from "@/lib/auth";
 import { notFound } from "next/navigation";
-import { ReminderSendForm } from "@/components/dashboard/SendForm";
+import { ShareForm } from "@/components/dashboard/ShareForm";
 
-export default async function ReminderSendPage({
+export default async function DocumentSharePage({
     params,
 }: {
     params: Promise<{ id: string }>;
 }) {
     const user = await ensureAuthenticated();
-
     const { id } = await params;
 
     const documentBox = await prisma.documentBox.findUnique({
         where: { documentBoxId: id },
         include: {
-            submitters: {
-                orderBy: { name: 'asc' },
-                include: {
-                    submittedDocuments: true // To check submission status
-                }
-            },
             requiredDocuments: true
         }
     });
@@ -29,23 +22,18 @@ export default async function ReminderSendPage({
         notFound();
     }
 
-    // Security Check: Only owner can send reminders
+    // Security Check: Only owner can access sharing page
     if (documentBox.userId !== user.id) {
         notFound();
     }
 
     return (
-        <main className="container mx-auto max-w-6xl px-4 py-8">
-            <ReminderSendForm
+        <main className="container mx-auto px-4 py-8">
+            <ShareForm
                 documentBoxId={documentBox.documentBoxId}
                 documentBoxTitle={documentBox.boxTitle}
+                documentBoxDescription={documentBox.boxDescription}
                 endDate={documentBox.endDate}
-                submitters={documentBox.submitters.map(s => ({
-                    submitterId: s.submitterId,
-                    name: s.name,
-                    email: s.email,
-                    submittedDocuments: s.submittedDocuments
-                }))}
                 requiredDocuments={documentBox.requiredDocuments.map(d => ({
                     id: d.requiredDocumentId,
                     name: d.documentTitle,

@@ -21,6 +21,7 @@ export default async function EditDocumentBoxPage({
     const initialData = {
         documentName: documentBox.boxTitle,
         description: documentBox.boxDescription || '',
+        logoUrl: documentBox.logos[0]?.imageUrl || '',
         submittersEnabled: documentBox.submitters.length > 0,
         submitters: documentBox.submitters.length > 0
             ? documentBox.submitters.map((s) => ({

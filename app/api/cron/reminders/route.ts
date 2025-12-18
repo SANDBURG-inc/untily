@@ -75,7 +75,7 @@ export async function GET(request: Request) {
             const resend = new Resend(process.env.RESEND_API_KEY || process.env.SMTP_PASS);
 
             const emails = incompleteSubmitters.map(submitter => {
-                const submissionLink = `https://submit.untily.kr/${box.documentBoxId}/${submitter.submitterId}`;
+                const submissionLink = `https://dev.untily.kr/submit/${box.documentBoxId}/${submitter.submitterId}`;
 
                 const emailHtml = generateReminderEmailHtml({
                     submitterName: submitter.name,
@@ -115,11 +115,20 @@ export async function GET(request: Request) {
                     }
                 });
 
-                // Send in chunks of 100 just in case (Resend limit)
+                // 5. Send in chunks of 100 just in case (Resend limit)
                 // Assuming efficient for now, but simple chunking is safer
                 const chunkSize = 100;
+                const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
                 for (let i = 0; i < emails.length; i += chunkSize) {
                     const chunk = emails.slice(i, i + chunkSize);
+
+                    // If not the first chunk or if we've already sent other batches in this run,
+                    // we should wait to respect Resend's 2 requests/sec limit.
+                    if (i > 0 || totalEmailsSent > 0) {
+                        await delay(500); // Wait 500ms to stay under 2 requests/sec
+                    }
+
                     const { error } = await resend.batch.send(chunk);
 
                     if (error) {

@@ -49,3 +49,23 @@ export function generateS3Key(params: {
 export function getFileUrl(key: string, bucket: string, region: string): string {
   return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
 }
+
+/**
+ * 로고 파일용 S3 키 생성
+ * - 기본 로고: logo/{userId}/{timestamp}_{filename}
+ * - 문서함 로고: logo/{userId}/{documentBoxId}/{timestamp}_{filename}
+ */
+export function generateLogoS3Key(params: {
+  userId: string;
+  documentBoxId?: string;
+  filename: string;
+}): string {
+  const { userId, documentBoxId, filename } = params;
+  const timestamp = Date.now();
+  const sanitized = sanitizeFilename(filename);
+
+  if (documentBoxId) {
+    return `logo/${userId}/${documentBoxId}/${timestamp}_${sanitized}`;
+  }
+  return `logo/${userId}/${timestamp}_${sanitized}`;
+}

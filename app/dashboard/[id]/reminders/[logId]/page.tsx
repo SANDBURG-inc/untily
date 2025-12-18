@@ -34,6 +34,10 @@ export default async function ReminderLogDetailPage({
         where: { reminderLogId: logId },
     });
     const totalPages = Math.ceil(totalCount / pageSize);
+    // 2.2 Fetch Total Required Documents count for the box
+    const totalRequiredDocs = await prisma.requiredDocument.count({
+        where: { documentBoxId: id }
+    });
 
     // 3. Fetch Paginated Recipients
     const recipients = await prisma.reminderRecipient.findMany({
@@ -107,13 +111,17 @@ export default async function ReminderLogDetailPage({
                         </thead>
                         <tbody>
                             {recipients.map((recipient) => {
-                                const isSubmitted = recipient.submitter.submittedDocuments.length > 0;
+                                const submittedCount = recipient.submitter.submittedDocuments.length;
+                                const isComplete = totalRequiredDocs > 0
+                                    ? submittedCount >= totalRequiredDocs
+                                    : false; // Or true depending on desired empty state. SubmittersList uses 'true' for 0 required.
+
                                 return (
                                     <tr key={recipient.id} className="border-b border-gray-100 hover:bg-gray-50">
                                         <td className="py-3 px-4 text-sm text-gray-900">{recipient.submitter.name}</td>
                                         <td className="py-3 px-4 text-sm">
-                                            <span className={isSubmitted ? "text-green-600 font-medium" : "text-red-500 font-medium"}>
-                                                {isSubmitted ? "제출완료" : "미제출"}
+                                            <span className={isComplete ? "text-green-600 font-medium" : "text-red-500 font-medium"}>
+                                                {isComplete ? "제출완료" : "미제출"}
                                             </span>
                                         </td>
                                         <td className="py-3 px-4 text-sm text-gray-600">

@@ -1,14 +1,25 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
+import { DashboardHeaderActions } from "@/components/dashboard/DashboardHeaderActions";
 import { DocumentCard } from "@/components/dashboard/DocumentCard";
 import { IconButton } from "@/components/shared/IconButton";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ensureAuthenticated } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { hasDesignatedSubmitters } from "@/lib/utils/document-box";
 
 export default async function DashboardPage() {
     const user = await ensureAuthenticated();
+
+    // Fetch default logo
+    const defaultLogo = await prisma.logo.findFirst({
+        where: {
+            userId: user.id,
+            type: 'DEFAULT',
+            documentBoxId: null,
+        },
+    });
 
     // Fetch document boxes from database
     const documentBoxes = await prisma.documentBox.findMany({
@@ -31,14 +42,7 @@ export default async function DashboardPage() {
                 description="서류 제출 현황을 한눈에 확인하고 관리하세요"
                 actions={
                     <div className="hidden md:block">
-                        <IconButton
-                            as="link"
-                            href="/dashboard/register"
-                            variant="primary"
-                            icon={<Plus size={16} />}
-                        >
-                            문서함 등록
-                        </IconButton>
+                        <DashboardHeaderActions existingLogoUrl={defaultLogo?.imageUrl} />
                     </div>
                 }
             />
@@ -64,21 +68,43 @@ export default async function DashboardPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {documentBoxes.map((box) => (
-                        <DocumentCard
-                            key={box.documentBoxId}
-                            documentBoxId={box.documentBoxId}
-                            title={box.boxTitle}
-                            description={box.boxDescription || ''}
-                            createdDate={box.createdAt.toISOString().split('T')[0]}
-                            dueDate={box.endDate.toISOString().split('T')[0]}
-                            currentCount={0}
-                            totalCount={box.submitters.length}
-                            unsubmittedCount={box.submitters.length}
-                            status={new Date() > box.endDate ? 'Completed' : 'In Progress'}
-                            hasLimitedSubmitters={box.submitters.length > 0}
-                        />
-                    ))}
+                    {documentBoxes.map((box) => {
+                        const hasLimitedSubmitters = hasDesignatedSubmitters(box.hasSubmitter);
+                        const currentCount = box.submitters.filter(s => s.status === 'SUBMITTED').length;
+                        const totalCount = box.submitters.length;
+                        const unsubmittedCount = totalCount - currentCount;
+                        const isExpired = new Date() > box.endDate;
+
+                        let status: "In Progress" | "Expired Incomplete" | "Completed" = 'In Progress';
+                        if (hasLimitedSubmitters) {
+                            if (currentCount === totalCount && totalCount > 0) {
+                                status = 'Completed';
+                            } else if (isExpired) {
+                                status = 'Expired Incomplete';
+                            } else {
+                                status = 'In Progress';
+                            }
+                        } else {
+                            // Public box
+                            status = isExpired ? 'Completed' : 'In Progress';
+                        }
+
+                        return (
+                            <DocumentCard
+                                key={box.documentBoxId}
+                                documentBoxId={box.documentBoxId}
+                                title={box.boxTitle}
+                                description={box.boxDescription || ''}
+                                createdDate={box.createdAt.toISOString().split('T')[0]}
+                                dueDate={box.endDate.toISOString().split('T')[0]}
+                                currentCount={currentCount}
+                                totalCount={totalCount}
+                                unsubmittedCount={unsubmittedCount}
+                                status={status}
+                                hasLimitedSubmitters={hasLimitedSubmitters}
+                            />
+                        );
+                    })}
                 </div>
             )}
         </main>

@@ -2,14 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, X, FileText, Users, Settings, ChevronDown, Loader2 } from 'lucide-react';
+import { Plus, X, FileText, Users, Settings, ChevronDown, Loader2, ImageIcon } from 'lucide-react';
 import type { Submitter, DocumentRequirement } from '@/lib/types/document';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Switch } from '@/components/ui/switch';
+import { LogoUploadDialog } from './LogoUploadDialog';
 
 interface DocumentBoxInitialData {
     documentName: string;
     description: string;
+    logoUrl?: string;
     submittersEnabled: boolean;
     submitters: Submitter[];
     requirements: DocumentRequirement[];
@@ -37,6 +39,8 @@ export default function DocumentRegistrationForm({
     // Basic Information
     const [documentName, setDocumentName] = useState(initialData?.documentName || '');
     const [description, setDescription] = useState(initialData?.description || '');
+    const [logoUrl, setLogoUrl] = useState(initialData?.logoUrl || '');
+    const [logoDialogOpen, setLogoDialogOpen] = useState(false);
 
     // Submitter Registration
     const [submittersEnabled, setSubmittersEnabled] = useState(initialData?.submittersEnabled ?? true);
@@ -120,6 +124,7 @@ export default function DocumentRegistrationForm({
             const payload = {
                 documentName,
                 description,
+                logoUrl: logoUrl || null,
                 submittersEnabled,
                 submitters: submitters.map(({ id, ...rest }) => rest),
                 requirements: requirements.map(({ id, ...rest }) => rest),
@@ -223,8 +228,53 @@ export default function DocumentRegistrationForm({
                             className="w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none placeholder:text-gray-400"
                         />
                     </div>
+
+                    {/* Logo Upload */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900 mb-2">
+                            로고 (선택)
+                        </label>
+                        {logoUrl ? (
+                            <div className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                <img
+                                    src={logoUrl}
+                                    alt="문서함 로고"
+                                    className="h-12 max-w-[200px] object-contain"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setLogoUrl('')}
+                                    className="text-sm text-red-500 hover:text-red-600 transition-colors"
+                                >
+                                    삭제
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => setLogoDialogOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2.5 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                                <ImageIcon className="w-4 h-4" />
+                                로고 등록
+                            </button>
+                        )}
+                        <p className="mt-2 text-xs text-gray-500">
+                            제출자에게 보여지는 로고입니다. 미등록 시 기본 로고가 적용됩니다.
+                        </p>
+                    </div>
                 </div>
             </div>
+
+            {/* Logo Upload Dialog */}
+            <LogoUploadDialog
+                open={logoDialogOpen}
+                onOpenChange={setLogoDialogOpen}
+                type="documentBox"
+                documentBoxId={isEditMode ? documentBoxId : undefined}
+                existingLogoUrl={logoUrl || undefined}
+                onUploadComplete={(url) => setLogoUrl(url)}
+            />
 
             {/* Submitter Registration */}
             <div className="bg-white border border-gray-200 rounded-lg p-8 mb-6">

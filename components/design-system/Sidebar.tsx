@@ -19,23 +19,25 @@ const GROUPS: SidebarGroup[] = [
     category: "General",
     items: [
       { title: "소개", href: "#intro" },
+      { title: "색상 팔레트", href: "#colors" },
+      { title: "타이포그래피", href: "#typography" },
     ],
   },
   {
     category: "ShadCN",
     items: [
-      { title: "색상 팔레트", href: "#colors" },
-      { title: "타이포그래피", href: "#typography" },
-      { title: "버튼", href: "#buttons" },
-      { title: "뱃지", href: "#badges" },
-      { title: "카드", href: "#cards" },
-      { title: "선택 컨트롤", href: "#inputs" },
+      { title: "Button", href: "#buttons" },
+      { title: "Badge", href: "#badges" },
+      { title: "Card", href: "#cards" },
+      { title: "Switch", href: "#inputs" },
+      { title: "Dialog", href: "#dialog" },
     ],
   },
   {
     category: "Custom",
     items: [
-      { title: "커스텀 컴포넌트", href: "#custom-components" },
+      { title: "PageHeader", href: "#page-header" },
+      { title: "Table", href: "#table" },
     ],
   },
 ]
@@ -56,8 +58,8 @@ export function DesignSystemSidebar({ className }: { className?: string }) {
   return (
     <div className={cn("w-64 shrink-0 h-screen sticky top-0 border-r bg-card/50 backdrop-blur-xl p-6 hidden lg:flex flex-col gap-6", className)}>
       <div className="flex flex-col gap-2">
-        <h1 className="font-bold text-xl tracking-tight">Design System</h1>
-        <p className="text-sm text-muted-foreground">Untily Experience Language</p>
+        <h1 className="font-bold text-xl tracking-tight">디자인 시스템</h1>
+        <p className="text-sm text-muted-foreground">Untily 컴포넌트 라이브러리</p>
       </div>
 
       <div className="relative">
