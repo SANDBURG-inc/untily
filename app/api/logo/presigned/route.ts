@@ -29,10 +29,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '필수 정보가 누락되었습니다.' }, { status: 400 });
     }
 
-    // 3. 문서함 로고인 경우 documentBoxId 검증
-    if (type === 'documentBox' && !documentBoxId) {
-      return NextResponse.json({ error: '문서함 ID가 필요합니다.' }, { status: 400 });
-    }
+    // 3. 문서함 로고 검증
+    // 새 문서함 생성 시에는 documentBoxId가 없을 수 있음
+    // documentBoxId가 없으면 userId 기반 경로에 저장됨 (logo/{userId}/{timestamp}_{filename})
 
     // 4. 파일 크기 체크
     if (size && size > MAX_FILE_SIZE) {
