@@ -16,8 +16,12 @@ import { Table, Column } from '@/components/shared/Table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/Button';
-import prisma from '@/lib/db';
 import { ensureAuthenticated } from '@/lib/auth';
+import {
+    getReminderLogDetail,
+    getPaginatedReminderRecipients,
+    type PaginatedRecipient,
+} from '@/lib/queries/reminder';
 import {
     getReminderChannelLabel,
     formatReminderRecipientsCount,
@@ -25,14 +29,17 @@ import {
 } from '@/lib/types/reminder';
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+const PAGE_SIZE = 10;
+
+// ============================================================================
 // Types
 // ============================================================================
 
 /** 테이블에 표시할 수신자 행 데이터 */
-interface RecipientRow {
-    id: string;
-    name: string;
-    isComplete: boolean;
+interface RecipientRow extends PaginatedRecipient {
     sentAt: Date;
     channel: ReminderChannelType;
     isAuto: boolean;
@@ -51,87 +58,38 @@ export default async function ReminderLogDetailPage({
 }) {
     await ensureAuthenticated();
 
-    const { id, logId } = await params;
-
-    // Pagination Params
+    const { id: documentBoxId, logId } = await params;
     const { page } = await searchParams;
     const currentPage = typeof page === 'string' ? Math.max(1, parseInt(page)) : 1;
-    const pageSize = 10;
 
-    // 1. Fetch Log Basic Info
-    const log = await prisma.reminderLog.findUnique({
-        where: { id: logId, documentBoxId: id },
-    });
+    // 1. 로그 상세 정보 조회
+    const detail = await getReminderLogDetail(logId, documentBoxId, PAGE_SIZE);
+    if (!detail) notFound();
 
-    if (!log) notFound();
+    // 2. 페이지네이션된 수신자 목록 조회
+    const { recipients, totalPages } = await getPaginatedReminderRecipients(
+        logId,
+        documentBoxId,
+        detail.totalRequiredDocs,
+        currentPage,
+        PAGE_SIZE
+    );
 
-    // 2. Fetch Total Recipient Count
-    const totalCount = await prisma.reminderRecipient.count({
-        where: { reminderLogId: logId },
-    });
-    const totalPages = Math.ceil(totalCount / pageSize);
+    // 3. 페이지 타이틀 생성
+    const title = formatReminderRecipientsCount(
+        detail.firstRecipientName,
+        detail.totalRecipients
+    );
 
-    // 2.2 Fetch Total Required Documents count for the box
-    const totalRequiredDocs = await prisma.requiredDocument.count({
-        where: { documentBoxId: id },
-    });
+    // 4. 테이블 데이터 변환 (로그 정보 병합)
+    const tableData: RecipientRow[] = recipients.map((recipient) => ({
+        ...recipient,
+        sentAt: detail.log.sentAt,
+        channel: detail.log.channel,
+        isAuto: detail.log.isAuto,
+    }));
 
-    // 3. Fetch Paginated Recipients
-    const recipients = await prisma.reminderRecipient.findMany({
-        where: { reminderLogId: logId },
-        include: {
-            submitter: {
-                include: {
-                    submittedDocuments: {
-                        where: {
-                            requiredDocument: {
-                                documentBoxId: id,
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        orderBy: {
-            submitter: {
-                name: 'asc',
-            },
-        },
-        take: pageSize,
-        skip: (currentPage - 1) * pageSize,
-    });
-
-    // 4. Fetch Representative Recipient for Title
-    const representativeRecipient = await prisma.reminderRecipient.findFirst({
-        where: { reminderLogId: logId },
-        include: { submitter: true },
-        orderBy: {
-            submitter: {
-                name: 'asc',
-            },
-        },
-    });
-
-    const firstRecipientName = representativeRecipient?.submitter.name ?? '알 수 없음';
-    const title = formatReminderRecipientsCount(firstRecipientName, totalCount);
-
-    // 5. Transform recipients to table row data
-    const tableData: RecipientRow[] = recipients.map((recipient) => {
-        const submittedCount = recipient.submitter.submittedDocuments.length;
-        const isComplete =
-            totalRequiredDocs > 0 ? submittedCount >= totalRequiredDocs : false;
-
-        return {
-            id: recipient.id,
-            name: recipient.submitter.name,
-            isComplete,
-            sentAt: log.sentAt,
-            channel: log.channel as ReminderChannelType,
-            isAuto: log.isAuto,
-        };
-    });
-
-    // 6. Define table columns
+    // 5. 테이블 컬럼 정의
     const columns: Column<RecipientRow>[] = [
         {
             key: 'name',
@@ -210,7 +168,7 @@ export default async function ReminderLogDetailPage({
                             {currentPage > 1 ? (
                                 <Button variant="secondary" size="sm" asChild>
                                     <Link
-                                        href={`/dashboard/${id}/reminders/${logId}?page=${currentPage - 1}`}
+                                        href={`/dashboard/${documentBoxId}/reminders/${logId}?page=${currentPage - 1}`}
                                     >
                                         이전
                                     </Link>
@@ -224,7 +182,7 @@ export default async function ReminderLogDetailPage({
                             {currentPage < totalPages ? (
                                 <Button variant="secondary" size="sm" asChild>
                                     <Link
-                                        href={`/dashboard/${id}/reminders/${logId}?page=${currentPage + 1}`}
+                                        href={`/dashboard/${documentBoxId}/reminders/${logId}?page=${currentPage + 1}`}
                                     >
                                         다음
                                     </Link>
