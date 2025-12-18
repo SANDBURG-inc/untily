@@ -1,12 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Image } from 'lucide-react';
 import { IconButton } from '@/components/shared/IconButton';
 import { LogoUploadDialog } from './LogoUploadDialog';
 
-export function DashboardHeaderActions() {
+interface DashboardHeaderActionsProps {
+    existingLogoUrl?: string;
+}
+
+export function DashboardHeaderActions({ existingLogoUrl }: DashboardHeaderActionsProps) {
+    const router = useRouter();
     const [logoDialogOpen, setLogoDialogOpen] = useState(false);
+
+    const handleUploadComplete = () => {
+        router.refresh();
+    };
 
     return (
         <div className="flex items-center gap-2">
@@ -29,6 +39,9 @@ export function DashboardHeaderActions() {
             <LogoUploadDialog
                 open={logoDialogOpen}
                 onOpenChange={setLogoDialogOpen}
+                type="default"
+                existingLogoUrl={existingLogoUrl}
+                onUploadComplete={handleUploadComplete}
             />
         </div>
     );

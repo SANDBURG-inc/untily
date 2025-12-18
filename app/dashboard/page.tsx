@@ -12,6 +12,11 @@ import { hasDesignatedSubmitters } from "@/lib/utils/document-box";
 export default async function DashboardPage() {
     const user = await ensureAuthenticated();
 
+    // Fetch default logo
+    const defaultLogo = await prisma.logo.findUnique({
+        where: { userId: user.id },
+    });
+
     // Fetch document boxes from database
     const documentBoxes = await prisma.documentBox.findMany({
         where: {
@@ -33,7 +38,7 @@ export default async function DashboardPage() {
                 description="서류 제출 현황을 한눈에 확인하고 관리하세요"
                 actions={
                     <div className="hidden md:block">
-                        <DashboardHeaderActions />
+                        <DashboardHeaderActions existingLogoUrl={defaultLogo?.imageUrl} />
                     </div>
                 }
             />

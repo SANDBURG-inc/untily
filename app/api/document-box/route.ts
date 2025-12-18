@@ -18,6 +18,7 @@ export async function POST(request: Request) {
         const {
             documentName,
             description,
+            logoUrl,
             submittersEnabled,
             submitters,
             requirements,
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
                 data: {
                     boxTitle: documentName,
                     boxDescription: description || null,
+                    logoUrl: logoUrl || null,
                     endDate,
                     userId: user.id,
                     hasSubmitter: submittersEnabled,

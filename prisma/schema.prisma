@@ -37,6 +37,9 @@ model DocumentBox {
   // 관련 유틸: lib/utils/document-box.ts > hasDesignatedSubmitters()
   hasSubmitter Boolean?
 
+  // 문서함별 로고 URL (nullable - 없으면 사용자 기본 로고 사용)
+  logoUrl String?
+
   submitters             Submitter[]
   requiredDocuments      RequiredDocument[]
   documentBoxRemindTypes DocumentBoxRemindType[]

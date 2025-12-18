@@ -42,6 +42,7 @@ export async function PUT(
         const {
             documentName,
             description,
+            logoUrl,
             requirements,
             deadline,
             reminderEnabled,
@@ -75,6 +76,7 @@ export async function PUT(
                 data: {
                     boxTitle: documentName,
                     boxDescription: description || null,
+                    logoUrl: logoUrl || null,
                     endDate,
                 },
             });
