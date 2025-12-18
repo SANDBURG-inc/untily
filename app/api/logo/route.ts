@@ -32,12 +32,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '이미지 URL이 필요합니다.' }, { status: 400 });
     }
 
-    // 기존 로고가 있으면 S3에서 삭제
-    const existingLogo = await prisma.logo.findUnique({
-      where: { userId: user.id },
+    // 기존 기본 로고 조회
+    const existingLogo = await prisma.logo.findFirst({
+      where: {
+        userId: user.id,
+        type: 'DEFAULT',
+        documentBoxId: null,
+      },
     });
 
     if (existingLogo) {
+      // 기존 로고가 있으면 S3에서 삭제 후 업데이트
       const oldS3Key = extractS3Key(existingLogo.imageUrl);
       if (oldS3Key) {
         try {
@@ -46,22 +51,25 @@ export async function POST(request: NextRequest) {
           console.error('Failed to delete old logo from S3:', err);
         }
       }
+
+      const logo = await prisma.logo.update({
+        where: { logoId: existingLogo.logoId },
+        data: { imageUrl },
+      });
+
+      return NextResponse.json({ success: true, logo });
+    } else {
+      // 새 로고 생성
+      const logo = await prisma.logo.create({
+        data: {
+          userId: user.id,
+          imageUrl,
+          type: 'DEFAULT',
+        },
+      });
+
+      return NextResponse.json({ success: true, logo });
     }
-
-    // 로고 upsert
-    const logo = await prisma.logo.upsert({
-      where: { userId: user.id },
-      update: { imageUrl },
-      create: {
-        userId: user.id,
-        imageUrl,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      logo,
-    });
   } catch (error) {
     console.error('Logo save error:', error);
     return NextResponse.json(
@@ -81,9 +89,13 @@ export async function DELETE() {
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
     }
 
-    // 기존 로고 조회
-    const existingLogo = await prisma.logo.findUnique({
-      where: { userId: user.id },
+    // 기존 기본 로고 조회
+    const existingLogo = await prisma.logo.findFirst({
+      where: {
+        userId: user.id,
+        type: 'DEFAULT',
+        documentBoxId: null,
+      },
     });
 
     if (!existingLogo) {
@@ -102,7 +114,7 @@ export async function DELETE() {
 
     // DB에서 삭제
     await prisma.logo.delete({
-      where: { userId: user.id },
+      where: { logoId: existingLogo.logoId },
     });
 
     return NextResponse.json({ success: true });
@@ -125,8 +137,12 @@ export async function GET() {
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
     }
 
-    const logo = await prisma.logo.findUnique({
-      where: { userId: user.id },
+    const logo = await prisma.logo.findFirst({
+      where: {
+        userId: user.id,
+        type: 'DEFAULT',
+        documentBoxId: null,
+      },
     });
 
     return NextResponse.json({

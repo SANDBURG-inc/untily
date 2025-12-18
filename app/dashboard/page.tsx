@@ -13,8 +13,12 @@ export default async function DashboardPage() {
     const user = await ensureAuthenticated();
 
     // Fetch default logo
-    const defaultLogo = await prisma.logo.findUnique({
-        where: { userId: user.id },
+    const defaultLogo = await prisma.logo.findFirst({
+        where: {
+            userId: user.id,
+            type: 'DEFAULT',
+            documentBoxId: null,
+        },
     });
 
     // Fetch document boxes from database

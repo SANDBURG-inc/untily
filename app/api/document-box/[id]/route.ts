@@ -76,10 +76,29 @@ export async function PUT(
                 data: {
                     boxTitle: documentName,
                     boxDescription: description || null,
-                    logoUrl: logoUrl || null,
                     endDate,
                 },
             });
+
+            // 기존 문서함 로고 삭제
+            await tx.logo.deleteMany({
+                where: {
+                    documentBoxId: id,
+                    type: 'DOCUMENT_BOX',
+                },
+            });
+
+            // 새 문서함 로고가 있으면 Logo 테이블에 저장
+            if (logoUrl) {
+                await tx.logo.create({
+                    data: {
+                        imageUrl: logoUrl,
+                        userId: user.id,
+                        type: 'DOCUMENT_BOX',
+                        documentBoxId: id,
+                    },
+                });
+            }
 
             // 제출자(submitter)는 수정 불가 - 생성 시에만 설정 가능
 
