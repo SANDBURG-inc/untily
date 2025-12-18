@@ -8,14 +8,13 @@
  */
 
 import { History } from 'lucide-react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { PageHeader } from '@/components/shared/PageHeader';
+import { Pagination } from '@/components/shared/Pagination';
 import { Table, Column } from '@/components/shared/Table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/Button';
 import { ensureAuthenticated } from '@/lib/auth';
 import {
     getReminderLogDetail,
@@ -159,41 +158,13 @@ export default async function ReminderLogDetailPage({
                         emptyMessage="수신자 정보가 없습니다."
                     />
 
-                    {/* Pagination */}
-                    <div className="flex items-center justify-between mt-4 px-2">
-                        <span className="text-sm text-gray-500">
-                            {currentPage} / {totalPages > 0 ? totalPages : 1}
-                        </span>
-                        <div className="flex gap-2">
-                            {currentPage > 1 ? (
-                                <Button variant="secondary" size="sm" asChild>
-                                    <Link
-                                        href={`/dashboard/${documentBoxId}/reminders/${logId}?page=${currentPage - 1}`}
-                                    >
-                                        이전
-                                    </Link>
-                                </Button>
-                            ) : (
-                                <Button variant="secondary" size="sm" disabled>
-                                    이전
-                                </Button>
-                            )}
-
-                            {currentPage < totalPages ? (
-                                <Button variant="secondary" size="sm" asChild>
-                                    <Link
-                                        href={`/dashboard/${documentBoxId}/reminders/${logId}?page=${currentPage + 1}`}
-                                    >
-                                        다음
-                                    </Link>
-                                </Button>
-                            ) : (
-                                <Button variant="secondary" size="sm" disabled>
-                                    다음
-                                </Button>
-                            )}
-                        </div>
-                    </div>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        createPageUrl={(page) =>
+                            `/dashboard/${documentBoxId}/reminders/${logId}?page=${page}`
+                        }
+                    />
                 </CardContent>
             </Card>
         </main>
