@@ -15,6 +15,7 @@ import { DialogSection } from "@/components/design-system/sections/DialogSection
 // Custom
 import { PageHeaderSection } from "@/components/design-system/sections/PageHeaderSection"
 import { TableSection } from "@/components/design-system/sections/TableSection"
+import { LabeledProgressSection } from "@/components/design-system/sections/LabeledProgressSection"
 
 export default function DesignSystemPage() {
   return (
@@ -50,6 +51,9 @@ export default function DesignSystemPage() {
 
       <hr className="border-border/40" />
       <TableSection />
+
+      <hr className="border-border/40" />
+      <LabeledProgressSection />
 
       <div className="h-20" /> {/* Spacer */}
     </div>

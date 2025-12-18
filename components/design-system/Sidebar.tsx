@@ -38,6 +38,7 @@ const GROUPS: SidebarGroup[] = [
     items: [
       { title: "PageHeader", href: "#page-header" },
       { title: "Table", href: "#table" },
+      { title: "LabeledProgress", href: "#labeled-progress" },
     ],
   },
 ]
