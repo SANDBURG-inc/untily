@@ -1,4 +1,4 @@
-import { SubmitHeader } from '@/components/layout/SubmitHeader';
+import { SubmitHeader } from '@/components/submit/SubmitHeader';
 
 interface SubmitLayoutProps {
   children: React.ReactNode;
