@@ -2,9 +2,13 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, AlertCircle } from 'lucide-react';
-import DocumentUploadItem from '@/components/upload/DocumentUploadItem';
-import SubmitPageHeader from '@/components/submit/SubmitPageHeader';
+import DocumentUploadItem from '@/components/submit/upload/DocumentUploadItem';
+
+import { PageHeader } from '@/components/shared/PageHeader';
+import { LabeledProgress } from '@/components/shared/LabeledProgress';
+import { Card, CardContent } from '@/components/ui/card';
+import { AlertBanner } from '@/components/shared/AlertBanner';
+import { SubmitActionFooter } from '@/app/submit/_components';
 
 interface RequiredDocument {
   requiredDocumentId: string;
@@ -60,7 +64,6 @@ export default function UploadForm({
   });
 
   const [uploadedDocs, setUploadedDocs] = useState<Map<string, UploadedDocument>>(initialUploads);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleUploadComplete = useCallback((requiredDocumentId: string, upload: UploadedDocument) => {
@@ -84,7 +87,7 @@ export default function UploadForm({
     setError(errorMsg);
   }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     // 필수 서류 업로드 확인
     const requiredDocs = documentBox.requiredDocuments.filter((doc) => doc.isRequired);
     const missingDocs = requiredDocs.filter(
@@ -96,27 +99,8 @@ export default function UploadForm({
       return;
     }
 
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/submit/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submitterId }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || '제출에 실패했습니다.');
-      }
-
-      router.push(`/submit/${documentBoxId}/${submitterId}/complete`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '제출 중 오류가 발생했습니다.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    // 체크아웃 페이지로 이동
+    router.push(`/submit/${documentBoxId}/${submitterId}/checkout`);
   };
 
   const uploadedCount = uploadedDocs.size;
@@ -125,34 +109,28 @@ export default function UploadForm({
   const allRequiredUploaded = uploadedCount >= requiredCount;
 
   return (
-    <div className="flex-1 flex flex-col bg-white">
+    <div className="flex-1 flex flex-col">
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
-        <SubmitPageHeader
+        <PageHeader
           title={documentBox.boxTitle}
           description={`${submitter.name} 님, 아래 서류를 업로드해주세요.`}
+          align="center"
         />
+
         {/* 진행 상황 */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">제출 진행률</span>
-            <span className="text-sm font-medium text-blue-600">
-              {uploadedCount}/{totalCount}
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${totalCount > 0 ? (uploadedCount / totalCount) * 100 : 0}%` }}
+        <Card className="mb-6">
+          <CardContent>
+            <LabeledProgress
+              label="제출 진행률"
+              current={uploadedCount}
+              total={totalCount}
             />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* 에러 메시지 */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <span className="text-sm">{error}</span>
-          </div>
+          <AlertBanner type="error" message={error} className="mb-6" />
         )}
 
         {/* 서류 업로드 영역 */}
@@ -176,31 +154,13 @@ export default function UploadForm({
       </main>
 
       {/* 하단 고정 버튼 영역 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4">
-        <div className="max-w-2xl mx-auto flex gap-3">
-          <button
-            onClick={() => router.back()}
-            disabled={isSubmitting}
-            className="flex-1 py-3.5 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
-          >
-            임시저장
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting || !allRequiredUploaded}
-            className="flex-1 py-3.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                제출 중...
-              </>
-            ) : (
-              '제출하기'
-            )}
-          </button>
-        </div>
-      </div>
+      <SubmitActionFooter
+        primaryLabel="제출하기"
+        secondaryLabel="임시저장"
+        onPrimary={handleSubmit}
+        onSecondary={() => router.back()}
+        primaryDisabled={!allRequiredUploaded}
+      />
     </div>
   );
 }
