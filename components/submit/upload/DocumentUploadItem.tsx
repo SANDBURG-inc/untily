@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { FileText, X, Upload } from 'lucide-react';
+import { X, Upload, File } from 'lucide-react';
 import { uploadFile, replaceFile, deleteFile } from '@/lib/s3/upload';
 import FileUploadModal from './FileUploadModal';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/Button';
 
 interface UploadedDocument {
   submittedDocumentId: string;
@@ -109,55 +112,60 @@ export default function DocumentUploadItem({
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium text-gray-900">{requiredDocument.documentTitle}</h3>
-            {requiredDocument.isRequired && (
-              <span className="px-2 py-0.5 bg-red-50 text-red-600 text-xs font-medium rounded">
-                필수
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Description */}
-        {requiredDocument.documentDescription && (
-          <p className="text-sm text-gray-500 mb-4">{requiredDocument.documentDescription}</p>
-        )}
-
-        {/* Upload Area */}
-        {upload ? (
-          // 업로드 완료 상태
-          <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
-            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-              <FileText className="w-5 h-5 text-blue-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{upload.filename}</p>
-              {upload.size && (
-                <p className="text-xs text-gray-500">{formatFileSize(upload.size)}</p>
+      <Card>
+        <CardContent>
+          {/* Header */}
+          <div className="items-start mb-4">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-medium text-foreground">{requiredDocument.documentTitle}</h3>
+              {requiredDocument.isRequired && (
+                <Badge variant="required">필수서류</Badge>
+              )}
+              {!requiredDocument.isRequired && (
+                <Badge variant="optional">선택</Badge>
               )}
             </div>
-            <button
-              onClick={handleRemove}
-              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {/* Description */}
+            {requiredDocument.documentDescription && (
+              <p className="text-base text-muted-foreground">{requiredDocument.documentDescription}</p>
+            )}
           </div>
-        ) : (
-          // 업로드 전 상태
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            <span className="text-sm font-medium">파일 업로드하기</span>
-          </button>
-        )}
-      </div>
+          
+          {/* Upload Area */}
+          {upload ? (
+            // 업로드 완료 상태
+            <div className="flex items-center gap-3 border border-border rounded-md p-3">
+              <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+                <File className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-md font-medium text-foreground truncate">{upload.filename}</p>
+                {upload.size && (
+                  <p className="text-xs text-muted-foreground">{formatFileSize(upload.size)}</p>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRemove}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            // 업로드 전 상태
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setIsModalOpen(true)}
+            >
+              파일 업로드하기
+              <Upload className="w-4 h-4" />
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Upload Modal */}
       <FileUploadModal

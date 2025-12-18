@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { X, Upload, FileText, Loader2 } from 'lucide-react';
+import { X, Loader2, Paperclip, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 interface FileUploadModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export default function FileUploadModal({
   isOpen,
   onClose,
-  documentTitle,
+  documentTitle: _documentTitle, // Reserved for future use
   onUpload,
   isUploading,
   uploadProgress,
@@ -127,25 +128,23 @@ export default function FileUploadModal({
       {/* Modal */}
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-900">파일 업로드하기</h2>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleClose}
             disabled={isUploading}
-            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+            className="h-8 w-8 text-gray-400 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
-        <div className="p-6">
-          {/* Document Title */}
-          <p className="text-sm text-gray-600 mb-4">{documentTitle}</p>
-
-          {/* Upload Area */}
+        <div className="px-6 pb-6">
+          {/* Uploading State */}
           {isUploading ? (
-            // Uploading state
             <div className="border-2 border-gray-200 rounded-xl p-8">
               <div className="flex flex-col items-center">
                 <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
@@ -159,60 +158,65 @@ export default function FileUploadModal({
                 <p className="text-xs text-gray-500 mt-2">{uploadProgress}%</p>
               </div>
             </div>
-          ) : selectedFile ? (
-            // File selected state
-            <div className="border-2 border-gray-200 rounded-xl p-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {selectedFile.name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatFileSize(selectedFile.size)}
-                  </p>
-                </div>
-                <button
-                  onClick={handleRemoveFile}
-                  className="p-1 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
           ) : (
-            // Empty state - drag & drop
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-                isDragging
-                  ? 'border-blue-400 bg-blue-50'
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
-            >
-              <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-              <p className="text-sm text-gray-600 mb-2">
-                여기로 파일을 드래그하거나
-              </p>
-              <label className="inline-block px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors">
-                파일선택
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  accept={ALLOWED_EXTENSIONS}
-                  onChange={handleInputChange}
-                />
-              </label>
-              <p className="text-xs text-gray-400 mt-3">
-                PDF, JPG, PNG, DOC, DOCX (최대 10MB)
-              </p>
-            </div>
+            <>
+              {/* Drag & Drop Area - Always visible */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+                  isDragging
+                    ? 'border-blue-400 bg-blue-50'
+                    : 'border-gray-300 bg-blue-50 hover:border-gray-400'
+                }`}
+              >
+                <p className="text-md text-gray-600 mb-4">
+                  파일을 여기에 드래그 하거나 직접 선택해주세요.
+                </p>
+                <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors">
+                  파일선택
+                  <Paperclip className="w-4 h-4" />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept={ALLOWED_EXTENSIONS}
+                    onChange={handleInputChange}
+                  />
+                </label>
+              </div>
+
+              {/* Selected File - Below drag area */}
+              {selectedFile && (
+                <div className="flex items-center gap-3 mt-4 p-3 border border-gray-200 rounded-lg">
+                  <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(selectedFile.size)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleRemoveFile}
+                    className="h-6 w-6 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
+
+          {/* Info Text - Bullet list */}
+          <div className="mt-4 space-y-1 text-sm text-gray-500">
+            <p>• 최대 파일 크기: 10MB</p>
+            <p>• 지원 형식: PDF, JPG, PNG, DOC, DOCX</p>
+          </div>
 
           {/* Error Message */}
           {error && (
@@ -222,20 +226,21 @@ export default function FileUploadModal({
 
         {/* Footer */}
         <div className="flex gap-3 px-6 py-4 border-t border-gray-200">
-          <button
+          <Button
+            variant="outline"
             onClick={handleClose}
             disabled={isUploading}
-            className="flex-1 py-2.5 px-4 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            className="flex-1"
           >
             취소
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleUpload}
             disabled={!selectedFile || isUploading}
-            className="flex-1 py-2.5 px-4 bg-blue-600 rounded-lg text-white font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="flex-1"
           >
             업로드
-          </button>
+          </Button>
         </div>
       </div>
     </div>

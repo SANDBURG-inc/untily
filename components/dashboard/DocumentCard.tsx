@@ -1,4 +1,4 @@
-import { ProgressBar } from "./ProgressBar";
+import { LabeledProgress } from "@/components/shared/LabeledProgress";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
@@ -80,7 +80,7 @@ export function DocumentCard({
                 </div>
             </div>
 
-            {hasLimitedSubmitters && <ProgressBar current={currentCount} total={totalCount} />}
+            {hasLimitedSubmitters && <LabeledProgress label="진행률" current={currentCount} total={totalCount} displayMode="percentage" size="lg"/>}
 
             <div className="flex-1"></div>
 
