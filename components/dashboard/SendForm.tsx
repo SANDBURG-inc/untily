@@ -74,8 +74,7 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
         setIsPending(false);
 
         if (result.success) {
-            alert("리마인드가 성공적으로 발송되었습니다.");
-            router.push(`/dashboard/${documentBoxId}`);
+            router.push(`/dashboard/${documentBoxId}/send/success`);
             router.refresh();
         } else {
             alert("발송 실패: " + result.error);
