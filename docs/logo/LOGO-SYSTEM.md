@@ -131,9 +131,12 @@ https://{BUCKET}.s3.{REGION}.amazonaws.com/logos/{userId}/document-boxes/{docume
 
 | 항목 | 값 |
 |------|-----|
-| 권장 크기 | 608px x 144px |
+| 권장 크기 | 608px x 144px (UI 안내용, 강제 아님) |
 | 최대 파일 크기 | 10MB |
 | 지원 형식 | JPG, PNG |
+
+> **Note**: 서버에서 리사이즈 처리를 하지 않습니다. 원본 이미지가 그대로 S3에 저장됩니다.
+> User Side에서 적절한 크기로 표시하려면 CSS나 Next.js Image 컴포넌트의 `width`, `height` 속성을 사용하세요.
 
 ## 구현 체크리스트
 
