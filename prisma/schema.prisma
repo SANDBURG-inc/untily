@@ -14,12 +14,24 @@ datasource db {
 }
 
 model Logo {
-  logoId    String   @id @default(cuid())
-  imageUrl  String
-  createdAt DateTime @default(now())
-  userId    String   @unique
+  logoId        String   @id @default(cuid())
+  imageUrl      String
+  createdAt     DateTime @default(now())
+  userId        String
+  type          LogoType @default(DEFAULT)
 
+  // 문서함 로고인 경우에만 사용 (type이 DOCUMENT_BOX일 때)
+  documentBoxId String?
+  documentBox   DocumentBox? @relation(fields: [documentBoxId], references: [documentBoxId])
+
+  @@unique([userId, type, documentBoxId])
   @@index([userId])
+  @@index([documentBoxId])
+}
+
+enum LogoType {
+  DEFAULT       // 사용자 기본 로고
+  DOCUMENT_BOX  // 문서함별 로고
 }
 
 model DocumentBox {
@@ -37,9 +49,7 @@ model DocumentBox {
   // 관련 유틸: lib/utils/document-box.ts > hasDesignatedSubmitters()
   hasSubmitter Boolean?
 
-  // 문서함별 로고 URL (nullable - 없으면 사용자 기본 로고 사용)
-  logoUrl String?
-
+  logos                  Logo[]
   submitters             Submitter[]
   requiredDocuments      RequiredDocument[]
   documentBoxRemindTypes DocumentBoxRemindType[]
