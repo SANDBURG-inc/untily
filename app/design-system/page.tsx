@@ -14,6 +14,7 @@ import { DialogSection } from "@/components/design-system/sections/DialogSection
 
 // Custom
 import { PageHeaderSection } from "@/components/design-system/sections/PageHeaderSection"
+import { PaginationSection } from "@/components/design-system/sections/PaginationSection"
 import { TableSection } from "@/components/design-system/sections/TableSection"
 
 export default function DesignSystemPage() {
@@ -47,6 +48,9 @@ export default function DesignSystemPage() {
       {/* Custom */}
       <hr className="border-border/40" />
       <PageHeaderSection />
+
+      <hr className="border-border/40" />
+      <PaginationSection />
 
       <hr className="border-border/40" />
       <TableSection />
