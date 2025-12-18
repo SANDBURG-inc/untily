@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/Button"
 import { ComponentShowcase } from "@/components/design-system/ComponentShowcase"
 import {
@@ -12,7 +13,10 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog"
+import { LogoUploadDialog } from "@/components/dashboard/LogoUploadDialog"
 export function DialogSection() {
+  const [logoDialogOpen, setLogoDialogOpen] = useState(false)
+
   return (
     <ComponentShowcase
       id="dialog"
@@ -48,56 +52,27 @@ export function DialogSection() {
           </div>
         </div>
 
-        {/* 폼 다이얼로그 */}
+        {/* 로고 업로드 다이얼로그 */}
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            폼 입력 (Form)
+            로고 업로드 (Logo Upload)
           </h3>
           <p className="text-sm text-muted-foreground">
-            폼 요소를 포함한 다이얼로그입니다. 사용자 입력을 받을 때 사용합니다.
+            파일 업로드 기능이 포함된 다이얼로그입니다. 드래그 앤 드롭과 파일 선택을 지원합니다.
           </p>
           <div className="flex flex-wrap gap-4 items-center">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="primary">프로필 수정</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>프로필 수정</DialogTitle>
-                  <DialogDescription>
-                    프로필 정보를 수정합니다. 완료 후 저장 버튼을 클릭하세요.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <label htmlFor="name" className="text-right text-sm font-medium">
-                      이름
-                    </label>
-                    <input
-                      id="name"
-                      defaultValue="홍길동"
-                      className="col-span-3 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <label htmlFor="email" className="text-right text-sm font-medium">
-                      이메일
-                    </label>
-                    <input
-                      id="email"
-                      defaultValue="hong@example.com"
-                      className="col-span-3 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">취소</Button>
-                  </DialogClose>
-                  <Button variant="primary">저장</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Button variant="primary" onClick={() => setLogoDialogOpen(true)}>
+              로고 업로드
+            </Button>
+            <LogoUploadDialog
+              open={logoDialogOpen}
+              onOpenChange={setLogoDialogOpen}
+              type="default"
+              onUploadComplete={(url) => {
+                console.log("Logo uploaded:", url)
+                setLogoDialogOpen(false)
+              }}
+            />
           </div>
         </div>
 
