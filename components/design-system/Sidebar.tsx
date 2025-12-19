@@ -30,6 +30,7 @@ const GROUPS: SidebarGroup[] = [
       { title: "Badge", href: "#badges" },
       { title: "Card", href: "#cards" },
       { title: "Switch", href: "#inputs" },
+      { title: "Select", href: "#select" },
       { title: "Dialog", href: "#dialog" },
     ],
   },

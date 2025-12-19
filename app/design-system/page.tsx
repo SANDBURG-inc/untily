@@ -11,6 +11,7 @@ import { BadgeSection } from "@/components/design-system/sections/BadgeSection"
 import { CardSection } from "@/components/design-system/sections/CardSection"
 import { InputSection } from "@/components/design-system/sections/InputSection"
 import { DialogSection } from "@/components/design-system/sections/DialogSection"
+import { SelectSection } from "@/components/design-system/sections/SelectSection"
 
 // Custom
 import { PageHeaderSection } from "@/components/design-system/sections/PageHeaderSection"
@@ -41,6 +42,9 @@ export default function DesignSystemPage() {
 
       <hr className="border-border/40" />
       <InputSection />
+
+      <hr className="border-border/40" />
+      <SelectSection />
 
       <hr className="border-border/40" />
       <DialogSection />
