@@ -1,6 +1,8 @@
 import { FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from './StatCard';
+import { SectionHeader } from '@/components/shared/SectionHeader';
+import { formatSubmissionDate } from '@/lib/types/submitter';
 
 /**
  * 문서함 제출 현황 섹션
@@ -36,23 +38,19 @@ export function SubmissionStats({
     submissionRate,
     hasDesignatedSubmitters,
 }: SubmissionStatsProps) {
-    // 날짜 포맷: YYYY-MM-DD
-    const formatDate = (date: Date) => date.toISOString().split('T')[0];
-
     return (
-        <Card className="mb-6 py-0 gap-0 border border-gray-200 shadow-none">
-            <CardHeader className="px-6 pt-6 pb-3">
-                <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
-                    <FileText className="w-6 h-6 text-gray-700" />
-                    제출 현황
+        <Card variant="compact" className="mb-6">
+            <CardHeader variant="compact">
+                <CardTitle>
+                    <SectionHeader icon={FileText} title="제출 현황" />
                 </CardTitle>
             </CardHeader>
-            <CardContent className="px-6 pt-0 pb-6">
+            <CardContent variant="compact">
                 {hasDesignatedSubmitters ? (
                     // 지정 제출자 있는 경우: 2행 3열
                     <div className="grid grid-cols-3 gap-4">
-                        <StatCard label="생성일" value={formatDate(createdAt)} />
-                        <StatCard label="마감일" value={formatDate(endDate)} />
+                        <StatCard label="생성일" value={formatSubmissionDate(createdAt)} />
+                        <StatCard label="마감일" value={formatSubmissionDate(endDate)} />
                         <StatCard label="제출자" value={`${totalSubmitters}명`} />
                         <StatCard
                             label="제출완료"
@@ -73,8 +71,8 @@ export function SubmissionStats({
                 ) : (
                     // 지정 제출자 없는 경우: 1행 3열
                     <div className="grid grid-cols-3 gap-4">
-                        <StatCard label="생성일" value={formatDate(createdAt)} />
-                        <StatCard label="마감일" value={formatDate(endDate)} />
+                        <StatCard label="생성일" value={formatSubmissionDate(createdAt)} />
+                        <StatCard label="마감일" value={formatSubmissionDate(endDate)} />
                         <StatCard label="제출자" value={`${totalSubmitters}명`} />
                     </div>
                 )}

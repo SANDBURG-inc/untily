@@ -18,7 +18,16 @@ interface LogoUploadDialogProps {
     type: 'default' | 'documentBox';
     documentBoxId?: string;
     existingLogoUrl?: string;
+    /**
+     * 즉시 업로드 완료 시 호출 (S3 업로드 후 URL 반환)
+     * onFileSelect가 없을 때 사용됨
+     */
     onUploadComplete: (logoUrl: string) => void;
+    /**
+     * 지연 업로드 모드: 파일 선택만 하고 실제 업로드는 나중에 수행
+     * 이 prop이 있으면 즉시 업로드 대신 File 객체와 미리보기 URL만 반환
+     */
+    onFileSelect?: (file: File, previewUrl: string) => void;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -31,7 +40,10 @@ export function LogoUploadDialog({
     documentBoxId,
     existingLogoUrl,
     onUploadComplete,
+    onFileSelect,
 }: LogoUploadDialogProps) {
+    // 지연 업로드 모드 여부 (onFileSelect가 있으면 지연 모드)
+    const isDeferredMode = !!onFileSelect;
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -117,6 +129,15 @@ export function LogoUploadDialog({
     const handleSubmit = async () => {
         if (!file || isUploading) return;
 
+        // 지연 업로드 모드: 파일 선택만 하고 즉시 반환
+        if (isDeferredMode && onFileSelect && previewUrl) {
+            onFileSelect(file, previewUrl);
+            // 상태는 유지하되 다이얼로그만 닫음 (미리보기 URL은 유지)
+            onOpenChange(false);
+            return;
+        }
+
+        // 즉시 업로드 모드: S3에 업로드
         setIsUploading(true);
         setError(null);
         setUploadProgress(0);

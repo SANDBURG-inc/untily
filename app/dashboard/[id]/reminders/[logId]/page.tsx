@@ -1,10 +1,54 @@
-import { History } from "lucide-react";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+/**
+ * 리마인드 로그 상세 페이지
+ *
+ * 특정 리마인드 발송 내역의 상세 정보를 표시합니다.
+ * 수신자 목록, 제출 상태, 발송 채널 등을 페이지네이션과 함께 제공합니다.
+ *
+ * @module app/dashboard/[id]/reminders/[logId]/page
+ */
 
-import { PageHeader } from "@/components/shared/PageHeader";
-import prisma from "@/lib/db";
-import { ensureAuthenticated } from "@/lib/auth";
+import { History } from 'lucide-react';
+import { notFound } from 'next/navigation';
+
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Pagination } from '@/components/shared/Pagination';
+import { SectionHeader } from '@/components/shared/SectionHeader';
+import { Table, Column } from '@/components/shared/Table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ensureAuthenticated } from '@/lib/auth';
+import {
+    getReminderLogDetail,
+    getPaginatedReminderRecipients,
+    type PaginatedRecipient,
+} from '@/lib/queries/reminder';
+import {
+    getReminderChannelLabel,
+    formatReminderRecipientsCount,
+    type ReminderChannelType,
+} from '@/lib/types/reminder';
+import { formatSubmissionDate } from '@/lib/types/submitter';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const PAGE_SIZE = 10;
+
+// ============================================================================
+// Types
+// ============================================================================
+
+/** 테이블에 표시할 수신자 행 데이터 */
+interface RecipientRow extends PaginatedRecipient {
+    sentAt: Date;
+    channel: ReminderChannelType;
+    isAuto: boolean;
+}
+
+// ============================================================================
+// Page Component
+// ============================================================================
 
 export default async function ReminderLogDetailPage({
     params,
@@ -15,74 +59,83 @@ export default async function ReminderLogDetailPage({
 }) {
     await ensureAuthenticated();
 
-    const { id, logId } = await params;
-
-    // Pagination Params
+    const { id: documentBoxId, logId } = await params;
     const { page } = await searchParams;
     const currentPage = typeof page === 'string' ? Math.max(1, parseInt(page)) : 1;
-    const pageSize = 10;
 
-    // 1. Fetch Log Basic Info
-    const log = await prisma.reminderLog.findUnique({
-        where: { id: logId, documentBoxId: id },
-    });
+    // 1. 로그 상세 정보 조회
+    const detail = await getReminderLogDetail(logId, documentBoxId, PAGE_SIZE);
+    if (!detail) notFound();
 
-    if (!log) notFound();
+    // 2. 페이지네이션된 수신자 목록 조회
+    const { recipients, totalPages } = await getPaginatedReminderRecipients(
+        logId,
+        documentBoxId,
+        detail.totalRequiredDocs,
+        currentPage,
+        PAGE_SIZE
+    );
 
-    // 2. Fetch Total Recipient Count
-    const totalCount = await prisma.reminderRecipient.count({
-        where: { reminderLogId: logId },
-    });
-    const totalPages = Math.ceil(totalCount / pageSize);
-    // 2.2 Fetch Total Required Documents count for the box
-    const totalRequiredDocs = await prisma.requiredDocument.count({
-        where: { documentBoxId: id }
-    });
+    // 3. 페이지 타이틀 생성
+    const title = formatReminderRecipientsCount(
+        detail.firstRecipientName,
+        detail.totalRecipients
+    );
 
-    // 3. Fetch Paginated Recipients
-    const recipients = await prisma.reminderRecipient.findMany({
-        where: { reminderLogId: logId },
-        include: {
-            submitter: {
-                include: {
-                    submittedDocuments: {
-                        where: {
-                            requiredDocument: {
-                                documentBoxId: id
-                            }
-                        }
-                    }
-                }
-            }
+    // 4. 테이블 데이터 변환 (로그 정보 병합)
+    const tableData: RecipientRow[] = recipients.map((recipient) => ({
+        ...recipient,
+        sentAt: detail.log.sentAt,
+        channel: detail.log.channel,
+        isAuto: detail.log.isAuto,
+    }));
+
+    // 5. 테이블 컬럼 정의
+    const columns: Column<RecipientRow>[] = [
+        {
+            key: 'name',
+            header: '수신자',
+            render: (row) => (
+                <span className="text-sm text-gray-900">{row.name}</span>
+            ),
         },
-        orderBy: {
-            submitter: {
-                name: 'asc'
-            }
+        {
+            key: 'status',
+            header: '제출상태',
+            render: (row) => (
+                <Badge variant={row.isComplete ? 'success' : 'destructive'}>
+                    {row.isComplete ? '제출완료' : '미제출'}
+                </Badge>
+            ),
         },
-        take: pageSize,
-        skip: (currentPage - 1) * pageSize,
-    });
-
-    // Recipient Name Summary (Representative Name must be consistent across pages)
-    // Always fetch the first recipient based on the same sorting order
-    const representativeRecipient = await prisma.reminderRecipient.findFirst({
-        where: { reminderLogId: logId },
-        include: { submitter: true },
-        orderBy: {
-            submitter: {
-                name: 'asc'
-            }
+        {
+            key: 'sentAt',
+            header: '리마인드 발송일',
+            render: (row) => (
+                <span className="text-sm text-gray-600">
+                    {formatSubmissionDate(row.sentAt)}
+                </span>
+            ),
         },
-    });
-
-    const firstRecipientName = representativeRecipient?.submitter.name ?? "알 수 없음";
-
-    const title = totalCount > 0
-        ? totalCount > 1
-            ? `${firstRecipientName} 외 ${totalCount - 1}명`
-            : firstRecipientName
-        : '수신자 없음';
+        {
+            key: 'channel',
+            header: '리마인드 채널',
+            render: (row) => (
+                <span className="text-sm text-gray-600">
+                    {getReminderChannelLabel(row.channel)}
+                </span>
+            ),
+        },
+        {
+            key: 'isAuto',
+            header: '발송',
+            render: (row) => (
+                <span className="text-sm text-gray-600">
+                    {row.isAuto ? '자동발송' : '직접발송'}
+                </span>
+            ),
+        },
+    ];
 
     return (
         <main className="container mx-auto max-w-6xl px-4 py-8">
@@ -91,88 +144,30 @@ export default async function ReminderLogDetailPage({
                 description="리마인드 상세 내용을 확인해보세요."
             />
 
-            {/* Table */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <History className="w-5 h-5 text-gray-700" />
-                    <h2 className="text-lg font-bold text-gray-900">리마인드 내역</h2>
-                </div>
+            <Card variant="compact">
+                <CardHeader variant="compact">
+                    <CardTitle>
+                        <SectionHeader icon={History} title="리마인드 내역" />
+                    </CardTitle>
+                </CardHeader>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-gray-200">
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">수신자</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">제출상태</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">리마인드 발송일</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">리마인드 채널</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">발송</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {recipients.map((recipient) => {
-                                const submittedCount = recipient.submitter.submittedDocuments.length;
-                                const isComplete = totalRequiredDocs > 0
-                                    ? submittedCount >= totalRequiredDocs
-                                    : false; // Or true depending on desired empty state. SubmittersList uses 'true' for 0 required.
+                <CardContent variant="compact">
+                    <Table
+                        columns={columns}
+                        data={tableData}
+                        keyExtractor={(row) => row.id}
+                        emptyMessage="수신자 정보가 없습니다."
+                    />
 
-                                return (
-                                    <tr key={recipient.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                        <td className="py-3 px-4 text-sm text-gray-900">{recipient.submitter.name}</td>
-                                        <td className="py-3 px-4 text-sm">
-                                            <span className={isComplete ? "text-green-600 font-medium" : "text-red-500 font-medium"}>
-                                                {isComplete ? "제출완료" : "미제출"}
-                                            </span>
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">
-                                            {log.sentAt.toISOString().split('T')[0]}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">
-                                            {log.channel === 'EMAIL' ? '이메일' : log.channel === 'SMS' ? '문자' : '앱 푸시'}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">
-                                            {log.isAuto ? '자동발송' : '직접발송'}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-                {/* Pagination */}
-                <div className="flex items-center justify-between mt-4 px-2">
-                    <span className="text-sm text-gray-500">
-                        {currentPage} / {totalPages > 0 ? totalPages : 1}
-                    </span>
-                    <div className="flex gap-2">
-                        {currentPage > 1 ? (
-                            <Link
-                                href={`/dashboard/${id}/reminders/${logId}?page=${currentPage - 1}`}
-                                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-700 bg-white"
-                            >
-                                이전
-                            </Link>
-                        ) : (
-                            <button disabled className="px-3 py-1 text-sm border border-gray-300 rounded bg-gray-50 text-gray-300 cursor-not-allowed">
-                                이전
-                            </button>
-                        )}
-
-                        {currentPage < totalPages ? (
-                            <Link
-                                href={`/dashboard/${id}/reminders/${logId}?page=${currentPage + 1}`}
-                                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-700 bg-white"
-                            >
-                                다음
-                            </Link>
-                        ) : (
-                            <button disabled className="px-3 py-1 text-sm border border-gray-300 rounded bg-gray-50 text-gray-300 cursor-not-allowed">
-                                다음
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        createPageUrl={(page) =>
+                            `/dashboard/${documentBoxId}/reminders/${logId}?page=${page}`
+                        }
+                    />
+                </CardContent>
+            </Card>
         </main>
-    )
+    );
 }

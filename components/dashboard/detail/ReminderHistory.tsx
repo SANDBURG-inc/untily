@@ -1,31 +1,29 @@
+/**
+ * 리마인드 내역 컴포넌트
+ *
+ * 문서함의 리마인드 발송 내역을 테이블로 표시하고,
+ * 자동 리마인드 설정 기능을 제공합니다.
+ *
+ * @module components/dashboard/detail/ReminderHistory
+ */
+
 import { History, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import { IconButton } from '@/components/shared/IconButton';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Table, Column } from '@/components/shared/Table';
 import { AutoReminderSettings } from '../AutoReminderSettings';
+import {
+    type ReminderLog,
+    getReminderChannelLabel,
+    formatReminderRecipients,
+} from '@/lib/types/reminder';
 
-/**
- * 리마인드 로그 타입
- */
-interface ReminderRecipient {
-    submitter: {
-        name: string;
-    };
-}
+// ============================================================================
+// Props Interface
+// ============================================================================
 
-interface ReminderLog {
-    id: string;
-    sentAt: Date;
-    channel: 'EMAIL' | 'SMS' | 'PUSH';
-    isAuto: boolean;
-    recipients: ReminderRecipient[];
-}
-
-/**
- * 리마인드 내역 섹션
- * 자동 리마인드 설정 + 리마인드 발송 기록 테이블
- */
 interface ReminderHistoryProps {
     /** 문서함 ID */
     documentBoxId: string;
@@ -35,31 +33,16 @@ interface ReminderHistoryProps {
     reminderLogs: ReminderLog[];
 }
 
-/** 채널명 한글 변환 */
-function getChannelLabel(channel: ReminderLog['channel']): string {
-    switch (channel) {
-        case 'EMAIL':
-            return '이메일';
-        case 'SMS':
-            return '문자';
-        case 'PUSH':
-            return '앱 푸시';
-    }
-}
-
-/** 수신자 텍스트 생성 */
-function getRecipientText(recipients: ReminderRecipient[]): string {
-    const count = recipients.length;
-    if (count === 0) return '수신자 없음';
-    if (count === 1) return recipients[0].submitter.name;
-    return `${recipients[0].submitter.name} 외 ${count - 1}명`;
-}
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export function ReminderHistory({
     documentBoxId,
     autoReminderEnabled,
     reminderLogs,
 }: ReminderHistoryProps) {
+    /** 테이블 컬럼 정의 */
     const columns: Column<ReminderLog>[] = [
         {
             key: 'recipient',
@@ -69,7 +52,7 @@ export function ReminderHistory({
                     href={`/dashboard/${documentBoxId}/reminders/${log.id}`}
                     className="text-sm text-gray-900 font-medium hover:text-blue-600"
                 >
-                    {getRecipientText(log.recipients)}
+                    {formatReminderRecipients(log.recipients)}
                 </Link>
             ),
         },
@@ -87,7 +70,7 @@ export function ReminderHistory({
             header: '리마인드 채널',
             render: (log) => (
                 <span className="text-sm text-gray-600">
-                    {getChannelLabel(log.channel)}
+                    {getReminderChannelLabel(log.channel)}
                 </span>
             ),
         },
@@ -103,11 +86,10 @@ export function ReminderHistory({
     ];
 
     return (
-        <Card className="py-0 gap-0 border border-gray-200 shadow-none">
-            <CardHeader className="px-6 pt-6 pb-3">
-                <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
-                    <History className="w-6 h-6 text-gray-700" />
-                    리마인드 내역
+        <Card variant="compact">
+            <CardHeader variant="compact">
+                <CardTitle>
+                    <SectionHeader icon={History} title="리마인드 내역" />
                 </CardTitle>
                 <CardAction>
                     <IconButton
@@ -121,7 +103,7 @@ export function ReminderHistory({
                 </CardAction>
             </CardHeader>
 
-            <CardContent className="px-6 pt-0 pb-6">
+            <CardContent variant="compact">
                 {/* 자동 리마인드 설정 */}
                 <AutoReminderSettings
                     documentBoxId={documentBoxId}

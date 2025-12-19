@@ -11,9 +11,11 @@ import { BadgeSection } from "@/components/design-system/sections/BadgeSection"
 import { CardSection } from "@/components/design-system/sections/CardSection"
 import { InputSection } from "@/components/design-system/sections/InputSection"
 import { DialogSection } from "@/components/design-system/sections/DialogSection"
+import { SelectSection } from "@/components/design-system/sections/SelectSection"
 
 // Custom
 import { PageHeaderSection } from "@/components/design-system/sections/PageHeaderSection"
+import { PaginationSection } from "@/components/design-system/sections/PaginationSection"
 import { TableSection } from "@/components/design-system/sections/TableSection"
 import { LabeledProgressSection } from "@/components/design-system/sections/LabeledProgressSection"
 
@@ -43,11 +45,17 @@ export default function DesignSystemPage() {
       <InputSection />
 
       <hr className="border-border/40" />
+      <SelectSection />
+
+      <hr className="border-border/40" />
       <DialogSection />
 
       {/* Custom */}
       <hr className="border-border/40" />
       <PageHeaderSection />
+
+      <hr className="border-border/40" />
+      <PaginationSection />
 
       <hr className="border-border/40" />
       <TableSection />

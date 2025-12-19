@@ -30,6 +30,7 @@ const GROUPS: SidebarGroup[] = [
       { title: "Badge", href: "#badges" },
       { title: "Card", href: "#cards" },
       { title: "Switch", href: "#inputs" },
+      { title: "Select", href: "#select" },
       { title: "Dialog", href: "#dialog" },
     ],
   },
@@ -37,6 +38,7 @@ const GROUPS: SidebarGroup[] = [
     category: "Custom",
     items: [
       { title: "PageHeader", href: "#page-header" },
+      { title: "Pagination", href: "#pagination" },
       { title: "Table", href: "#table" },
       { title: "LabeledProgress", href: "#labeled-progress" },
     ],
