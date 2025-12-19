@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import prisma from '@/lib/db';
 import { generateUploadUrl } from '@/lib/s3/presigned';
-import { generateS3Key, getContentType, getFileUrl } from '@/lib/s3/utils';
+import { generateS3Key, getContentType, getFileUrl, generateSubmittedFilename } from '@/lib/s3/utils';
 import { S3_BUCKET, S3_REGION } from '@/lib/s3/client';
 import { hasDesignatedSubmitters } from '@/lib/utils/document-box';
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '허용되지 않는 파일 형식입니다. (PDF, JPG, PNG만 가능)' }, { status: 400 });
     }
 
-    // 10. S3 키 생성
+    // 10. S3 키 생성 (식별용 - timestamp + 원본파일명)
     const s3Key = generateS3Key({
       documentBoxId,
       submitterId,
@@ -87,10 +87,18 @@ export async function POST(request: NextRequest) {
       filename,
     });
 
-    // 11. Content-Type 결정
+    // 11. 저장용 파일명 생성 (사용자에게 보여지는 이름)
+    // 형식: {서류명}_{날짜}_{제출자이름}.{확장자}
+    const displayFilename = generateSubmittedFilename({
+      requiredDocumentTitle: requiredDoc.documentTitle,
+      submitterName: submitter.name,
+      originalFilename: filename,
+    });
+
+    // 12. Content-Type 결정
     const finalContentType = contentType || getContentType(filename);
 
-    // 12. Presigned URL 생성
+    // 13. Presigned URL 생성
     const uploadUrl = await generateUploadUrl({
       key: s3Key,
       contentType: finalContentType,
@@ -102,13 +110,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 13. DB에 SubmittedDocument 생성
+    // 14. DB에 SubmittedDocument 생성
     const fileUrl = getFileUrl(s3Key, S3_BUCKET, S3_REGION);
 
     const submittedDocument = await prisma.submittedDocument.create({
       data: {
         s3Key,
-        filename,
+        filename: displayFilename, // 사용자에게 보여지는 파일명
         size: size || 0,
         mimeType: finalContentType,
         fileUrl,
@@ -122,6 +130,7 @@ export async function POST(request: NextRequest) {
       submittedDocumentId: submittedDocument.submittedDocumentId,
       s3Key,
       fileUrl,
+      filename: displayFilename, // 클라이언트에서 표시할 파일명
     });
   } catch (error) {
     console.error('Presigned URL generation error:', error);

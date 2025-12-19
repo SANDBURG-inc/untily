@@ -9,6 +9,56 @@ export function sanitizeFilename(filename: string): string {
 }
 
 /**
+ * 파일명에서 확장자 추출
+ */
+export function getExtension(filename: string): string {
+  const parts = filename.split('.');
+  return parts.length > 1 ? parts.pop()!.toLowerCase() : '';
+}
+
+/**
+ * 현재 날짜를 YYYYMMDD 형식으로 반환
+ */
+export function getDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+}
+
+/**
+ * 제출 파일명 생성 파라미터
+ */
+export interface SubmittedFilenameParams {
+  requiredDocumentTitle: string;
+  submitterName: string;
+  originalFilename: string;
+}
+
+/**
+ * 제출 파일명 생성
+ * 형식: {서류명}_{날짜}_{제출자이름}.{확장자}
+ * 예시: 주민등록등본_20251219_홍길동.pdf
+ */
+export function generateSubmittedFilename(params: SubmittedFilenameParams): string {
+  const { requiredDocumentTitle, submitterName, originalFilename } = params;
+
+  const ext = getExtension(originalFilename);
+  const date = getDateString();
+
+  // 서류명과 제출자 이름 정규화 (특수문자 제거)
+  const sanitizedTitle = requiredDocumentTitle
+    .normalize('NFC')
+    .replace(/[^a-zA-Z0-9가-힣]/g, '');
+  const sanitizedName = submitterName
+    .normalize('NFC')
+    .replace(/[^a-zA-Z0-9가-힣]/g, '');
+
+  return `${sanitizedTitle}_${date}_${sanitizedName}.${ext}`;
+}
+
+/**
  * 파일 확장자에 따른 Content-Type 반환
  */
 export function getContentType(filename: string): string {
@@ -30,6 +80,7 @@ export function getContentType(filename: string): string {
 
 /**
  * 제출 파일용 S3 키 생성
+ * S3 키는 식별용으로 timestamp + 원본파일명 사용
  */
 export function generateS3Key(params: {
   documentBoxId: string;

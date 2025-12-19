@@ -48,6 +48,7 @@ interface UploadResult {
   submittedDocumentId: string;
   s3Key: string;
   fileUrl: string;
+  filename: string; // 표시용 파일명 (서류명_날짜_제출자이름.확장자)
 }
 
 /**
@@ -75,12 +76,12 @@ export async function uploadFile(params: UploadFileParams): Promise<UploadResult
     throw new Error(error.error || 'Failed to get upload URL');
   }
 
-  const { uploadUrl, submittedDocumentId, s3Key, fileUrl } = await res.json();
+  const { uploadUrl, submittedDocumentId, s3Key, fileUrl, filename } = await res.json();
 
   // 2. S3에 직접 업로드
   await uploadToS3({ uploadUrl, file, onProgress });
 
-  return { submittedDocumentId, s3Key, fileUrl };
+  return { submittedDocumentId, s3Key, fileUrl, filename };
 }
 
 /**
