@@ -4,6 +4,7 @@ import { Plus, X, FileText, ChevronDown } from 'lucide-react';
 import type { DocumentRequirement } from '@/lib/types/document';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { IconButton } from '@/components/shared/IconButton';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 
 interface DocumentRequirementsCardProps {
   /** 서류 요구사항 목록 */
@@ -58,9 +59,8 @@ export function DocumentRequirementsCard({
   return (
     <Card className="mb-6 py-0 shadow-none">
       <CardHeader className="pb-0 pt-8 px-8">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <FileText className="w-5 h-5 text-gray-700" />
-          수집 서류 등록
+        <CardTitle>
+          <SectionHeader icon={FileText} title="수집 서류 등록" size="sm" />
         </CardTitle>
       </CardHeader>
 

@@ -11,6 +11,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { IconButton } from '@/components/shared/IconButton';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Table, Column } from '@/components/shared/Table';
 import { downloadCsv } from '@/lib/utils/csv-export';
 import type { SubmitterWithStatus } from '@/lib/queries/document-box';
@@ -176,9 +177,8 @@ export function SubmittersList({
     return (
         <Card className="mb-6 py-0 gap-0 border border-gray-200 shadow-none">
             <CardHeader className="px-6 pt-6 pb-3">
-                <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
-                    <Users className="w-6 h-6 text-gray-700" />
-                    제출자 목록
+                <CardTitle>
+                    <SectionHeader icon={Users} title="제출자 목록" />
                 </CardTitle>
                 <CardAction className="flex items-center gap-2">
                     {filteredSubmitters.length > INITIAL_DISPLAY_COUNT && (

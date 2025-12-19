@@ -4,6 +4,7 @@ import { Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { DatePicker } from '@/components/ui/date-picker';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 
 interface SubmissionSettingsCardProps {
   /** 제출 마감일 (Date 객체) */
@@ -40,9 +41,8 @@ export function SubmissionSettingsCard({
   return (
     <Card className="mb-8 py-0 shadow-none">
       <CardHeader className="pb-0 pt-8 px-8">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Settings className="w-5 h-5 text-gray-700" />
-          제출 옵션 설정
+        <CardTitle>
+          <SectionHeader icon={Settings} title="제출 옵션 설정" size="sm" />
         </CardTitle>
       </CardHeader>
 

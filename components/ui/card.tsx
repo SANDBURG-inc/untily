@@ -1,3 +1,32 @@
+/**
+ * Card 컴포넌트 (shadcn/ui 기반)
+ *
+ * 카드 레이아웃을 위한 기본 컴포넌트입니다.
+ *
+ * ## 섹션 타이틀 스타일 통일
+ * 카드 내 섹션 타이틀에는 `@/components/shared/SectionHeader`를 사용하세요.
+ * 일관된 아이콘 + 타이틀 스타일을 제공합니다.
+ *
+ * @example
+ * ```tsx
+ * import { SectionHeader } from '@/components/shared/SectionHeader';
+ * import { FileText } from 'lucide-react';
+ *
+ * <Card>
+ *   <CardHeader>
+ *     <CardTitle>
+ *       <SectionHeader icon={FileText} title="수집 서류 목록" />
+ *     </CardTitle>
+ *     <CardAction>
+ *       <Button>액션 버튼</Button>
+ *     </CardAction>
+ *   </CardHeader>
+ *   <CardContent>...</CardContent>
+ * </Card>
+ * ```
+ *
+ * @see {@link file://../shared/SectionHeader.tsx} SectionHeader 컴포넌트
+ */
 import * as React from "react"
 
 import { cn } from "@/lib/utils"

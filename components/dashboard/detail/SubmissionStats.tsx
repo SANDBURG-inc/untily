@@ -1,6 +1,7 @@
 import { FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from './StatCard';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 import { formatSubmissionDate } from '@/lib/types/submitter';
 
 /**
@@ -40,9 +41,8 @@ export function SubmissionStats({
     return (
         <Card className="mb-6 py-0 gap-0 border border-gray-200 shadow-none">
             <CardHeader className="px-6 pt-6 pb-3">
-                <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
-                    <FileText className="w-6 h-6 text-gray-700" />
-                    제출 현황
+                <CardTitle>
+                    <SectionHeader icon={FileText} title="제출 현황" />
                 </CardTitle>
             </CardHeader>
             <CardContent className="px-6 pt-0 pb-6">

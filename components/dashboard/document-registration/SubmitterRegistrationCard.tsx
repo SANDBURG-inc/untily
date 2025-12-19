@@ -2,9 +2,10 @@
 
 import { Plus, X, Users } from 'lucide-react';
 import type { Submitter } from '@/lib/types/document';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { IconButton } from '@/components/shared/IconButton';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 
 interface SubmitterRegistrationCardProps {
   /** 제출자 기능 활성화 여부 */
@@ -82,17 +83,16 @@ export function SubmitterRegistrationCard({
   return (
     <Card className="mb-6 py-0 shadow-none">
       <CardHeader className="pb-0 pt-8 px-8">
-        <div className="flex items-center justify-between w-full">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="w-5 h-5 text-gray-700" />
-            서류 제출자 등록
-          </CardTitle>
+        <CardTitle>
+          <SectionHeader icon={Users} title="서류 제출자 등록" size="sm" />
+        </CardTitle>
+        <CardAction>
           <Switch
             checked={submittersEnabled}
             onCheckedChange={onSubmittersEnabledChange}
             disabled={isEditMode}
           />
-        </div>
+        </CardAction>
       </CardHeader>
 
       <CardContent className="px-8 pb-8 pt-6">

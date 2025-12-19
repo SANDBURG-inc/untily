@@ -11,6 +11,7 @@ import { History, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import { IconButton } from '@/components/shared/IconButton';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Table, Column } from '@/components/shared/Table';
 import { AutoReminderSettings } from '../AutoReminderSettings';
 import {
@@ -87,9 +88,8 @@ export function ReminderHistory({
     return (
         <Card className="py-0 gap-0 border border-gray-200 shadow-none">
             <CardHeader className="px-6 pt-6 pb-3">
-                <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
-                    <History className="w-6 h-6 text-gray-700" />
-                    리마인드 내역
+                <CardTitle>
+                    <SectionHeader icon={History} title="리마인드 내역" />
                 </CardTitle>
                 <CardAction>
                     <IconButton

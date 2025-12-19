@@ -12,6 +12,7 @@ import { notFound } from 'next/navigation';
 
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Pagination } from '@/components/shared/Pagination';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Table, Column } from '@/components/shared/Table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -145,9 +146,8 @@ export default async function ReminderLogDetailPage({
 
             <Card className="py-0 gap-0 border border-gray-200 shadow-none">
                 <CardHeader className="px-6 pt-6 pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
-                        <History className="w-5 h-5 text-gray-700" />
-                        리마인드 내역
+                    <CardTitle>
+                        <SectionHeader icon={History} title="리마인드 내역" />
                     </CardTitle>
                 </CardHeader>
 

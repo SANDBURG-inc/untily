@@ -1,6 +1,7 @@
 import { FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RequiredDocumentCard } from './RequiredDocumentCard';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 
 /**
  * 수집 서류 목록 타입
@@ -29,9 +30,8 @@ export function RequiredDocumentsList({ documents }: RequiredDocumentsListProps)
     return (
         <Card className="mb-6 py-0 gap-0 border border-gray-200 shadow-none">
             <CardHeader className="px-6 pt-6 pb-3">
-                <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
-                    <FileText className="w-6 h-6 text-gray-700" />
-                    수집 서류 목록
+                <CardTitle>
+                    <SectionHeader icon={FileText} title="수집 서류 목록" />
                 </CardTitle>
             </CardHeader>
             <CardContent className="px-6 pt-0 pb-6">

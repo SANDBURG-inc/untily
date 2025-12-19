@@ -3,6 +3,7 @@
 import { FileText, ImageIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 
 interface BasicInfoCardProps {
   /** 문서함 이름 */
@@ -38,9 +39,8 @@ export function BasicInfoCard({
   return (
     <Card className="mb-6 py-0 shadow-none">
       <CardHeader className="pb-0 pt-8 px-8">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <FileText className="w-5 h-5 text-gray-700" />
-          기본 정보 입력
+        <CardTitle>
+          <SectionHeader icon={FileText} title="기본 정보 입력" size="sm" />
         </CardTitle>
       </CardHeader>
 
