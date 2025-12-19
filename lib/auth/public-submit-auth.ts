@@ -41,6 +41,7 @@ import type { DocumentBox, RequiredDocument, SubmittedDocument } from '@/lib/gen
 import type { AuthenticatedUser } from '@/lib/auth';
 import { hasDesignatedSubmitters } from '@/lib/utils/document-box';
 import { SubmitterWithDocumentBox, NeonAuthUser } from './submitter-auth';
+import { getLogoForDocumentBox } from '@/lib/queries/logo';
 
 /**
  * 필수서류를 포함한 DocumentBox 타입
@@ -50,11 +51,18 @@ export type DocumentBoxWithRequiredDocs = DocumentBox & {
 };
 
 /**
+ * 로고 URL을 포함한 DocumentBox 타입
+ */
+export type DocumentBoxWithLogo = DocumentBoxWithRequiredDocs & {
+  logoUrl: string;
+};
+
+/**
  * 공개 제출 인증 결과 타입
  */
 export type PublicSubmitAuthResult =
-  | { status: 'success'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox }
-  | { status: 'not_authenticated'; documentBox: DocumentBoxWithRequiredDocs }
+  | { status: 'success'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox; logoUrl: string }
+  | { status: 'not_authenticated'; documentBox: DocumentBoxWithLogo }
   | { status: 'not_found' }
   | { status: 'expired'; documentBox: DocumentBox }
   | { status: 'not_public'; documentBox: DocumentBox };
@@ -97,7 +105,10 @@ export async function validatePublicSubmitAuth(
     return { status: 'expired', documentBox };
   }
 
-  // 4. Neon Auth 로그인 확인
+  // 4. 로고 URL 조회
+  const logoUrl = await getLogoForDocumentBox(documentBoxId);
+
+  // 5. Neon Auth 로그인 확인
   const { user } = await neonAuth();
 
   if (!user) {
@@ -106,11 +117,12 @@ export async function validatePublicSubmitAuth(
       documentBox: {
         ...documentBox,
         requiredDocuments: documentBox.requiredDocuments,
+        logoUrl,
       },
     };
   }
 
-  // 5. 기존 Submitter 조회 (userId로)
+  // 6. 기존 Submitter 조회 (userId로)
   let submitter = await prisma.submitter.findFirst({
     where: {
       documentBoxId,
@@ -121,7 +133,7 @@ export async function validatePublicSubmitAuth(
     },
   });
 
-  // 6. Submitter가 없으면 새로 생성
+  // 7. Submitter가 없으면 새로 생성
   if (!submitter) {
     submitter = await prisma.submitter.create({
       data: {
@@ -148,7 +160,7 @@ export async function validatePublicSubmitAuth(
     submittedDocuments: submitter.submittedDocuments,
   };
 
-  return { status: 'success', user: user as NeonAuthUser, submitter: submitterWithDocBox };
+  return { status: 'success', user: user as NeonAuthUser, submitter: submitterWithDocBox, logoUrl };
 }
 
 /**

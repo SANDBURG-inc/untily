@@ -45,6 +45,7 @@ export default async function PublicSubmitLandingPage({ params }: PublicSubmitLa
         requiredDocuments: result.documentBox.requiredDocuments,
       }}
       documentBoxId={documentBoxId}
+      logoUrl={result.documentBox.logoUrl}
     />
   );
 }

@@ -37,6 +37,7 @@ import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import prisma from '@/lib/db';
 import type { DocumentBox, RequiredDocument, Submitter, SubmitterStatus, SubmittedDocument } from '@/lib/generated/prisma/client';
 import type { AuthenticatedUser } from '@/lib/auth';
+import { getLogoForDocumentBox } from '@/lib/queries/logo';
 
 /**
  * Neon Auth 사용자 타입
@@ -50,9 +51,9 @@ export type NeonAuthUser = AuthenticatedUser;
  * 제출자 인증 결과 타입
  */
 export type SubmitterAuthResult =
-  | { status: 'success'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox }
-  | { status: 'not_authenticated'; submitter: SubmitterWithDocumentBox }
-  | { status: 'email_mismatch'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox }
+  | { status: 'success'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox; logoUrl: string }
+  | { status: 'not_authenticated'; submitter: SubmitterWithDocumentBox; logoUrl: string }
+  | { status: 'email_mismatch'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox; logoUrl: string }
   | { status: 'not_found' }
   | { status: 'expired'; documentBox: DocumentBox };
 
@@ -126,22 +127,25 @@ export async function validateSubmitterAuth(
     submittedDocuments: submitter.submittedDocuments,
   };
 
-  // 4. Neon Auth 로그인 확인
+  // 4. 로고 URL 조회
+  const logoUrl = await getLogoForDocumentBox(documentBoxId);
+
+  // 5. Neon Auth 로그인 확인
   const { user } = await neonAuth();
 
   if (!user) {
-    return { status: 'not_authenticated', submitter: submitterWithDocBox };
+    return { status: 'not_authenticated', submitter: submitterWithDocBox, logoUrl };
   }
 
-  // 5. 이메일 일치 확인 (대소문자 무시)
+  // 6. 이메일 일치 확인 (대소문자 무시)
   const userEmail = user.email?.toLowerCase();
   const submitterEmail = submitter.email.toLowerCase();
 
   if (userEmail !== submitterEmail) {
-    return { status: 'email_mismatch', user: user as NeonAuthUser, submitter: submitterWithDocBox };
+    return { status: 'email_mismatch', user: user as NeonAuthUser, submitter: submitterWithDocBox, logoUrl };
   }
 
-  // 6. userId 연결 (최초 로그인 시)
+  // 7. userId 연결 (최초 로그인 시)
   if (!submitter.userId) {
     await prisma.submitter.update({
       where: { submitterId },
@@ -151,7 +155,7 @@ export async function validateSubmitterAuth(
     submitterWithDocBox.userId = user.id;
   }
 
-  return { status: 'success', user: user as NeonAuthUser, submitter: submitterWithDocBox };
+  return { status: 'success', user: user as NeonAuthUser, submitter: submitterWithDocBox, logoUrl };
 }
 
 /**

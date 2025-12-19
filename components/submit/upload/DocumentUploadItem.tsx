@@ -74,7 +74,7 @@ export default function DocumentUploadItem({
 
       const newUpload: UploadedDocument = {
         submittedDocumentId: result.submittedDocumentId,
-        filename: file.name,
+        filename: result.filename, // 서류명_날짜_제출자이름.확장자 형식
         s3Key: result.s3Key,
         size: file.size,
       };
