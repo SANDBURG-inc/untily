@@ -81,10 +81,10 @@ export function SubmitterRegistrationCard({
   };
 
   return (
-    <Card className="mb-6 py-0 shadow-none">
-      <CardHeader className="pb-0 pt-8 px-8">
+    <Card variant="compact" className="mb-6">
+      <CardHeader variant="compact">
         <CardTitle>
-          <SectionHeader icon={Users} title="서류 제출자 등록" size="sm" />
+          <SectionHeader icon={Users} title="서류 제출자 등록" size="md" />
         </CardTitle>
         <CardAction>
           <Switch
@@ -95,7 +95,7 @@ export function SubmitterRegistrationCard({
         </CardAction>
       </CardHeader>
 
-      <CardContent className="px-8 pb-8 pt-6">
+      <CardContent variant="compact">
         {submittersEnabled ? (
           <div className="space-y-4">
             {submitters.map((submitter) => (

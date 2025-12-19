@@ -86,8 +86,8 @@ export function ReminderHistory({
     ];
 
     return (
-        <Card className="py-0 gap-0 border border-gray-200 shadow-none">
-            <CardHeader className="px-6 pt-6 pb-3">
+        <Card variant="compact">
+            <CardHeader variant="compact">
                 <CardTitle>
                     <SectionHeader icon={History} title="리마인드 내역" />
                 </CardTitle>
@@ -103,7 +103,7 @@ export function ReminderHistory({
                 </CardAction>
             </CardHeader>
 
-            <CardContent className="px-6 pt-0 pb-6">
+            <CardContent variant="compact">
                 {/* 자동 리마인드 설정 */}
                 <AutoReminderSettings
                     documentBoxId={documentBoxId}

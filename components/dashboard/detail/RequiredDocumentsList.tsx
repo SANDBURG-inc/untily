@@ -28,13 +28,13 @@ export function RequiredDocumentsList({ documents }: RequiredDocumentsListProps)
     }
 
     return (
-        <Card className="mb-6 py-0 gap-0 border border-gray-200 shadow-none">
-            <CardHeader className="px-6 pt-6 pb-3">
+        <Card variant="compact" className="mb-6">
+            <CardHeader variant="compact">
                 <CardTitle>
                     <SectionHeader icon={FileText} title="수집 서류 목록" />
                 </CardTitle>
             </CardHeader>
-            <CardContent className="px-6 pt-0 pb-6">
+            <CardContent variant="compact">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {documents.map((doc) => (
                         <RequiredDocumentCard

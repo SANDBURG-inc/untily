@@ -57,14 +57,14 @@ export function DocumentRequirementsCard({
   };
 
   return (
-    <Card className="mb-6 py-0 shadow-none">
-      <CardHeader className="pb-0 pt-8 px-8">
+    <Card variant="compact" className="mb-6">
+      <CardHeader variant="compact">
         <CardTitle>
-          <SectionHeader icon={FileText} title="수집 서류 등록" size="sm" />
+          <SectionHeader icon={FileText} title="수집 서류 등록" size="md" />
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="px-8 pb-8 pt-6">
+      <CardContent variant="compact">
         <div className="space-y-4">
           {requirements.map((requirement) => (
             <div

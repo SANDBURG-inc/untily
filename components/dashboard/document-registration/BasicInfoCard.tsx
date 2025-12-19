@@ -37,14 +37,14 @@ export function BasicInfoCard({
   onLogoDialogOpen,
 }: BasicInfoCardProps) {
   return (
-    <Card className="mb-6 py-0 shadow-none">
-      <CardHeader className="pb-0 pt-8 px-8">
+    <Card variant="compact" className="mb-6">
+      <CardHeader variant="compact">
         <CardTitle>
-          <SectionHeader icon={FileText} title="기본 정보 입력" size="sm" />
+          <SectionHeader icon={FileText} title="기본 정보 입력" size="md" />
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="px-8 pb-8 pt-6">
+      <CardContent variant="compact">
         <div className="space-y-5">
           {/* 문서함 이름 입력 */}
           <div>

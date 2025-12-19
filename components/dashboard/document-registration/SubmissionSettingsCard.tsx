@@ -39,14 +39,14 @@ export function SubmissionSettingsCard({
   submittersEnabled,
 }: SubmissionSettingsCardProps) {
   return (
-    <Card className="mb-8 py-0 shadow-none">
-      <CardHeader className="pb-0 pt-8 px-8">
+    <Card variant="compact" className="mb-8">
+      <CardHeader variant="compact">
         <CardTitle>
-          <SectionHeader icon={Settings} title="제출 옵션 설정" size="sm" />
+          <SectionHeader icon={Settings} title="제출 옵션 설정" size="md" />
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="px-8 pb-8 pt-6">
+      <CardContent variant="compact">
         <div className="space-y-6">
           {/* 제출 마감일 선택 */}
           <div>

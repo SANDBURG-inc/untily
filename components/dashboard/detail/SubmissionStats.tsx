@@ -39,13 +39,13 @@ export function SubmissionStats({
     hasDesignatedSubmitters,
 }: SubmissionStatsProps) {
     return (
-        <Card className="mb-6 py-0 gap-0 border border-gray-200 shadow-none">
-            <CardHeader className="px-6 pt-6 pb-3">
+        <Card variant="compact" className="mb-6">
+            <CardHeader variant="compact">
                 <CardTitle>
                     <SectionHeader icon={FileText} title="제출 현황" />
                 </CardTitle>
             </CardHeader>
-            <CardContent className="px-6 pt-0 pb-6">
+            <CardContent variant="compact">
                 {hasDesignatedSubmitters ? (
                     // 지정 제출자 있는 경우: 2행 3열
                     <div className="grid grid-cols-3 gap-4">
