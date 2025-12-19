@@ -3,10 +3,25 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Users, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { IconButton } from '@/components/shared/IconButton';
 import { Table, Column } from '@/components/shared/Table';
 import { downloadCsv } from '@/lib/utils/csv-export';
 import type { SubmitterWithStatus } from '@/lib/queries/document-box';
+import {
+    type StatusFilter,
+    STATUS_FILTER_OPTIONS,
+    getSubmissionStatus,
+    getStatusStyle,
+    formatProgress,
+    formatSubmissionDate,
+} from '@/lib/types/submitter';
 
 /**
  * 제출자 목록 컴포넌트
@@ -21,28 +36,6 @@ interface SubmittersListProps {
     totalRequiredDocuments: number;
 }
 
-type SubmissionStatus = '제출완료' | '미제출' | '부분제출';
-
-/** 제출 상태 계산 */
-function getSubmissionStatus(submittedCount: number, totalRequired: number): SubmissionStatus {
-    if (totalRequired === 0) return '제출완료';
-    if (submittedCount === 0) return '미제출';
-    if (submittedCount >= totalRequired) return '제출완료';
-    return '부분제출';
-}
-
-/** 상태별 스타일 */
-function getStatusStyle(status: SubmissionStatus): string {
-    switch (status) {
-        case '제출완료':
-            return 'bg-green-100 text-green-700';
-        case '미제출':
-            return 'bg-gray-100 text-gray-700';
-        case '부분제출':
-            return 'bg-yellow-100 text-yellow-700';
-    }
-}
-
 const INITIAL_DISPLAY_COUNT = 5;
 
 export function SubmittersList({
@@ -52,10 +45,20 @@ export function SubmittersList({
 }: SubmittersListProps) {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showAll, setShowAll] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+    // 필터링된 제출자 목록
+    const filteredSubmitters = useMemo(() => {
+        if (statusFilter === 'all') return submitters;
+        return submitters.filter(s => {
+            const status = getSubmissionStatus(s.submittedCount, totalRequiredDocuments);
+            return status === statusFilter;
+        });
+    }, [submitters, statusFilter, totalRequiredDocuments]);
 
     const displayedSubmitters = useMemo(() => {
-        return showAll ? submitters : submitters.slice(0, INITIAL_DISPLAY_COUNT);
-    }, [submitters, showAll]);
+        return showAll ? filteredSubmitters : filteredSubmitters.slice(0, INITIAL_DISPLAY_COUNT);
+    }, [filteredSubmitters, showAll]);
 
     const allSelected = useMemo(() => {
         return submitters.length > 0 && selectedIds.size === submitters.length;
@@ -132,21 +135,18 @@ export function SubmittersList({
             header: '제출일',
             render: (submitter) => (
                 <span className="text-sm text-gray-600">
-                    {submitter.lastSubmittedAt
-                        ? submitter.lastSubmittedAt.toISOString().split('T')[0]
-                        : '-'}
+                    {formatSubmissionDate(submitter.lastSubmittedAt)}
                 </span>
             ),
         },
         {
             key: 'progress',
             header: '진행상황',
-            render: (submitter) => {
-                const progress = totalRequiredDocuments > 0
-                    ? `${submitter.submittedCount}/${totalRequiredDocuments} (${Math.round((submitter.submittedCount / totalRequiredDocuments) * 100)}%)`
-                    : '-';
-                return <span className="text-sm text-gray-600">{progress}</span>;
-            },
+            render: (submitter) => (
+                <span className="text-sm text-gray-600">
+                    {formatProgress(submitter.submittedCount, totalRequiredDocuments)}
+                </span>
+            ),
         },
         {
             key: 'action',
@@ -157,17 +157,14 @@ export function SubmittersList({
 
     const handleDownload = () => {
         const headers = ['이름', '이메일', '휴대전화', '제출상태', '제출일', '진행상황'];
-        const rows = submitters.map(s => {
-            const status = getSubmissionStatus(s.submittedCount, totalRequiredDocuments);
-            const progress = totalRequiredDocuments > 0
-                ? `${s.submittedCount}/${totalRequiredDocuments} (${Math.round((s.submittedCount / totalRequiredDocuments) * 100)}%)`
-                : '-';
-            const lastDate = s.lastSubmittedAt
-                ? s.lastSubmittedAt.toISOString().split('T')[0]
-                : '-';
-
-            return [s.name, s.email, s.phone || '', status, lastDate, progress];
-        });
+        const rows = submitters.map(s => [
+            s.name,
+            s.email,
+            s.phone || '',
+            getSubmissionStatus(s.submittedCount, totalRequiredDocuments),
+            formatSubmissionDate(s.lastSubmittedAt),
+            formatProgress(s.submittedCount, totalRequiredDocuments),
+        ]);
 
         downloadCsv({
             filename: `${documentBoxTitle}_제출자목록.csv`,
@@ -184,7 +181,7 @@ export function SubmittersList({
                     제출자 목록
                 </CardTitle>
                 <CardAction className="flex items-center gap-2">
-                    {submitters.length > INITIAL_DISPLAY_COUNT && (
+                    {filteredSubmitters.length > INITIAL_DISPLAY_COUNT && (
                         <button
                             onClick={() => setShowAll(!showAll)}
                             className="text-sm text-blue-600 hover:text-blue-700"
@@ -204,6 +201,20 @@ export function SubmittersList({
             </CardHeader>
 
             <CardContent className="px-6 pt-0 pb-6">
+                <div className="mb-4">
+                    <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
+                        <SelectTrigger className="w-[140px]">
+                            <SelectValue placeholder="제출상태" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {STATUS_FILTER_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
                 <Table
                     columns={columns}
                     data={displayedSubmitters}
