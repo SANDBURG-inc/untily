@@ -43,6 +43,8 @@ export async function PUT(
             documentName,
             description,
             logoUrl,
+            submittersEnabled,
+            submitters,
             requirements,
             deadline,
             reminderEnabled,
@@ -100,7 +102,32 @@ export async function PUT(
                 });
             }
 
-            // 제출자(submitter)는 수정 불가 - 생성 시에만 설정 가능
+            // 제출자 처리: 기존 제출자 유지 + 새 제출자 추가
+            if (submittersEnabled && submitters && submitters.length > 0) {
+                // 기존 제출자 목록 조회 (email 기준 중복 체크용)
+                const existingSubmitters = await tx.submitter.findMany({
+                    where: { documentBoxId: id },
+                    select: { email: true },
+                });
+                const existingEmails = new Set(existingSubmitters.map((s) => s.email.toLowerCase()));
+
+                // 새로운 제출자만 필터링 (email이 기존에 없는 경우)
+                const newSubmitters = submitters.filter(
+                    (s) => s.email && s.name && !existingEmails.has(s.email.toLowerCase())
+                );
+
+                // 새 제출자 추가
+                if (newSubmitters.length > 0) {
+                    await tx.submitter.createMany({
+                        data: newSubmitters.map((s) => ({
+                            name: s.name,
+                            email: s.email,
+                            phone: s.phone || '',
+                            documentBoxId: id,
+                        })),
+                    });
+                }
+            }
 
             // Delete existing required documents and create new ones
             await tx.requiredDocument.deleteMany({
