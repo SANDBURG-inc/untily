@@ -37,6 +37,7 @@ const GROUPS: SidebarGroup[] = [
     category: "Custom",
     items: [
       { title: "PageHeader", href: "#page-header" },
+      { title: "Pagination", href: "#pagination" },
       { title: "Table", href: "#table" },
     ],
   },
