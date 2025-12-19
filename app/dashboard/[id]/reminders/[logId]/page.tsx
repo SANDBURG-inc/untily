@@ -26,6 +26,7 @@ import {
     formatReminderRecipientsCount,
     type ReminderChannelType,
 } from '@/lib/types/reminder';
+import { formatSubmissionDate } from '@/lib/types/submitter';
 
 // ============================================================================
 // Constants
@@ -111,7 +112,7 @@ export default async function ReminderLogDetailPage({
             header: '리마인드 발송일',
             render: (row) => (
                 <span className="text-sm text-gray-600">
-                    {row.sentAt.toISOString().split('T')[0]}
+                    {formatSubmissionDate(row.sentAt)}
                 </span>
             ),
         },
