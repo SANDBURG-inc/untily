@@ -1,18 +1,23 @@
-import { validateSubmitterAuth } from '@/lib/auth/submitter-auth';
+import { validatePublicSubmitAuth } from '@/lib/auth/public-submit-auth';
 import { redirect } from 'next/navigation';
-import UploadForm from './_components/UploadForm';
+import PublicUploadForm from './_components/PublicUploadForm';
 
-interface UploadPageProps {
-  params: Promise<{ documentBoxId: string; submitterId: string }>;
+interface PublicUploadPageProps {
+  params: Promise<{ documentBoxId: string }>;
 }
 
-export default async function UploadPage({ params }: UploadPageProps) {
-  const { documentBoxId, submitterId } = await params;
+export default async function PublicUploadPage({ params }: PublicUploadPageProps) {
+  const { documentBoxId } = await params;
 
-  const result = await validateSubmitterAuth(documentBoxId, submitterId);
+  const result = await validatePublicSubmitAuth(documentBoxId);
 
-  // 문서함/제출자 없음
+  // 문서함 없음
   if (result.status === 'not_found') {
+    redirect('/submit/not-found');
+  }
+
+  // 공개 제출 문서함이 아님
+  if (result.status === 'not_public') {
     redirect('/submit/not-found');
   }
 
@@ -23,28 +28,24 @@ export default async function UploadPage({ params }: UploadPageProps) {
 
   // 미인증 → 랜딩으로
   if (result.status === 'not_authenticated') {
-    redirect(`/submit/${documentBoxId}/${submitterId}`);
-  }
-
-  // 이메일 불일치 → 랜딩으로
-  if (result.status === 'email_mismatch') {
-    redirect(`/submit/${documentBoxId}/${submitterId}`);
+    redirect(`/submit/${documentBoxId}`);
   }
 
   // 이미 제출 완료된 경우 → complete로
   if (result.submitter.status === 'SUBMITTED') {
-    redirect(`/submit/${documentBoxId}/${submitterId}/complete`);
+    redirect(`/submit/${documentBoxId}/complete`);
   }
 
   // 인증 완료 → 업로드 폼 표시
   return (
-    <UploadForm
+    <PublicUploadForm
       documentBox={{
         boxTitle: result.submitter.documentBox.boxTitle,
         requiredDocuments: result.submitter.documentBox.requiredDocuments,
       }}
       submitter={{
         name: result.submitter.name,
+        submitterId: result.submitter.submitterId,
         submittedDocuments: result.submitter.submittedDocuments.map((doc) => ({
           submittedDocumentId: doc.submittedDocumentId,
           requiredDocumentId: doc.requiredDocumentId,
@@ -53,7 +54,6 @@ export default async function UploadPage({ params }: UploadPageProps) {
         })),
       }}
       documentBoxId={documentBoxId}
-      submitterId={submitterId}
     />
   );
 }

@@ -24,17 +24,17 @@ interface SubmittedDocument {
   size?: number;
 }
 
-interface UploadFormProps {
+interface PublicUploadFormProps {
   documentBox: {
     boxTitle: string;
     requiredDocuments: RequiredDocument[];
   };
   submitter: {
     name: string;
+    submitterId: string;
     submittedDocuments: SubmittedDocument[];
   };
   documentBoxId: string;
-  submitterId: string;
 }
 
 interface UploadedDocument {
@@ -44,12 +44,11 @@ interface UploadedDocument {
   size?: number;
 }
 
-export default function UploadForm({
+export default function PublicUploadForm({
   documentBox,
   submitter,
   documentBoxId,
-  submitterId,
-}: UploadFormProps) {
+}: PublicUploadFormProps) {
   const router = useRouter();
 
   // 기존 업로드 파일을 Map으로 초기화
@@ -100,7 +99,7 @@ export default function UploadForm({
     }
 
     // 체크아웃 페이지로 이동
-    router.push(`/submit/${documentBoxId}/${submitterId}/checkout`);
+    router.push(`/submit/${documentBoxId}/checkout`);
   };
 
   const uploadedCount = uploadedDocs.size;
@@ -142,7 +141,7 @@ export default function UploadForm({
                 key={doc.requiredDocumentId}
                 requiredDocument={doc}
                 documentBoxId={documentBoxId}
-                submitterId={submitterId}
+                submitterId={submitter.submitterId}
                 existingUpload={existingUpload}
                 onUploadComplete={(upload) => handleUploadComplete(doc.requiredDocumentId, upload)}
                 onUploadError={handleUploadError}

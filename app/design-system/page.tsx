@@ -17,6 +17,7 @@ import { SelectSection } from "@/components/design-system/sections/SelectSection
 import { PageHeaderSection } from "@/components/design-system/sections/PageHeaderSection"
 import { PaginationSection } from "@/components/design-system/sections/PaginationSection"
 import { TableSection } from "@/components/design-system/sections/TableSection"
+import { LabeledProgressSection } from "@/components/design-system/sections/LabeledProgressSection"
 
 export default function DesignSystemPage() {
   return (
@@ -58,6 +59,9 @@ export default function DesignSystemPage() {
 
       <hr className="border-border/40" />
       <TableSection />
+
+      <hr className="border-border/40" />
+      <LabeledProgressSection />
 
       <div className="h-20" /> {/* Spacer */}
     </div>

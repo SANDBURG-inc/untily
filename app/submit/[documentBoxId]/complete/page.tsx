@@ -1,26 +1,26 @@
-import { validateSubmitterAuth } from '@/lib/auth/submitter-auth';
+import { validatePublicSubmitAuth } from '@/lib/auth/public-submit-auth';
 import { redirect } from 'next/navigation';
 import { ClipboardCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import CompleteActions from './_components/CompleteActions';
+import CompleteActions from '@/app/submit/[documentBoxId]/[submitterId]/complete/_components/CompleteActions';
 
-interface CompletePageProps {
-  params: Promise<{ documentBoxId: string; submitterId: string }>;
+interface PublicCompletePageProps {
+  params: Promise<{ documentBoxId: string }>;
 }
 
-export default async function CompletePage({ params }: CompletePageProps) {
-  const { documentBoxId, submitterId } = await params;
+export default async function PublicCompletePage({ params }: PublicCompletePageProps) {
+  const { documentBoxId } = await params;
 
-  const result = await validateSubmitterAuth(documentBoxId, submitterId);
+  const result = await validatePublicSubmitAuth(documentBoxId);
 
   // 인증 실패 케이스들 → 랜딩으로
   if (result.status !== 'success') {
-    redirect(`/submit/${documentBoxId}/${submitterId}`);
+    redirect(`/submit/${documentBoxId}`);
   }
 
   // 아직 제출 안 한 경우 → 업로드로
   if (result.submitter.status !== 'SUBMITTED') {
-    redirect(`/submit/${documentBoxId}/${submitterId}/upload`);
+    redirect(`/submit/${documentBoxId}/upload`);
   }
 
   return (

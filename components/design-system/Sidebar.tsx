@@ -40,6 +40,7 @@ const GROUPS: SidebarGroup[] = [
       { title: "PageHeader", href: "#page-header" },
       { title: "Pagination", href: "#pagination" },
       { title: "Table", href: "#table" },
+      { title: "LabeledProgress", href: "#labeled-progress" },
     ],
   },
 ]

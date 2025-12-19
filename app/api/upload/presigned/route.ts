@@ -4,6 +4,7 @@ import prisma from '@/lib/db';
 import { generateUploadUrl } from '@/lib/s3/presigned';
 import { generateS3Key, getContentType, getFileUrl } from '@/lib/s3/utils';
 import { S3_BUCKET, S3_REGION } from '@/lib/s3/client';
+import { hasDesignatedSubmitters } from '@/lib/utils/document-box';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,9 +36,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '유효하지 않은 제출자입니다.' }, { status: 400 });
     }
 
-    // 4. 이메일 검증
-    if (submitter.email.toLowerCase() !== user.email?.toLowerCase()) {
-      return NextResponse.json({ error: '이메일이 일치하지 않습니다.' }, { status: 403 });
+    // 4. 권한 검증 (지정 제출자 vs 공개 제출)
+    if (hasDesignatedSubmitters(submitter.documentBox.hasSubmitter)) {
+      // 지정 제출자: 이메일 매칭 검증
+      if (submitter.email.toLowerCase() !== user.email?.toLowerCase()) {
+        return NextResponse.json({ error: '이메일이 일치하지 않습니다.' }, { status: 403 });
+      }
+    } else {
+      // 공개 제출: userId 매칭 검증
+      if (submitter.userId !== user.id) {
+        return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
+      }
     }
 
     // 5. 만료 체크
