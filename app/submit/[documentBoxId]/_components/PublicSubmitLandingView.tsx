@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Calendar, FileText } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
@@ -16,11 +17,13 @@ interface PublicSubmitLandingViewProps {
     }[];
   };
   documentBoxId: string;
+  logoUrl: string;
 }
 
 export default function PublicSubmitLandingView({
   documentBox,
   documentBoxId,
+  logoUrl,
 }: PublicSubmitLandingViewProps) {
   const uploadUrl = `/submit/${documentBoxId}/upload`;
   const signInUrl = `/sign-in?callbackURL=${encodeURIComponent(uploadUrl)}`;
@@ -36,6 +39,18 @@ export default function PublicSubmitLandingView({
   return (
     <main className="flex-1 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* 로고 영역 */}
+        <div className="flex justify-center mb-6">
+          <Image
+            src={logoUrl}
+            alt="로고"
+            width={608}
+            height={144}
+            className="h-auto w-auto max-w-[150px] object-contain"
+            priority
+          />
+        </div>
+
         {/* 메인 카드 */}
         <Card>
           <CardContent className="py-6">

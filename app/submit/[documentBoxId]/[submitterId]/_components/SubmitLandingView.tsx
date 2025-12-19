@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +21,7 @@ interface SubmitLandingViewProps {
   };
   documentBoxId: string;
   submitterId: string;
+  logoUrl: string;
 }
 
 export default function SubmitLandingView({
@@ -27,6 +29,7 @@ export default function SubmitLandingView({
   documentBox,
   documentBoxId,
   submitterId,
+  logoUrl,
 }: SubmitLandingViewProps) {
   const uploadUrl = `/submit/${documentBoxId}/${submitterId}/upload`;
   const signInUrl = `/sign-in?callbackURL=${encodeURIComponent(uploadUrl)}`;
@@ -34,7 +37,17 @@ export default function SubmitLandingView({
   return (
     <main className="flex-1 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* TODO: 로고 영역 (documentBox.logo가 있을 경우 표시) */}
+        {/* 로고 영역 */}
+        <div className="flex justify-center mb-6">
+          <Image
+            src={logoUrl}
+            alt="로고"
+            width={608}
+            height={144}
+            className="h-auto w-auto max-w-[150px] object-contain"
+            priority
+          />
+        </div>
 
         {/* 메인 카드 */}
         <Card>

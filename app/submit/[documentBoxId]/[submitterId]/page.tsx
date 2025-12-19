@@ -57,6 +57,7 @@ export default async function SubmitLandingPage({ params }: SubmitLandingPagePro
       }}
       documentBoxId={documentBoxId}
       submitterId={submitterId}
+      logoUrl={result.logoUrl}
     />
   );
 }
