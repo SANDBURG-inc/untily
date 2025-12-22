@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neonAuthMiddleware } from "@neondatabase/neon-js/auth/next";
 
-// neonAuthMiddleware 인스턴스 생성
-const authMiddleware = neonAuthMiddleware({
-  loginUrl: "/sign-in",
-});
-
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 대시보드 경로: /sign-in으로 리다이렉트
+  // 대시보드 경로: callbackURL과 함께 /sign-in으로 리다이렉트
   if (pathname.startsWith("/dashboard")) {
-    return authMiddleware(request);
+    const dashboardAuthMiddleware = neonAuthMiddleware({
+      loginUrl: `/sign-in?callbackURL=${encodeURIComponent(pathname)}`,
+    });
+    return dashboardAuthMiddleware(request);
   }
 
   // 제출자 경로: /upload, /complete 등 하위 페이지만 인증 필요
