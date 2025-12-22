@@ -1,7 +1,7 @@
 # Untily 배포 가이드
 
-> **문서 버전**: v1.0.0 | 2024.12.22 16:00
-> **배포 방식**: PM2 + EC2 수동 배포 (Docker, Nginx, CI/CD 미적용)
+> **문서 버전**: v1.1.0 | 2024.12.22
+> **배포 방식**: Nginx + PM2 + EC2 수동 배포 (Docker, CI/CD 미적용)
 
 AWS EC2 t2.xlarge 인스턴스에서 PM2를 사용한 Next.js 배포 가이드입니다.
 
@@ -322,39 +322,77 @@ du -sh node_modules/
 
 ## 보안 체크리스트
 
-- [ ] `.env` 파일 권한 설정 (`chmod 600 .env`)
-- [ ] 방화벽에서 3000 포트 차단 (Nginx 프록시 사용)
-- [ ] SSH 키 기반 인증만 허용
+- [x] `.env` 파일 권한 설정 (`chmod 600 .env`)
+- [x] 방화벽에서 3000 포트 차단 (Nginx 프록시 사용)
+- [x] SSH 키 기반 인증만 허용
 - [ ] 정기적인 보안 업데이트 (`sudo apt update && sudo apt upgrade`)
+
+> 보안 설정 상세 내용은 [SECURITY.md](./SECURITY.md) 참고
 
 ---
 
-## Nginx 리버스 프록시 (선택)
+## Nginx 리버스 프록시
+
+현재 Nginx + Let's Encrypt SSL로 구성되어 있습니다.
+
+### 현재 구성
+
+```
+인터넷 → Nginx (443/HTTPS) → Next.js (127.0.0.1:3000)
+              └─ SSL: Let's Encrypt (자동 갱신)
+```
+
+### 설정 파일 위치
+
+```bash
+/etc/nginx/sites-enabled/default  # Nginx 설정
+/etc/letsencrypt/live/dev.untily.kr/  # SSL 인증서
+```
+
+### 주요 설정 내용
 
 ```nginx
-# /etc/nginx/sites-available/untily
 server {
-    listen 80;
-    server_name yourdomain.com;
+    server_name dev.untily.kr;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
     }
+
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/dev.untily.kr/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/dev.untily.kr/privkey.pem;
+}
+
+# HTTP → HTTPS 리다이렉트
+server {
+    listen 80;
+    server_name dev.untily.kr;
+    return 301 https://$host$request_uri;
 }
 ```
 
+### Nginx 명령어
+
 ```bash
-sudo ln -s /etc/nginx/sites-available/untily /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
+sudo nginx -t              # 설정 문법 검사
+sudo systemctl reload nginx  # 설정 적용 (무중단)
+sudo systemctl status nginx  # 상태 확인
+```
+
+### SSL 인증서 확인
+
+```bash
+# 인증서 만료일 확인
+sudo certbot certificates
+
+# 인증서 갱신 테스트
+sudo certbot renew --dry-run
 ```
 
 ---
