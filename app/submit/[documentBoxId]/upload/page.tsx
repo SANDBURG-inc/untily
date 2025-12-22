@@ -1,4 +1,5 @@
 import { validatePublicSubmitAuth } from '@/lib/auth/public-submit-auth';
+import { handlePublicAuthRedirects } from '@/lib/auth/submit-redirect';
 import { redirect } from 'next/navigation';
 import PublicUploadForm from './_components/PublicUploadForm';
 
@@ -11,28 +12,11 @@ export default async function PublicUploadPage({ params }: PublicUploadPageProps
 
   const result = await validatePublicSubmitAuth(documentBoxId);
 
-  // 문서함 없음
-  if (result.status === 'not_found') {
-    redirect('/submit/not-found');
-  }
-
-  // 공개 제출 문서함이 아님
-  if (result.status === 'not_public') {
-    redirect('/submit/not-found');
-  }
-
-  // 만료됨
-  if (result.status === 'expired') {
-    redirect(`/submit/expired?title=${encodeURIComponent(result.documentBox.boxTitle)}`);
-  }
-
-  // 미인증 → 랜딩으로
-  if (result.status === 'not_authenticated') {
-    redirect(`/submit/${documentBoxId}`);
-  }
+  // 문서함 없음, 공개 제출 아님, 만료됨, 미인증 → 리다이렉트
+  const { submitter } = handlePublicAuthRedirects(result, documentBoxId);
 
   // 이미 제출 완료된 경우 → complete로
-  if (result.submitter.status === 'SUBMITTED') {
+  if (submitter.status === 'SUBMITTED') {
     redirect(`/submit/${documentBoxId}/complete`);
   }
 
@@ -40,13 +24,13 @@ export default async function PublicUploadPage({ params }: PublicUploadPageProps
   return (
     <PublicUploadForm
       documentBox={{
-        boxTitle: result.submitter.documentBox.boxTitle,
-        requiredDocuments: result.submitter.documentBox.requiredDocuments,
+        boxTitle: submitter.documentBox.boxTitle,
+        requiredDocuments: submitter.documentBox.requiredDocuments,
       }}
       submitter={{
-        name: result.submitter.name,
-        submitterId: result.submitter.submitterId,
-        submittedDocuments: result.submitter.submittedDocuments.map((doc) => ({
+        name: submitter.name,
+        submitterId: submitter.submitterId,
+        submittedDocuments: submitter.submittedDocuments.map((doc) => ({
           submittedDocumentId: doc.submittedDocumentId,
           requiredDocumentId: doc.requiredDocumentId,
           filename: doc.filename,

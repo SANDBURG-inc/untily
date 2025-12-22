@@ -1,5 +1,5 @@
 import { validatePublicSubmitAuth } from '@/lib/auth/public-submit-auth';
-import { redirect } from 'next/navigation';
+import { handlePublicLandingRedirects } from '@/lib/auth/submit-redirect';
 import PublicSubmitLandingView from './_components/PublicSubmitLandingView';
 
 interface PublicSubmitLandingPageProps {
@@ -11,41 +11,20 @@ export default async function PublicSubmitLandingPage({ params }: PublicSubmitLa
 
   const result = await validatePublicSubmitAuth(documentBoxId);
 
-  // 문서함 없음
-  if (result.status === 'not_found') {
-    redirect('/submit/not-found');
-  }
-
-  // 공개 제출 문서함이 아님 (지정 제출자 필요)
-  if (result.status === 'not_public') {
-    redirect('/submit/not-found');
-  }
-
-  // 만료됨
-  if (result.status === 'expired') {
-    redirect(`/submit/expired?title=${encodeURIComponent(result.documentBox.boxTitle)}`);
-  }
-
-  // 이미 로그인됨 → upload 페이지로
-  if (result.status === 'success') {
-    // 이미 제출 완료인 경우 complete로
-    if (result.submitter.status === 'SUBMITTED') {
-      redirect(`/submit/${documentBoxId}/complete`);
-    }
-    redirect(`/submit/${documentBoxId}/upload`);
-  }
+  // 문서함 없음, 공개 제출 아님, 만료됨, 인증 성공 → 리다이렉트
+  const validResult = handlePublicLandingRedirects(result, documentBoxId);
 
   // 미인증 상태 → 랜딩 페이지 표시
   return (
     <PublicSubmitLandingView
       documentBox={{
-        boxTitle: result.documentBox.boxTitle,
-        boxDescription: result.documentBox.boxDescription,
-        endDate: result.documentBox.endDate,
-        requiredDocuments: result.documentBox.requiredDocuments,
+        boxTitle: validResult.documentBox.boxTitle,
+        boxDescription: validResult.documentBox.boxDescription,
+        endDate: validResult.documentBox.endDate,
+        requiredDocuments: validResult.documentBox.requiredDocuments,
       }}
       documentBoxId={documentBoxId}
-      logoUrl={result.documentBox.logoUrl}
+      logoUrl={validResult.documentBox.logoUrl}
     />
   );
 }

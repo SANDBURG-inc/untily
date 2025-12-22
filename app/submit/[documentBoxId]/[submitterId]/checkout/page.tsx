@@ -1,4 +1,5 @@
 import { validateSubmitterAuth } from '@/lib/auth/submitter-auth';
+import { handleSubmitterAuthRedirects } from '@/lib/auth/submit-redirect';
 import { redirect } from 'next/navigation';
 import CheckoutView from './_components/CheckoutView';
 
@@ -11,33 +12,16 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
 
   const result = await validateSubmitterAuth(documentBoxId, submitterId);
 
-  // 문서함/제출자 없음
-  if (result.status === 'not_found') {
-    redirect('/submit/not-found');
-  }
-
-  // 만료됨
-  if (result.status === 'expired') {
-    redirect(`/submit/expired?title=${encodeURIComponent(result.documentBox.boxTitle)}`);
-  }
-
-  // 미인증 → 랜딩으로
-  if (result.status === 'not_authenticated') {
-    redirect(`/submit/${documentBoxId}/${submitterId}`);
-  }
-
-  // 이메일 불일치 → 랜딩으로
-  if (result.status === 'email_mismatch') {
-    redirect(`/submit/${documentBoxId}/${submitterId}`);
-  }
+  // 문서함/제출자 없음, 만료됨, 미인증, 이메일 불일치 → 리다이렉트
+  const { submitter } = handleSubmitterAuthRedirects(result, documentBoxId, submitterId);
 
   // 이미 제출 완료된 경우 → complete로
-  if (result.submitter.status === 'SUBMITTED') {
+  if (submitter.status === 'SUBMITTED') {
     redirect(`/submit/${documentBoxId}/${submitterId}/complete`);
   }
 
   // 업로드된 파일이 없으면 upload로 리다이렉트
-  if (result.submitter.submittedDocuments.length === 0) {
+  if (submitter.submittedDocuments.length === 0) {
     redirect(`/submit/${documentBoxId}/${submitterId}/upload`);
   }
 
@@ -45,18 +29,18 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
   return (
     <CheckoutView
       documentBox={{
-        boxTitle: result.submitter.documentBox.boxTitle,
-        requiredDocuments: result.submitter.documentBox.requiredDocuments.map((doc) => ({
+        boxTitle: submitter.documentBox.boxTitle,
+        requiredDocuments: submitter.documentBox.requiredDocuments.map((doc) => ({
           requiredDocumentId: doc.requiredDocumentId,
           documentTitle: doc.documentTitle,
           isRequired: doc.isRequired,
         })),
       }}
       submitter={{
-        name: result.submitter.name,
-        email: result.submitter.email,
-        phone: result.submitter.phone,
-        submittedDocuments: result.submitter.submittedDocuments.map((doc) => ({
+        name: submitter.name,
+        email: submitter.email,
+        phone: submitter.phone,
+        submittedDocuments: submitter.submittedDocuments.map((doc) => ({
           submittedDocumentId: doc.submittedDocumentId,
           requiredDocumentId: doc.requiredDocumentId,
           filename: doc.filename,
