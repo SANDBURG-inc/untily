@@ -3,12 +3,15 @@
 # Untily 배포 스크립트
 # AWS EC2 t2.xlarge 환경에서 무중단 배포를 수행합니다.
 #
-# 사용법: ./deploy.sh [branch]
+# 사용법: ./deploy.sh [branch] [options]
 #   branch: 배포할 Git 브랜치 (기본값: main)
+#   options:
+#     --fast: 캐시 삭제 없이 빠른 빌드 (기본: 캐시 삭제)
 #
 # 예시:
-#   ./deploy.sh          # main 브랜치 배포
-#   ./deploy.sh develop  # develop 브랜치 배포
+#   ./deploy.sh              # main 브랜치 배포 (캐시 삭제)
+#   ./deploy.sh dashboard    # dashboard 브랜치 배포 (캐시 삭제)
+#   ./deploy.sh dashboard --fast  # 캐시 유지하고 빠른 배포
 #
 
 set -e  # 에러 발생 시 즉시 종료
@@ -45,11 +48,26 @@ echo "========================================"
 echo ""
 
 BRANCH=${1:-main}
+FAST_MODE=false
 APP_DIR=$(pwd)
 LOGS_DIR="${APP_DIR}/logs"
 
+# 옵션 파싱
+for arg in "$@"; do
+    case $arg in
+        --fast)
+            FAST_MODE=true
+            ;;
+    esac
+done
+
 log_info "배포 브랜치: ${BRANCH}"
 log_info "애플리케이션 디렉토리: ${APP_DIR}"
+if [ "$FAST_MODE" = true ]; then
+    log_info "빌드 모드: Fast (캐시 유지)"
+else
+    log_info "빌드 모드: Clean (캐시 삭제)"
+fi
 
 # 1. 로그 디렉토리 생성
 if [ ! -d "$LOGS_DIR" ]; then
@@ -112,7 +130,14 @@ log_info "Prisma 클라이언트 생성 중..."
 npx prisma generate
 log_success "Prisma 클라이언트 생성 완료"
 
-# 7. 프로덕션 빌드
+# 7. 캐시 삭제 (기본 동작)
+if [ "$FAST_MODE" = false ]; then
+    log_info "빌드 캐시 삭제 중..."
+    rm -rf .next
+    log_success "캐시 삭제 완료"
+fi
+
+# 8. 프로덕션 빌드
 log_info "프로덕션 빌드 시작..."
 BUILD_START=$(date +%s)
 
@@ -125,7 +150,7 @@ else
     exit 1
 fi
 
-# 8. PM2로 애플리케이션 재시작 (무중단 배포)
+# 9. PM2로 애플리케이션 재시작 (무중단 배포)
 log_info "PM2 무중단 배포 시작..."
 
 if pm2 list | grep -q "untily"; then
@@ -142,7 +167,7 @@ fi
 pm2 save
 log_success "PM2 배포 완료"
 
-# 9. 헬스체크
+# 10. 헬스체크
 log_info "헬스체크 수행 중..."
 sleep 5  # PM2가 완전히 시작될 때까지 대기
 
@@ -156,7 +181,7 @@ else
     log_info "PM2 로그: pm2 logs untily"
 fi
 
-# 10. 배포 완료 요약
+# 11. 배포 완료 요약
 echo ""
 echo "========================================"
 echo "          배포 완료 요약"
