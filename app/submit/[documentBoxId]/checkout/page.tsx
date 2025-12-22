@@ -33,17 +33,20 @@ export default async function PublicCheckoutPage({ params }: PublicCheckoutPageP
         requiredDocuments: submitter.documentBox.requiredDocuments.map((doc) => ({
           requiredDocumentId: doc.requiredDocumentId,
           documentTitle: doc.documentTitle,
+          documentDescription: doc.documentDescription,
           isRequired: doc.isRequired,
         })),
       }}
       submitter={{
         name: submitter.name,
         email: submitter.email,
+        phone: submitter.phone,
         submitterId: submitter.submitterId,
         submittedDocuments: submitter.submittedDocuments.map((doc) => ({
           submittedDocumentId: doc.submittedDocumentId,
           requiredDocumentId: doc.requiredDocumentId,
           filename: doc.filename,
+          size: doc.size,
         })),
       }}
       documentBoxId={documentBoxId}

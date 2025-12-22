@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { AlertBanner } from '@/components/shared/AlertBanner';
 import { SubmitActionFooter } from '@/app/submit/_components';
 import InfoCard from './InfoCard';
-import FileListCard from './FileListCard';
+import SubmitterInfoCard from '@/app/submit/[documentBoxId]/checkout/_components/SubmitterInfoCard';
+import EditableFileListCard from '@/app/submit/[documentBoxId]/checkout/_components/EditableFileListCard';
+import type { UploadedDocument } from '@/components/submit/upload/DocumentUploadItem';
 
 interface RequiredDocument {
   requiredDocumentId: string;
   documentTitle: string;
+  documentDescription: string | null;
   isRequired: boolean;
 }
 
@@ -18,6 +21,7 @@ interface SubmittedDocument {
   submittedDocumentId: string;
   requiredDocumentId: string;
   filename: string;
+  size?: number;
 }
 
 interface CheckoutViewProps {
@@ -29,26 +33,33 @@ interface CheckoutViewProps {
     name: string;
     email: string;
     phone: string;
+    submitterId: string;
     submittedDocuments: SubmittedDocument[];
   };
   documentBoxId: string;
-  submitterId: string;
 }
 
 export default function CheckoutView({
   documentBox,
-  submitter,
+  submitter: initialSubmitter,
   documentBoxId,
-  submitterId,
 }: CheckoutViewProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submitterInfo, setSubmitterInfo] = useState({
+    name: initialSubmitter.name,
+    email: initialSubmitter.email,
+    phone: initialSubmitter.phone,
+  });
 
   // 업로드된 파일을 requiredDocument 기준으로 매핑
-  const uploadedFilesMap = new Map<string, SubmittedDocument>();
-  submitter.submittedDocuments.forEach((doc) => {
-    uploadedFilesMap.set(doc.requiredDocumentId, doc);
+  const [uploadedFilesMap, setUploadedFilesMap] = useState(() => {
+    const map = new Map<string, SubmittedDocument>();
+    initialSubmitter.submittedDocuments.forEach((doc) => {
+      map.set(doc.requiredDocumentId, doc);
+    });
+    return map;
   });
 
   // 필수 서류 검증
@@ -58,14 +69,40 @@ export default function CheckoutView({
   );
   const canSubmit = missingRequiredDocs.length === 0;
 
-  const handleEdit = () => {
-    router.push(`/submit/${documentBoxId}/${submitterId}/upload`);
+  const handleSave = () => {
+    router.push(`/submit/${documentBoxId}/${initialSubmitter.submitterId}`);
   };
 
-  const handleSave = () => {
-    // 임시저장은 현재 상태 유지 (이미 서버에 저장됨)
-    router.push(`/submit/${documentBoxId}/${submitterId}`);
+  const handleSubmitterInfoSave = async (data: { name: string; email: string; phone: string }) => {
+    const response = await fetch('/api/submit/update-info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        submitterId: initialSubmitter.submitterId,
+        ...data,
+      }),
+    });
+
+    if (!response.ok) {
+      const result = await response.json();
+      throw new Error(result.error || '정보 저장에 실패했습니다.');
+    }
+
+    setSubmitterInfo(data);
   };
+
+  const handleFilesChange = useCallback((uploads: Map<string, UploadedDocument>) => {
+    const newMap = new Map<string, SubmittedDocument>();
+    uploads.forEach((upload, requiredDocId) => {
+      newMap.set(requiredDocId, {
+        submittedDocumentId: upload.submittedDocumentId,
+        requiredDocumentId: requiredDocId,
+        filename: upload.filename,
+        size: upload.size,
+      });
+    });
+    setUploadedFilesMap(newMap);
+  }, []);
 
   const handleSubmit = async () => {
     if (!canSubmit) {
@@ -80,7 +117,7 @@ export default function CheckoutView({
       const response = await fetch('/api/submit/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submitterId }),
+        body: JSON.stringify({ submitterId: initialSubmitter.submitterId }),
       });
 
       if (!response.ok) {
@@ -88,7 +125,7 @@ export default function CheckoutView({
         throw new Error(data.error || '제출에 실패했습니다.');
       }
 
-      router.push(`/submit/${documentBoxId}/${submitterId}/complete`);
+      router.push(`/submit/${documentBoxId}/${initialSubmitter.submitterId}/complete`);
     } catch (err) {
       setError(err instanceof Error ? err.message : '제출 중 오류가 발생했습니다.');
     } finally {
@@ -100,9 +137,13 @@ export default function CheckoutView({
   const fileListItems = documentBox.requiredDocuments.map((reqDoc) => {
     const uploaded = uploadedFilesMap.get(reqDoc.requiredDocumentId);
     return {
+      requiredDocumentId: reqDoc.requiredDocumentId,
       documentTitle: reqDoc.documentTitle,
+      documentDescription: reqDoc.documentDescription,
       isRequired: reqDoc.isRequired,
       filename: uploaded?.filename || null,
+      submittedDocumentId: uploaded?.submittedDocumentId,
+      size: uploaded?.size,
     };
   });
 
@@ -141,20 +182,21 @@ export default function CheckoutView({
         </InfoCard>
 
         {/* 제출자 정보 */}
-        <InfoCard
+        <SubmitterInfoCard
           title="제출자 정보"
+          submitter={submitterInfo}
+          onSave={handleSubmitterInfoSave}
           className="mb-4"
-        >
-          <InfoCard.Field label="성명" value={submitter.name} />
-          <InfoCard.Field label="이메일" value={submitter.email} />
-          <InfoCard.Field label="연락처" value={submitter.phone} />
-        </InfoCard>
+        />
 
         {/* 업로드한 파일 */}
-        <FileListCard
+        <EditableFileListCard
           title="업로드한 파일"
           files={fileListItems}
-          onEdit={handleEdit}
+          documentBoxId={documentBoxId}
+          submitterId={initialSubmitter.submitterId}
+          onFilesChange={handleFilesChange}
+          onError={setError}
           className="mb-24"
         />
       </main>
