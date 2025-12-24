@@ -10,6 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { IconButton } from '@/components/shared/IconButton';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Table, Column } from '@/components/shared/Table';
@@ -93,19 +94,15 @@ export function SubmittersList({
         {
             key: 'checkbox',
             header: (
-                <input
-                    type="checkbox"
-                    className="rounded"
+                <Checkbox
                     checked={allSelected}
-                    onChange={handleSelectAll}
+                    onCheckedChange={handleSelectAll}
                 />
             ),
             render: (submitter) => (
-                <input
-                    type="checkbox"
-                    className="rounded"
+                <Checkbox
                     checked={selectedIds.has(submitter.submitterId)}
-                    onChange={() => handleSelectOne(submitter.submitterId)}
+                    onCheckedChange={() => handleSelectOne(submitter.submitterId)}
                 />
             ),
         },

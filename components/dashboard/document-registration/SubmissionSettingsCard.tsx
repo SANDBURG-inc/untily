@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { DatePicker } from '@/components/ui/date-picker';
 import { SectionHeader } from '@/components/shared/SectionHeader';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface SubmissionSettingsCardProps {
   /** 제출 마감일 (Date 객체) */
@@ -105,11 +106,9 @@ export function SubmissionSettingsCard({
                     backgroundColor: emailReminder ? '#EFF6FF' : 'white',
                   }}
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={emailReminder}
-                    onChange={(e) => onEmailReminderChange(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                    onCheckedChange={(checked) => onEmailReminderChange(checked === true)}
                   />
                   <span className="text-sm text-gray-700">이메일로 발송할게요</span>
                 </label>
@@ -122,12 +121,7 @@ export function SubmissionSettingsCard({
                     backgroundColor: '#F9FAFB',
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={false}
-                    disabled
-                    className="w-4 h-4 text-gray-400 border-gray-300 rounded"
-                  />
+                  <Checkbox checked={false} disabled />
                   <span className="text-sm text-gray-500">문자로 발송할게요</span>
                 </label>
 
@@ -139,12 +133,7 @@ export function SubmissionSettingsCard({
                     backgroundColor: '#F9FAFB',
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={false}
-                    disabled
-                    className="w-4 h-4 text-gray-400 border-gray-300 rounded"
-                  />
+                  <Checkbox checked={false} disabled />
                   <span className="text-sm text-gray-500">알림톡으로 발송할게요</span>
                 </label>
               </div>
