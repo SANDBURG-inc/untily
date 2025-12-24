@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 import { LogOut, User, Settings } from "lucide-react";
 
@@ -13,7 +12,6 @@ interface UserButtonProps {
 }
 
 export function UserButton({ hideWhenLoggedOut = false }: UserButtonProps) {
-    const router = useRouter();
     const { data: session } = authClient.useSession();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -31,8 +29,13 @@ export function UserButton({ hideWhenLoggedOut = false }: UserButtonProps) {
     }, []);
 
     const handleLogout = async () => {
-        await authClient.signOut();
-        router.push("/");
+        await authClient.signOut({
+            fetchOptions: {
+                onSuccess: () => {
+                    window.location.href = "/";
+                },
+            },
+        });
     };
 
     if (!user && hideWhenLoggedOut) {
