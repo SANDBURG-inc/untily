@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { IconButton } from '@/components/shared/IconButton';
 import { SaveButton } from '@/components/shared/SaveButton';
-import { formatPhoneNumber } from '@/lib/utils/phone';
+import { formatPhoneNumberOnInput } from '@/lib/utils/phone';
 
 interface SubmitterInfo {
   name: string;
@@ -67,12 +67,7 @@ export default function SubmitterInfoCard({
 
     setIsSaving(true);
     try {
-      // 전화번호 하이픈 포맷팅 적용
-      const formattedData = {
-        ...editData,
-        phone: formatPhoneNumber(editData.phone),
-      };
-      await onSave(formattedData);
+      await onSave(editData);
       setIsEditing(false);
     } catch {
       // 에러는 부모 컴포넌트에서 처리
@@ -82,7 +77,8 @@ export default function SubmitterInfoCard({
   };
 
   const handleChange = (field: keyof SubmitterInfo, value: string) => {
-    setEditData((prev) => ({ ...prev, [field]: value }));
+    const formattedValue = field === 'phone' ? formatPhoneNumberOnInput(value) : value;
+    setEditData((prev) => ({ ...prev, [field]: formattedValue }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }

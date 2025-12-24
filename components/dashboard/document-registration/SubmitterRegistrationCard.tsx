@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/componen
 import { Switch } from '@/components/ui/switch';
 import { IconButton } from '@/components/shared/IconButton';
 import { SectionHeader } from '@/components/shared/SectionHeader';
+import { formatPhoneNumberOnInput } from '@/lib/utils/phone';
 
 interface SubmitterRegistrationCardProps {
   /** 제출자 기능 활성화 여부 */
@@ -51,22 +52,7 @@ export function SubmitterRegistrationCard({
    * 휴대전화 입력 시 자동으로 하이픈 포맷팅을 적용합니다.
    */
   const updateSubmitter = (id: string, field: keyof Submitter, value: string) => {
-    let formattedValue = value;
-
-    // 휴대전화 번호 자동 하이픈 포맷팅
-    if (field === 'phone') {
-      const numbers = value.replace(/[^0-9]/g, '');
-
-      if (numbers.length <= 3) {
-        formattedValue = numbers;
-      } else if (numbers.length <= 7) {
-        formattedValue = `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-      } else if (numbers.length <= 11) {
-        formattedValue = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
-      } else {
-        formattedValue = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-      }
-    }
+    const formattedValue = field === 'phone' ? formatPhoneNumberOnInput(value) : value;
 
     onSubmittersChange(
       submitters.map((s) => (s.id === id ? { ...s, [field]: formattedValue } : s))
