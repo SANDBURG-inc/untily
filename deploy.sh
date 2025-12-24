@@ -125,10 +125,10 @@ else
 fi
 log_success "의존성 설치 완료"
 
-# 6. Prisma DB 스키마 동기화 및 클라이언트 생성
-log_info "Prisma DB 스키마 동기화 중..."
-npx prisma db push
-log_success "Prisma DB 스키마 동기화 완료"
+# 6. Prisma 마이그레이션 및 클라이언트 생성
+log_info "Prisma 마이그레이션 실행 중..."
+npx prisma migrate deploy
+log_success "Prisma 마이그레이션 완료"
 
 log_info "Prisma 클라이언트 생성 중..."
 npx prisma generate
