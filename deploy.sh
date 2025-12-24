@@ -127,7 +127,7 @@ log_success "의존성 설치 완료"
 
 # 6. Prisma DB 스키마 동기화 및 클라이언트 생성
 log_info "Prisma DB 스키마 동기화 중..."
-npx prisma db push --skip-generate
+npx prisma db push
 log_success "Prisma DB 스키마 동기화 완료"
 
 log_info "Prisma 클라이언트 생성 중..."
