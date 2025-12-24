@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { sendManualReminder } from "@/app/dashboard/[id]/actions";
 import { generateReminderEmailHtml } from '@/lib/email-templates';
 import { PageHeader } from "@/components/shared/PageHeader";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Submitter {
     submitterId: string;
@@ -113,11 +114,9 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
                         return (
                             <div key={submitter.submitterId} className={`flex items-center justify-between p-4 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50/30' : ''}`}>
                                 <div className="flex items-center gap-4 flex-1">
-                                    <input
-                                        type="checkbox"
+                                    <Checkbox
                                         checked={isSelected}
-                                        onChange={() => toggleSelect(submitter.submitterId)}
-                                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                        onCheckedChange={() => toggleSelect(submitter.submitterId)}
                                     />
                                     <div className="grid grid-cols-2 gap-4 flex-1">
                                         <span className="text-sm font-medium text-gray-900">{submitter.name}</span>

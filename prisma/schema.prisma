@@ -94,7 +94,8 @@ model SubmittedDocument {
 
   // S3 관련 필드
   s3Key               String
-  filename            String
+  filename            String           // 관리자용 가공 파일명 (서류명_날짜_제출자명.확장자)
+  originalFilename    String           // 원본 파일명 (사용자가 업로드한 파일명)
   size                Int
   mimeType            String
 

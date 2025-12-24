@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { X, Loader2, Paperclip, FileText } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { X, Loader2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { FileDropZone } from '@/components/shared/FileDropZone';
+import { useFileDrop } from '@/lib/hooks/useFileDrop';
 
 interface FileUploadModalProps {
   isOpen: boolean;
@@ -34,8 +36,6 @@ export default function FileUploadModal({
 }: FileUploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -47,7 +47,7 @@ export default function FileUploadModal({
     return null;
   };
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = useCallback((file: File) => {
     const validationError = validateFile(file);
     if (validationError) {
       setError(validationError);
@@ -55,33 +55,21 @@ export default function FileUploadModal({
     }
     setSelectedFile(file);
     setError(null);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  };
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
   }, []);
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  }, []);
+  const {
+    isDragging,
+    fileInputRef,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleInputChange,
+    openFilePicker,
+    resetInput,
+  } = useFileDrop({
+    onFileSelect: handleFileSelect,
+    disabled: isUploading,
+  });
 
   const handleUpload = async () => {
     if (!selectedFile) return;
@@ -104,9 +92,7 @@ export default function FileUploadModal({
   const handleRemoveFile = () => {
     setSelectedFile(null);
     setError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    resetInput();
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -145,57 +131,44 @@ export default function FileUploadModal({
         <div className="px-6 pb-6">
           {/* Uploading State */}
           {isUploading ? (
-            <div className="border-2 border-gray-200 rounded-xl p-8">
+            <div className="border-2 border-slate-200 rounded-xl p-8">
               <div className="flex flex-col items-center">
                 <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-                <p className="text-sm text-gray-600 mb-2">업로드 중...</p>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <p className="text-sm text-slate-600 mb-2">업로드 중...</p>
+                <div className="w-full bg-slate-200 rounded-full h-2">
                   <div
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-2">{uploadProgress}%</p>
+                <p className="text-xs text-slate-500 mt-2">{uploadProgress}%</p>
               </div>
             </div>
           ) : (
             <>
-              {/* Drag & Drop Area - Always visible */}
-              <div
+              {/* Drag & Drop Area */}
+              <FileDropZone
+                isDragging={isDragging}
+                disabled={isUploading}
+                accept={ALLOWED_EXTENSIONS}
+                fileInputRef={fileInputRef}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-                  isDragging
-                    ? 'border-blue-400 bg-blue-50'
-                    : 'border-gray-300 bg-blue-50 hover:border-gray-400'
-                }`}
-              >
-                <p className="text-md text-gray-600 mb-4">
-                  파일을 여기에 드래그 하거나 직접 선택해주세요.
-                </p>
-                <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors">
-                  파일선택
-                  <Paperclip className="w-4 h-4" />
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    accept={ALLOWED_EXTENSIONS}
-                    onChange={handleInputChange}
-                  />
-                </label>
-              </div>
+                onInputChange={handleInputChange}
+                onSelectClick={openFilePicker}
+                size="sm"
+              />
 
               {/* Selected File - Below drag area */}
               {selectedFile && (
-                <div className="flex items-center gap-3 mt-4 p-3 border border-gray-200 rounded-lg">
-                  <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                <div className="flex items-center gap-3 mt-4 p-3 border border-slate-200 rounded-lg">
+                  <FileText className="w-5 h-5 text-slate-400 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-slate-900 truncate">
                       {selectedFile.name}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-slate-500">
                       {formatFileSize(selectedFile.size)}
                     </p>
                   </div>
@@ -203,7 +176,7 @@ export default function FileUploadModal({
                     variant="ghost"
                     size="icon"
                     onClick={handleRemoveFile}
-                    className="h-6 w-6 text-gray-400 hover:text-gray-600"
+                    className="h-6 w-6 text-slate-400 hover:text-slate-600"
                   >
                     <X className="w-4 h-4" />
                   </Button>

@@ -83,6 +83,7 @@ export default async function DocumentBoxDetailPage({
             {/* 2. 제출자 목록 */}
             <SubmittersList
                 submitters={documentBox.submitters}
+                documentBoxId={id}
                 documentBoxTitle={documentBox.boxTitle}
                 totalRequiredDocuments={documentBox.totalRequiredDocuments}
             />

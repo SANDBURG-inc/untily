@@ -2,14 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import {
+    setReturnUrlCookie,
+    clearReturnUrlCookie,
+    DEFAULT_REDIRECT,
+} from "@/lib/auth/return-url";
 
 interface SignUpFormProps {
     callbackURL?: string;
 }
-
-const DEFAULT_REDIRECT = '/dashboard';
 
 export default function SignUpForm({ callbackURL }: SignUpFormProps) {
     const [email, setEmail] = useState('');
@@ -21,6 +24,13 @@ export default function SignUpForm({ callbackURL }: SignUpFormProps) {
     const router = useRouter();
 
     const redirectUrl = callbackURL || DEFAULT_REDIRECT;
+
+    // callbackURL이 있으면 쿠키에 저장 (OAuth 플로우 대비)
+    useEffect(() => {
+        if (callbackURL) {
+            setReturnUrlCookie(callbackURL);
+        }
+    }, [callbackURL]);
 
     const onSubmit = async () => {
         if (!email || !password || !passwordConfirm) {
@@ -51,6 +61,8 @@ export default function SignUpForm({ callbackURL }: SignUpFormProps) {
             if (result.error) {
                 setError(result.error.message || '회원가입에 실패했습니다.');
             } else {
+                // 회원가입 성공 시 쿠키 삭제 후 리다이렉트
+                clearReturnUrlCookie();
                 router.push(redirectUrl);
             }
         } catch {

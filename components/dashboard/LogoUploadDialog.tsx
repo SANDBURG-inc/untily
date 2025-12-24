@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect, type DragEvent, type ChangeEvent } from 'react';
-import { Paperclip, Loader2, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2, X } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -10,6 +10,8 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/Button';
+import { FileDropZone } from '@/components/shared/FileDropZone';
+import { useFileDrop } from '@/lib/hooks/useFileDrop';
 import { uploadToS3 } from '@/lib/s3/upload';
 
 interface LogoUploadDialogProps {
@@ -46,11 +48,9 @@ export function LogoUploadDialog({
     const isDeferredMode = !!onFileSelect;
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [isDragging, setIsDragging] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Dialog 열릴 때 기존 로고 URL 설정
     useEffect(() => {
@@ -90,35 +90,18 @@ export function LogoUploadDialog({
         setFile(file);
     };
 
-    const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-
-    const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-        const droppedFile = e.dataTransfer.files[0];
-        if (droppedFile) {
-            handleFile(droppedFile);
-        }
-    };
-
-    const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0];
-        if (selectedFile) {
-            handleFile(selectedFile);
-        }
-    };
-
-    const handleSelectClick = () => {
-        fileInputRef.current?.click();
-    };
+    const {
+        isDragging,
+        fileInputRef,
+        handleDragOver,
+        handleDragLeave,
+        handleDrop,
+        handleInputChange,
+        openFilePicker,
+    } = useFileDrop({
+        onFileSelect: handleFile,
+        disabled: isUploading,
+    });
 
     const handleCancel = () => {
         if (isUploading) return;
@@ -200,7 +183,6 @@ export function LogoUploadDialog({
         setFile(null);
         setPreviewUrl(null);
         setError(null);
-        setIsDragging(false);
         setUploadProgress(0);
     };
 
@@ -221,63 +203,40 @@ export function LogoUploadDialog({
                 </DialogHeader>
 
                 {/* Drop Zone */}
-                <div
+                <FileDropZone
+                    isDragging={isDragging}
+                    disabled={isUploading}
+                    accept=".jpg,.jpeg,.png"
+                    fileInputRef={fileInputRef}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
-                    className={`
-                        relative flex flex-col items-center justify-center gap-4 p-8 min-h-[200px]
-                        border-2 border-dashed rounded-xl
-                        bg-slate-100 transition-colors
-                        ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300'}
-                        ${isUploading ? 'opacity-50 pointer-events-none' : ''}
-                    `}
-                >
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".jpg,.jpeg,.png"
-                        onChange={handleFileSelect}
-                        className="hidden"
-                        disabled={isUploading}
-                    />
-
-                    {previewUrl ? (
-                        <div className="relative w-full flex items-center justify-center">
-                            <img
-                                src={previewUrl}
-                                alt={file?.name || '로고 미리보기'}
-                                className="max-h-[120px] max-w-full object-contain rounded-lg"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setFile(null);
-                                    setPreviewUrl(null);
-                                }}
-                                disabled={isUploading}
-                                className="absolute top-0 right-0 p-1 bg-slate-200 hover:bg-slate-300 rounded-full transition-colors"
-                            >
-                                <X size={16} className="text-slate-600" />
-                            </button>
-                        </div>
-                    ) : (
-                        <>
-                            <p className="text-sm text-slate-500 text-center">
-                                파일을 여기에 드래그 하거나, 직접 선택해주세요.
-                            </p>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={handleSelectClick}
-                                disabled={isUploading}
-                            >
-                                파일선택
-                                <Paperclip size={16} />
-                            </Button>
-                        </>
-                    )}
-                </div>
+                    onInputChange={handleInputChange}
+                    onSelectClick={openFilePicker}
+                    size="lg"
+                    preview={
+                        previewUrl ? (
+                            <div className="relative w-full flex items-center justify-center">
+                                <img
+                                    src={previewUrl}
+                                    alt={file?.name || '로고 미리보기'}
+                                    className="max-h-[120px] max-w-full object-contain rounded-lg"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setFile(null);
+                                        setPreviewUrl(null);
+                                    }}
+                                    disabled={isUploading}
+                                    className="absolute top-0 right-0 p-1 bg-slate-200 hover:bg-slate-300 rounded-full transition-colors"
+                                >
+                                    <X size={16} className="text-slate-600" />
+                                </button>
+                            </div>
+                        ) : undefined
+                    }
+                />
 
                 {/* Progress Bar */}
                 {isUploading && (

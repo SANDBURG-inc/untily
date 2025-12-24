@@ -4,6 +4,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* 다크모드 비활성화: 항상 Light 모드 강제 */
+  color-scheme: light only;
+
   /* 공통 색상 */
   --gray-200: oklch(0.928 0.006 264.53);  /* #E5E7EB - border, divider */
 
@@ -92,61 +95,67 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #3b82f6;
-    --primary-foreground: #ffffff;
-    --secondary: #1e293b;
-    --secondary-foreground: #f8fafc;
-    --muted: #1e293b;
-    --muted-foreground: #cbd5e1;
-    --accent: #1e293b;
-    --accent-foreground: #f8fafc;
-    --destructive: #7f1d1d;
-    --destructive-foreground: #f8fafc;
-    --border: #1e293b;
-    --input: #1e293b;
-    --ring: #3b82f6;
-  }
-}
+/*
+ * 다크모드 비활성화됨 - 나중에 다크모드 지원 시 주석 해제
+ * @media (prefers-color-scheme: dark) {
+ *   :root {
+ *     --primary: #3b82f6;
+ *     --primary-foreground: #ffffff;
+ *     --secondary: #1e293b;
+ *     --secondary-foreground: #f8fafc;
+ *     --muted: #1e293b;
+ *     --muted-foreground: #cbd5e1;
+ *     --accent: #1e293b;
+ *     --accent-foreground: #f8fafc;
+ *     --destructive: #7f1d1d;
+ *     --destructive-foreground: #f8fafc;
+ *     --border: #1e293b;
+ *     --input: #1e293b;
+ *     --ring: #3b82f6;
+ *   }
+ * }
+ */
 
 body {
   font-family: var(--font-sans), sans-serif;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
+/*
+ * 다크모드 비활성화됨 - 나중에 다크모드 지원 시 주석 해제
+ * .dark {
+ *   --background: oklch(0.145 0 0);
+ *   --foreground: oklch(0.985 0 0);
+ *   --card: oklch(0.205 0 0);
+ *   --card-foreground: oklch(0.985 0 0);
+ *   --popover: oklch(0.205 0 0);
+ *   --popover-foreground: oklch(0.985 0 0);
+ *   --primary: oklch(0.922 0 0);
+ *   --primary-foreground: oklch(0.205 0 0);
+ *   --secondary: oklch(0.269 0 0);
+ *   --secondary-foreground: oklch(0.985 0 0);
+ *   --muted: oklch(0.269 0 0);
+ *   --muted-foreground: oklch(0.708 0 0);
+ *   --accent: oklch(0.269 0 0);
+ *   --accent-foreground: oklch(0.985 0 0);
+ *   --destructive: oklch(0.704 0.191 22.216);
+ *   --border: oklch(1 0 0 / 10%);
+ *   --input: oklch(1 0 0 / 15%);
+ *   --ring: oklch(0.556 0 0);
+ *   --chart-1: oklch(0.488 0.243 264.376);
+ *   --chart-2: oklch(0.696 0.17 162.48);
+ *   --chart-3: oklch(0.769 0.188 70.08);
+ *   --chart-4: oklch(0.627 0.265 303.9);
+ *   --chart-5: oklch(0.645 0.246 16.439);
+ *   --sidebar: oklch(0.205 0 0);
+ *   --sidebar-foreground: oklch(0.985 0 0);
+ *   --sidebar-primary: oklch(0.488 0.243 264.376);
+ *   --sidebar-primary-foreground: oklch(0.985 0 0);
+ *   --sidebar-accent: oklch(0.269 0 0);
+ *   --sidebar-accent-foreground: oklch(0.985 0 0);
+ *   --sidebar-border: oklch(1 0 0 / 10%);
+ *   --sidebar-ring: oklch(0.556 0 0);
+ * }
+ */
 
 @layer base {
   * {

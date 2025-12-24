@@ -116,7 +116,8 @@ export async function POST(request: NextRequest) {
     const submittedDocument = await prisma.submittedDocument.create({
       data: {
         s3Key,
-        filename: displayFilename, // 사용자에게 보여지는 파일명
+        filename: displayFilename, // 관리자용 가공 파일명
+        originalFilename: filename, // 원본 파일명
         size: size || 0,
         mimeType: finalContentType,
         fileUrl,
@@ -130,7 +131,8 @@ export async function POST(request: NextRequest) {
       submittedDocumentId: submittedDocument.submittedDocumentId,
       s3Key,
       fileUrl,
-      filename: displayFilename, // 클라이언트에서 표시할 파일명
+      filename: displayFilename, // 관리자용 가공 파일명
+      originalFilename: filename, // 원본 파일명 (UI 표시용)
     });
   } catch (error) {
     console.error('Presigned URL generation error:', error);

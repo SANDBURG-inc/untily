@@ -1,5 +1,5 @@
 import { validateSubmitterAuth } from '@/lib/auth/submitter-auth';
-import { redirect } from 'next/navigation';
+import { handleSubmitterLandingRedirects } from '@/lib/auth/submit-redirect';
 import SubmitLandingView from './_components/SubmitLandingView';
 import EmailMismatchView from './_components/EmailMismatchView';
 
@@ -12,32 +12,16 @@ export default async function SubmitLandingPage({ params }: SubmitLandingPagePro
 
   const result = await validateSubmitterAuth(documentBoxId, submitterId);
 
-  // 문서함/제출자 없음
-  if (result.status === 'not_found') {
-    redirect('/submit/not-found');
-  }
-
-  // 만료됨
-  if (result.status === 'expired') {
-    redirect(`/submit/expired?title=${encodeURIComponent(result.documentBox.boxTitle)}`);
-  }
-
-  // 이미 로그인 + 이메일 일치 → upload 페이지로
-  if (result.status === 'success') {
-    // 이미 제출 완료인 경우 complete로
-    if (result.submitter.status === 'SUBMITTED') {
-      redirect(`/submit/${documentBoxId}/${submitterId}/complete`);
-    }
-    redirect(`/submit/${documentBoxId}/${submitterId}/upload`);
-  }
+  // 문서함/제출자 없음, 만료됨, 인증 성공 → 리다이렉트
+  const validResult = handleSubmitterLandingRedirects(result, documentBoxId, submitterId);
 
   // 이메일 불일치
-  if (result.status === 'email_mismatch') {
+  if (validResult.status === 'email_mismatch') {
     return (
       <EmailMismatchView
-        userEmail={result.user.email || ''}
-        submitterEmail={result.submitter.email}
-        submitterName={result.submitter.name}
+        userEmail={validResult.user.email || ''}
+        submitterEmail={validResult.submitter.email}
+        submitterName={validResult.submitter.name}
       />
     );
   }
@@ -46,18 +30,18 @@ export default async function SubmitLandingPage({ params }: SubmitLandingPagePro
   return (
     <SubmitLandingView
       submitter={{
-        name: result.submitter.name,
-        email: result.submitter.email,
+        name: validResult.submitter.name,
+        email: validResult.submitter.email,
       }}
       documentBox={{
-        boxTitle: result.submitter.documentBox.boxTitle,
-        boxDescription: result.submitter.documentBox.boxDescription,
-        endDate: result.submitter.documentBox.endDate,
-        requiredDocuments: result.submitter.documentBox.requiredDocuments,
+        boxTitle: validResult.submitter.documentBox.boxTitle,
+        boxDescription: validResult.submitter.documentBox.boxDescription,
+        endDate: validResult.submitter.documentBox.endDate,
+        requiredDocuments: validResult.submitter.documentBox.requiredDocuments,
       }}
       documentBoxId={documentBoxId}
       submitterId={submitterId}
-      logoUrl={result.logoUrl}
+      logoUrl={validResult.logoUrl}
     />
   );
 }
