@@ -161,3 +161,57 @@ export async function getDocumentBoxesByUser(userId: string) {
         orderBy: { createdAt: 'desc' },
     });
 }
+
+// 제출 파일 정보 타입
+export interface SubmittedFileInfo {
+    submittedDocumentId: string;
+    s3Key: string;
+    filename: string;
+    mimeType: string;
+    submitterName: string;
+    documentTitle: string;
+}
+
+/**
+ * 문서함의 모든 제출 파일 조회 (ZIP 다운로드용)
+ */
+export async function getSubmittedFilesForDownload(
+    documentBoxId: string,
+    userId: string
+): Promise<{ files: SubmittedFileInfo[]; boxTitle: string } | null> {
+    const documentBox = await prisma.documentBox.findUnique({
+        where: { documentBoxId },
+        include: {
+            submitters: {
+                include: {
+                    submittedDocuments: {
+                        include: {
+                            requiredDocument: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!documentBox || documentBox.userId !== userId) {
+        return null;
+    }
+
+    const files: SubmittedFileInfo[] = [];
+
+    for (const submitter of documentBox.submitters) {
+        for (const doc of submitter.submittedDocuments) {
+            files.push({
+                submittedDocumentId: doc.submittedDocumentId,
+                s3Key: doc.s3Key,
+                filename: doc.filename,
+                mimeType: doc.mimeType,
+                submitterName: submitter.name,
+                documentTitle: doc.requiredDocument.documentTitle,
+            });
+        }
+    }
+
+    return { files, boxTitle: documentBox.boxTitle };
+}
