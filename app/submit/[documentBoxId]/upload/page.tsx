@@ -10,9 +10,8 @@ interface PublicUploadPageProps {
 export default async function PublicUploadPage({ params }: PublicUploadPageProps) {
   const { documentBoxId } = await params;
 
+  // 문서함 기본적인 정보 검증(문서함 없음, 공개 제출 아님, 만료됨, 미인증 등)
   const result = await validatePublicSubmitAuth(documentBoxId);
-
-  // 문서함 없음, 공개 제출 아님, 만료됨, 미인증 → 리다이렉트
   const { submitter } = handlePublicAuthRedirects(result, documentBoxId);
 
   // 이미 제출 완료된 경우 → complete로
@@ -34,6 +33,7 @@ export default async function PublicUploadPage({ params }: PublicUploadPageProps
           submittedDocumentId: doc.submittedDocumentId,
           requiredDocumentId: doc.requiredDocumentId,
           filename: doc.filename,
+          originalFilename: doc.originalFilename,
           size: doc.size,
         })),
       }}

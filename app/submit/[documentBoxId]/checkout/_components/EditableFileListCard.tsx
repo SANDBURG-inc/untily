@@ -17,6 +17,7 @@ interface FileItem {
   documentDescription: string | null;
   isRequired: boolean;
   filename: string | null;
+  originalFilename: string | null;
   submittedDocumentId?: string;
   size?: number;
 }
@@ -45,10 +46,11 @@ export default function EditableFileListCard({
   // 파일 상태를 Map으로 관리
   const initialUploads = new Map<string, UploadedDocument>();
   files.forEach((file) => {
-    if (file.filename && file.submittedDocumentId) {
+    if (file.filename && file.submittedDocumentId && file.originalFilename) {
       initialUploads.set(file.requiredDocumentId, {
         submittedDocumentId: file.submittedDocumentId,
         filename: file.filename,
+        originalFilename: file.originalFilename,
         s3Key: '',
         size: file.size,
       });
@@ -113,9 +115,9 @@ export default function EditableFileListCard({
                       <p className="text-lg font-medium text-foreground mb-0.5">
                         {file.documentTitle}
                       </p>
-                      {uploaded?.filename ? (
+                      {uploaded?.originalFilename ? (
                         <p className="text-base text-muted-foreground truncate">
-                          {uploaded.filename}
+                          {uploaded.originalFilename}
                         </p>
                       ) : (
                         <p className="text-base text-muted-foreground/60 italic">

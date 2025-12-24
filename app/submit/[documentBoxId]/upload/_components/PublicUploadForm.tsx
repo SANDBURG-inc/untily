@@ -13,6 +13,7 @@ interface SubmittedDocument {
   submittedDocumentId: string;
   requiredDocumentId: string;
   filename: string;
+  originalFilename: string;
   size?: number;
 }
 

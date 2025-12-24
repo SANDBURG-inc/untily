@@ -46,6 +46,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
           submittedDocumentId: doc.submittedDocumentId,
           requiredDocumentId: doc.requiredDocumentId,
           filename: doc.filename,
+          originalFilename: doc.originalFilename,
           size: doc.size,
         })),
       }}

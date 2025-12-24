@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 
 export interface UploadedDocument {
   submittedDocumentId: string;
-  filename: string;
+  filename: string; // 관리자용 가공 파일명
+  originalFilename: string; // 원본 파일명 (UI 표시용)
   s3Key: string;
   size?: number;
 }
@@ -80,6 +81,7 @@ export default function DocumentUploadItem({
       const newUpload: UploadedDocument = {
         submittedDocumentId: result.submittedDocumentId,
         filename: result.filename,
+        originalFilename: result.originalFilename,
         s3Key: result.s3Key,
         size: file.size,
       };
@@ -132,7 +134,7 @@ export default function DocumentUploadItem({
       {/* Upload Area */}
       {upload ? (
         <FilePreview
-          filename={upload.filename}
+          filename={upload.originalFilename}
           size={upload.size}
           onRemove={handleRemove}
           isRemoving={isRemoving}

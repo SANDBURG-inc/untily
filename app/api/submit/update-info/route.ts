@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import prisma from '@/lib/db';
 import { hasDesignatedSubmitters } from '@/lib/utils/document-box';
+import { generateSubmittedFilename } from '@/lib/s3/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,11 +69,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. 제출자 정보 업데이트 (이메일은 수정 불가)
+    // 6. 이름이 변경된 경우 업로드된 파일명 재생성
+    const trimmedName = name.trim();
+    if (trimmedName !== submitter.name) {
+      // 해당 제출자의 모든 제출 서류 조회
+      const submittedDocs = await prisma.submittedDocument.findMany({
+        where: { submitterId },
+        include: {
+          requiredDocument: true,
+        },
+      });
+
+      // 각 서류의 filename 재생성
+      for (const doc of submittedDocs) {
+        const newFilename = generateSubmittedFilename({
+          requiredDocumentTitle: doc.requiredDocument.documentTitle,
+          submitterName: trimmedName,
+          originalFilename: doc.originalFilename,
+        });
+
+        await prisma.submittedDocument.update({
+          where: { submittedDocumentId: doc.submittedDocumentId },
+          data: { filename: newFilename },
+        });
+      }
+    }
+
+    // 7. 제출자 정보 업데이트 (이메일은 수정 불가)
     const updatedSubmitter = await prisma.submitter.update({
       where: { submitterId },
       data: {
-        name: name.trim(),
+        name: trimmedName,
         phone: phone.trim(),
       },
     });

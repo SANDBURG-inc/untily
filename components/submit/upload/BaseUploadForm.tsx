@@ -20,6 +20,7 @@ interface SubmittedDocument {
   submittedDocumentId: string;
   requiredDocumentId: string;
   filename: string;
+  originalFilename: string;
   size?: number;
 }
 
@@ -40,6 +41,7 @@ export interface BaseUploadFormProps {
 interface UploadedDocument {
   submittedDocumentId: string;
   filename: string;
+  originalFilename: string;
   s3Key: string;
   size?: number;
 }
@@ -59,6 +61,7 @@ export default function BaseUploadForm({
     initialUploads.set(doc.requiredDocumentId, {
       submittedDocumentId: doc.submittedDocumentId,
       filename: doc.filename,
+      originalFilename: doc.originalFilename,
       s3Key: '',
       size: doc.size,
     });

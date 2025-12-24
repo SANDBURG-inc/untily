@@ -34,6 +34,7 @@ export default async function UploadPage({ params }: UploadPageProps) {
           submittedDocumentId: doc.submittedDocumentId,
           requiredDocumentId: doc.requiredDocumentId,
           filename: doc.filename,
+          originalFilename: doc.originalFilename,
           size: doc.size,
         })),
       }}

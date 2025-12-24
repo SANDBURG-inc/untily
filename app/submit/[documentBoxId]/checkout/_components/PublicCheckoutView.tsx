@@ -21,6 +21,7 @@ interface SubmittedDocument {
   submittedDocumentId: string;
   requiredDocumentId: string;
   filename: string;
+  originalFilename: string;
   size?: number;
 }
 
@@ -98,6 +99,7 @@ export default function PublicCheckoutView({
         submittedDocumentId: upload.submittedDocumentId,
         requiredDocumentId: requiredDocId,
         filename: upload.filename,
+        originalFilename: upload.originalFilename,
         size: upload.size,
       });
     });
@@ -142,6 +144,7 @@ export default function PublicCheckoutView({
       documentDescription: reqDoc.documentDescription,
       isRequired: reqDoc.isRequired,
       filename: uploaded?.filename || null,
+      originalFilename: uploaded?.originalFilename || null,
       submittedDocumentId: uploaded?.submittedDocumentId,
       size: uploaded?.size,
     };
