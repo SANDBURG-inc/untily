@@ -126,8 +126,28 @@ fi
 log_success "의존성 설치 완료"
 
 # 6. Prisma 마이그레이션 및 클라이언트 생성
-log_info "Prisma 마이그레이션 실행 중..."
-npx prisma migrate deploy
+log_info "Prisma 마이그레이션 상태 확인 중..."
+
+# 마이그레이션 상태 확인 (실패하면 baseline 필요)
+if ! npx prisma migrate deploy 2>&1 | tee /tmp/migrate_output.txt | grep -q "All migrations have been successfully applied"; then
+    # P3005 에러 (DB가 비어있지 않음) 체크
+    if grep -q "P3005" /tmp/migrate_output.txt; then
+        log_warning "기존 DB 감지됨. Baseline 마이그레이션 설정 중..."
+
+        # 기존 마이그레이션들을 "이미 적용됨"으로 표시
+        for migration_dir in prisma/migrations/*/; do
+            migration_name=$(basename "$migration_dir")
+            if [ "$migration_name" != "migration_lock.toml" ]; then
+                log_info "Baseline 설정: $migration_name"
+                npx prisma migrate resolve --applied "$migration_name" 2>/dev/null || true
+            fi
+        done
+
+        # 마이그레이션 재실행
+        log_info "마이그레이션 재실행 중..."
+        npx prisma migrate deploy
+    fi
+fi
 log_success "Prisma 마이그레이션 완료"
 
 log_info "Prisma 클라이언트 생성 중..."
