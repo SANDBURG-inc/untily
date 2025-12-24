@@ -173,16 +173,19 @@ export interface SubmittedFileInfo {
 }
 
 /**
- * 문서함의 모든 제출 파일 조회 (ZIP 다운로드용)
+ * 문서함의 제출 파일 조회 (ZIP 다운로드용)
+ * @param submitterIds 선택된 제출자 ID 배열 (없으면 전체)
  */
 export async function getSubmittedFilesForDownload(
     documentBoxId: string,
-    userId: string
+    userId: string,
+    submitterIds?: string[]
 ): Promise<{ files: SubmittedFileInfo[]; boxTitle: string } | null> {
     const documentBox = await prisma.documentBox.findUnique({
         where: { documentBoxId },
         include: {
             submitters: {
+                where: submitterIds?.length ? { submitterId: { in: submitterIds } } : undefined,
                 include: {
                     submittedDocuments: {
                         include: {

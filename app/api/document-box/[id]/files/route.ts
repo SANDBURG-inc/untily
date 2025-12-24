@@ -6,8 +6,9 @@ import { getSubmittedFilesForDownload } from '@/lib/queries/document-box';
 import { s3Client, S3_BUCKET } from '@/lib/s3/client';
 
 /**
- * 문서함의 모든 제출 파일을 ZIP으로 다운로드
- * GET /api/document-box/[id]/files
+ * 문서함의 제출 파일을 ZIP으로 다운로드
+ * GET /api/document-box/[id]/files?submitterIds=id1,id2,id3
+ * submitterIds가 없으면 전체 다운로드
  */
 export async function GET(
     request: NextRequest,
@@ -17,8 +18,14 @@ export async function GET(
         const user = await ensureAuthenticated();
         const { id: documentBoxId } = await params;
 
+        // 선택된 제출자 ID 파싱
+        const submitterIdsParam = request.nextUrl.searchParams.get('submitterIds');
+        const submitterIds = submitterIdsParam
+            ? submitterIdsParam.split(',').filter(Boolean)
+            : undefined;
+
         // 제출 파일 조회
-        const result = await getSubmittedFilesForDownload(documentBoxId, user.id);
+        const result = await getSubmittedFilesForDownload(documentBoxId, user.id, submitterIds);
 
         if (!result) {
             return NextResponse.json(

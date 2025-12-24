@@ -121,6 +121,13 @@ export function SubmittersList({
             ),
         },
         {
+            key: 'phone',
+            header: '연락처',
+            render: (submitter) => (
+                <span className="text-sm text-gray-600">{submitter.phone || '-'}</span>
+            ),
+        },
+        {
             key: 'status',
             header: '제출상태',
             render: (submitter) => {
@@ -178,7 +185,11 @@ export function SubmittersList({
     const handleFilesDownload = async () => {
         setIsDownloadingFiles(true);
         try {
-            const response = await fetch(`/api/document-box/${documentBoxId}/files`);
+            // 선택된 제출자가 있으면 해당 ID들만, 없으면 전체 다운로드
+            const url = selectedIds.size > 0
+                ? `/api/document-box/${documentBoxId}/files?submitterIds=${Array.from(selectedIds).join(',')}`
+                : `/api/document-box/${documentBoxId}/files`;
+            const response = await fetch(url);
 
             if (!response.ok) {
                 const error = await response.json();
@@ -188,13 +199,13 @@ export function SubmittersList({
 
             // Blob으로 변환 후 다운로드
             const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
+            const blobUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
+            a.href = blobUrl;
             a.download = `${documentBoxTitle}_제출파일.zip`;
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
+            window.URL.revokeObjectURL(blobUrl);
             document.body.removeChild(a);
         } catch (error) {
             console.error('File download error:', error);
@@ -227,15 +238,21 @@ export function SubmittersList({
                     >
                         제출현황
                     </IconButton>
-                    <IconButton
-                        variant="primary"
-                        size="sm"
-                        icon={<FileArchive className="w-4 h-4" />}
-                        onClick={handleFilesDownload}
-                        disabled={isDownloadingFiles}
-                    >
-                        {isDownloadingFiles ? '다운로드 중...' : '파일 다운로드'}
-                    </IconButton>
+                    {submitters.length > 0 && (
+                        <IconButton
+                            variant="primary"
+                            size="sm"
+                            icon={<FileArchive className="w-4 h-4" />}
+                            onClick={handleFilesDownload}
+                            disabled={isDownloadingFiles}
+                        >
+                            {isDownloadingFiles
+                                ? '다운로드 중...'
+                                : selectedIds.size > 0
+                                    ? `다운로드 (${selectedIds.size}명)`
+                                    : '전체 다운로드'}
+                        </IconButton>
+                    )}
                 </CardAction>
             </CardHeader>
 
