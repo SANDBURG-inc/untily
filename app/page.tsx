@@ -1,10 +1,7 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import {
-  getReturnUrlFromCookies,
-  RETURN_URL_COOKIE,
-} from "@/lib/auth/return-url";
+import { getReturnUrlFromCookies } from "@/lib/auth/return-url";
+import ReturnUrlHandler from "@/components/auth/ReturnUrlHandler";
 import Navbar from "@/components/layout/Navbar";
 import Hero from "@/components/landing/Hero";
 import Problem from "@/components/landing/Problem";
@@ -21,11 +18,10 @@ export default async function Home() {
   const cookieStore = await cookies();
   const returnUrl = getReturnUrlFromCookies(cookieStore);
 
-  // 로그인된 상태이고 returnUrl 쿠키가 있으면 해당 URL로 리다이렉트
+  // 로그인된 상태이고 returnUrl 쿠키가 있으면 클라이언트에서 리다이렉트 처리
+  // (쿠키 수정은 Server Action에서만 가능하므로 클라이언트 컴포넌트 사용)
   if (user && returnUrl) {
-    // 쿠키 삭제 (서버 액션 사용)
-    cookieStore.delete(RETURN_URL_COOKIE);
-    redirect(returnUrl);
+    return <ReturnUrlHandler returnUrl={returnUrl} />;
   }
 
   return (
