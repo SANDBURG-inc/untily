@@ -33,7 +33,9 @@ export function proxy(request: NextRequest) {
 
     // 실제 요청 처리 - CORS 헤더 추가 및 헤더 보정
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-forwarded-proto', 'https'); // 프로덕션 환경에서 HTTPS로 인식되도록 강제
+    if (process.env.NODE_ENV === 'production') {
+      requestHeaders.set('x-forwarded-proto', 'https'); // 프로덕션 환경에서 HTTPS로 인식되도록 강제
+    }
 
     const response = NextResponse.next({
       request: {

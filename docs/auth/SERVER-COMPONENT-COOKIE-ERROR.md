@@ -229,7 +229,7 @@ export default async function Home() {
 
 ---
 
-## Next.js 16에서 달라진 점
+## Next.js 15에서 달라진 점
 
 ### Next.js 15 이전
 
