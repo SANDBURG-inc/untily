@@ -1,8 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neonAuthMiddleware } from "@neondatabase/neon-js/auth/next";
 
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://www.untily.kr',
+  'https://untily.kr',
+  'https://dev.untily.kr',
+];
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // /api/auth/* 경로: CORS 헤더 추가
+  if (pathname.startsWith('/api/auth/')) {
+    const origin = request.headers.get('origin');
+    const isAllowedOrigin = origin && allowedOrigins.includes(origin);
+
+    // Preflight 요청 처리
+    if (request.method === 'OPTIONS') {
+      const response = new NextResponse(null, { status: 204 });
+      
+      if (isAllowedOrigin) {
+        response.headers.set('Access-Control-Allow-Origin', origin);
+        response.headers.set('Access-Control-Allow-Credentials', 'true');
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        response.headers.set('Access-Control-Max-Age', '86400');
+      }
+      
+      return response;
+    }
+
+    // 실제 요청 처리 - CORS 헤더 추가
+    const response = NextResponse.next();
+    
+    if (isAllowedOrigin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+      response.headers.set('Access-Control-Allow-Credentials', 'true');
+    }
+
+    return response;
+  }
 
   // 대시보드 경로: callbackURL과 함께 /sign-in으로 리다이렉트
   if (pathname.startsWith("/dashboard")) {
@@ -37,8 +75,11 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // CORS 처리가 필요한 API 경로
+    "/api/auth/:path*",
     // 인증이 필요한 보호된 경로
     "/dashboard/:path*",
     "/submit/:path*",
   ],
 };
+
