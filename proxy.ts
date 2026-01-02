@@ -31,8 +31,15 @@ export function proxy(request: NextRequest) {
       return response;
     }
 
-    // 실제 요청 처리 - CORS 헤더 추가
-    const response = NextResponse.next();
+    // 실제 요청 처리 - CORS 헤더 추가 및 헤더 보정
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-forwarded-proto', 'https'); // 프로덕션 환경에서 HTTPS로 인식되도록 강제
+
+    const response = NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
     
     if (isAllowedOrigin) {
       response.headers.set('Access-Control-Allow-Origin', origin);
