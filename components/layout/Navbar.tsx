@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
-import Modal from './Modal';
-import ContactForm from './ContactForm';
+import Modal from '../shared/Modal';
+import ContactForm from '../shared/ContactForm';
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
@@ -31,12 +31,12 @@ export default function Navbar() {
                         <Link href="#pricing" className="text-sm font-medium text-gray-900 hover:text-primary dark:text-gray-100">
                             요금제
                         </Link>
-                        <button
-                            onClick={() => setIsModalOpen(true)}
+                        <Link
+                            href="/dashboard"
                             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full font-medium transition-all transform hover:scale-105"
                         >
                             지금 시작하기
-                        </button>
+                        </Link>
                     </div>
 
                     <div className="md:hidden flex items-center">
@@ -63,14 +63,13 @@ export default function Navbar() {
                         <Link href="#pricing" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800">
                             요금제
                         </Link>
-                        <button
-                            onClick={() => {
-                                setIsOpen(false);
-                                setIsModalOpen(true);
-                            }}
+                        <Link
+                            href="/dashboard"
+                            onClick={() => setIsOpen(false)}
                             className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-blue-600 dark:text-blue-400 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20"
                         >
-                            지금 시작하기                        </button>
+                            지금 시작하기
+                        </Link>
                     </div>
                 </div>
             )}

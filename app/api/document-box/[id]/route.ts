@@ -1,0 +1,198 @@
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/db';
+import { neonAuth } from '@neondatabase/neon-js/auth/next';
+import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse } from '@/lib/types/document';
+
+export async function PUT(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        // Check authentication
+        const { user } = await neonAuth();
+        if (!user) {
+            return NextResponse.json<CreateDocumentBoxResponse>(
+                { success: false, error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
+
+        const { id } = await params;
+
+        // Check if document box exists and user owns it
+        const existingBox = await prisma.documentBox.findUnique({
+            where: { documentBoxId: id },
+        });
+
+        if (!existingBox) {
+            return NextResponse.json<CreateDocumentBoxResponse>(
+                { success: false, error: 'Document box not found' },
+                { status: 404 }
+            );
+        }
+
+        if (existingBox.userId !== user.id) {
+            return NextResponse.json<CreateDocumentBoxResponse>(
+                { success: false, error: 'Unauthorized' },
+                { status: 403 }
+            );
+        }
+
+        const body: CreateDocumentBoxRequest = await request.json();
+        const {
+            documentName,
+            description,
+            logoUrl,
+            submittersEnabled,
+            submitters,
+            requirements,
+            deadline,
+            reminderEnabled,
+            emailReminder,
+            smsReminder,
+            kakaoReminder,
+        } = body;
+
+        // Validate required fields
+        if (!documentName || !deadline) {
+            return NextResponse.json<CreateDocumentBoxResponse>(
+                { success: false, error: 'Missing required fields' },
+                { status: 400 }
+            );
+        }
+
+        // Parse deadline to DateTime
+        const endDate = new Date(deadline);
+        if (isNaN(endDate.getTime())) {
+            return NextResponse.json<CreateDocumentBoxResponse>(
+                { success: false, error: 'Invalid deadline date' },
+                { status: 400 }
+            );
+        }
+
+        // Update document box with all related data in a transaction
+        const documentBox = await prisma.$transaction(async (tx) => {
+            // Update the document box
+            const box = await tx.documentBox.update({
+                where: { documentBoxId: id },
+                data: {
+                    boxTitle: documentName,
+                    boxDescription: description || null,
+                    endDate,
+                },
+            });
+
+            // 기존 문서함 로고 삭제
+            await tx.logo.deleteMany({
+                where: {
+                    documentBoxId: id,
+                    type: 'DOCUMENT_BOX',
+                },
+            });
+
+            // 새 문서함 로고가 있으면 Logo 테이블에 저장
+            if (logoUrl) {
+                await tx.logo.create({
+                    data: {
+                        imageUrl: logoUrl,
+                        userId: user.id,
+                        type: 'DOCUMENT_BOX',
+                        documentBoxId: id,
+                    },
+                });
+            }
+
+            // 제출자 처리: 기존 제출자 유지 + 새 제출자 추가
+            if (submittersEnabled && submitters && submitters.length > 0) {
+                // 기존 제출자 목록 조회 (email 기준 중복 체크용)
+                const existingSubmitters = await tx.submitter.findMany({
+                    where: { documentBoxId: id },
+                    select: { email: true },
+                });
+                const existingEmails = new Set(existingSubmitters.map((s) => s.email.toLowerCase()));
+
+                // 새로운 제출자만 필터링 (email이 기존에 없는 경우)
+                const newSubmitters = submitters.filter(
+                    (s) => s.email && s.name && !existingEmails.has(s.email.toLowerCase())
+                );
+
+                // 새 제출자 추가
+                if (newSubmitters.length > 0) {
+                    await tx.submitter.createMany({
+                        data: newSubmitters.map((s) => ({
+                            name: s.name,
+                            email: s.email,
+                            phone: s.phone || '',
+                            documentBoxId: id,
+                        })),
+                    });
+                }
+            }
+
+            // Delete existing required documents and create new ones
+            await tx.requiredDocument.deleteMany({
+                where: { documentBoxId: id },
+            });
+
+            if (requirements.length > 0) {
+                await tx.requiredDocument.createMany({
+                    data: requirements.map((req) => ({
+                        documentTitle: req.name,
+                        documentDescription: req.description || null,
+                        isRequired: req.type === '필수',
+                        documentBoxId: box.documentBoxId,
+                    })),
+                });
+            }
+
+            // Delete existing reminder types and create new ones
+            await tx.documentBoxRemindType.deleteMany({
+                where: { documentBoxId: id },
+            });
+
+            if (reminderEnabled) {
+                const remindTypes: Array<{ documentBoxId: string; remindType: 'EMAIL' | 'SMS' | 'PUSH' }> = [];
+
+                if (emailReminder) {
+                    remindTypes.push({
+                        documentBoxId: box.documentBoxId,
+                        remindType: 'EMAIL',
+                    });
+                }
+
+                if (smsReminder) {
+                    remindTypes.push({
+                        documentBoxId: box.documentBoxId,
+                        remindType: 'SMS',
+                    });
+                }
+
+                if (kakaoReminder) {
+                    remindTypes.push({
+                        documentBoxId: box.documentBoxId,
+                        remindType: 'PUSH',
+                    });
+                }
+
+                if (remindTypes.length > 0) {
+                    await tx.documentBoxRemindType.createMany({
+                        data: remindTypes,
+                    });
+                }
+            }
+
+            return box;
+        });
+
+        return NextResponse.json<CreateDocumentBoxResponse>({
+            success: true,
+            documentBoxId: documentBox.documentBoxId,
+        });
+    } catch (error) {
+        console.error('Error updating document box:', error);
+        return NextResponse.json<CreateDocumentBoxResponse>(
+            { success: false, error: 'Failed to update document box' },
+            { status: 500 }
+        );
+    }
+}

@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Logo {
+  logoId        String   @id @default(cuid())
+  imageUrl      String
+  createdAt     DateTime @default(now())
+  userId        String
+  type          LogoType @default(DEFAULT)
+
+  // 문서함 로고인 경우에만 사용 (type이 DOCUMENT_BOX일 때)
+  documentBoxId String?
+  documentBox   DocumentBox? @relation(fields: [documentBoxId], references: [documentBoxId])
+
+  @@unique([userId, type, documentBoxId])
+  @@index([userId])
+  @@index([documentBoxId])
+}
+
+enum LogoType {
+  DEFAULT       // 사용자 기본 로고
+  DOCUMENT_BOX  // 문서함별 로고
+}
+
+model DocumentBox {
+  documentBoxId  String   @id @default(cuid())
+  boxTitle       String
+  boxDescription String?
+  createdAt      DateTime @default(now())
+  endDate        DateTime
+  userId         String
+
+  // 제출자 지정 여부 플래그
+  // - true: 지정 제출자가 있는 문서함 (예: 연말정산, 신청서)
+  // - false: 지정 제출자가 없는 문서함 (예: 설문조사, 공개 수집)
+  // [후방호환성] 기존 데이터는 null이며, null인 경우 true로 취급
+  // 관련 유틸: lib/utils/document-box.ts > hasDesignatedSubmitters()
+  hasSubmitter Boolean?
+
+  logos                  Logo[]
+  submitters             Submitter[]
+  requiredDocuments      RequiredDocument[]
+  documentBoxRemindTypes DocumentBoxRemindType[]
+  reminderLogs           ReminderLog[]
+
+  @@index([userId])
+}
+
+model RequiredDocument {
+  requiredDocumentId  String      @id @default(cuid())
+  documentTitle       String
+  documentDescription String?
+  isRequired          Boolean     @default(true)
+  documentBoxId       String
+  documentBox         DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
+
+  submittedDocuments SubmittedDocument[]
+}
+
+model Submitter {
+  submitterId   String          @id @default(cuid())
+  name          String
+  email         String
+  phone         String
+  documentBoxId String
+  documentBox   DocumentBox     @relation(fields: [documentBoxId], references: [documentBoxId])
+
+  // 제출자 인증 관련 필드
+  userId        String?         // Stack Auth 사용자 ID (로그인 시 연결)
+  status        SubmitterStatus @default(PENDING)
+  submittedAt   DateTime?       // 제출 완료 시간
+
+  submittedDocuments SubmittedDocument[]
+  reminderRecipients ReminderRecipient[]
+
+  @@index([userId])
+  @@index([email])
+}
+
+model SubmittedDocument {
+  submittedDocumentId String           @id @default(cuid())
+
+  // S3 관련 필드
+  s3Key               String
+  filename            String           // 관리자용 가공 파일명 (서류명_날짜_제출자명.확장자)
+  originalFilename    String           // 원본 파일명 (사용자가 업로드한 파일명)
+  size                Int
+  mimeType            String
+
+  // 기존 필드
+  fileUrl             String
+  createdAt           DateTime         @default(now())
+
+  // 관계 필드
+  requiredDocumentId  String
+  requiredDocument    RequiredDocument @relation(fields: [requiredDocumentId], references: [requiredDocumentId])
+  submitterId         String
+  submitter           Submitter        @relation(fields: [submitterId], references: [submitterId])
+
+  @@index([submitterId])
+  @@index([requiredDocumentId])
+}
+
+model DocumentBoxRemindType {
+  documentBoxId String
+  remindType    RemindType
+  documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
+
+  @@id([documentBoxId, remindType])
+}
+
+enum RemindType {
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum SubmitterStatus {
+  PENDING
+  SUBMITTED
+}
+
+model ReminderLog {
+  id            String              @id @default(cuid())
+  documentBoxId String
+  documentBox   DocumentBox         @relation(fields: [documentBoxId], references: [documentBoxId])
+  sentAt        DateTime            @default(now())
+  channel       RemindType
+  isAuto        Boolean // true: 자동, false: 수동
+  recipients    ReminderRecipient[]
+}
+
+model ReminderRecipient {
+  id            String      @id @default(cuid())
+  reminderLogId String
+  reminderLog   ReminderLog @relation(fields: [reminderLogId], references: [id])
+  submitterId   String
+  submitter     Submitter   @relation(fields: [submitterId], references: [submitterId])
+
+  @@index([reminderLogId])
+  @@index([submitterId])
+}
