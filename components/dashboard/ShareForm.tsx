@@ -33,7 +33,7 @@ export function ShareForm({
     const [copiedLink, setCopiedLink] = useState(false);
     const [copiedEmail, setCopiedEmail] = useState(false);
 
-    const shareLink = `https://dev.untily.kr/submit/${documentBoxId}`;
+    const shareLink = `https://untily.kr/submit/${documentBoxId}`;
 
     const handleCopyLink = async () => {
         try {

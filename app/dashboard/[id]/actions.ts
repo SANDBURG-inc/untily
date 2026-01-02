@@ -85,7 +85,7 @@ export async function sendManualReminder(documentBoxId: string, recipientIds: st
         const emails = submitters
             .filter(submitter => submitter.email)
             .map(submitter => {
-                const submissionLink = `https://dev.untily.kr/submit/${documentBoxId}/${submitter.submitterId}`;
+                const submissionLink = `https://untily.kr/submit/${documentBoxId}/${submitter.submitterId}`;
 
                 const emailHtml = generateReminderEmailHtml({
                     submitterName: submitter.name,
