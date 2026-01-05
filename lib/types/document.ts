@@ -17,8 +17,8 @@ export interface CreateDocumentBoxRequest {
     description: string;
     logoUrl?: string | null;
     submittersEnabled: boolean;
-    submitters: Omit<Submitter, 'id'>[];
-    requirements: Omit<DocumentRequirement, 'id'>[];
+    submitters: (Omit<Submitter, 'id'> & { id?: string })[];
+    requirements: (Omit<DocumentRequirement, 'id'> & { id?: string })[];
     deadline: string;
     reminderEnabled: boolean;
     emailReminder: boolean;

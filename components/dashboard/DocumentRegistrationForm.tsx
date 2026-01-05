@@ -15,6 +15,14 @@ import { BasicInfoCard } from './document-registration/BasicInfoCard';
 import { SubmitterRegistrationCard } from './document-registration/SubmitterRegistrationCard';
 import { DocumentRequirementsCard } from './document-registration/DocumentRequirementsCard';
 import { SubmissionSettingsCard } from './document-registration/SubmissionSettingsCard';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 /**
  * 문서함 초기 데이터 인터페이스
@@ -111,6 +119,14 @@ export default function DocumentRegistrationForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+
+  // ===== 삭제 확인 다이얼로그 상태 =====
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmDialogData, setConfirmDialogData] = useState<{
+    submitters: string[];
+    requirements: string[];
+  } | null>(null);
+
   /**
    * 제출자 기능 활성화/비활성화 핸들러
    * 비활성화 시 리마인드 기능도 함께 비활성화
@@ -157,17 +173,16 @@ export default function DocumentRegistrationForm({
   };
 
   /**
-   * 폼 제출 핸들러
+   * 폼 제출 핸들러 (내부 구현)
    */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitForm = async (force: boolean = false) => {
     setError(null);
     setIsSubmitting(true);
 
     try {
-      // 생성 모드에서 로고 파일이 있으면 먼저 업로드
+      // 생성 모드에서 로고 파일이 있으면 먼저 업로드 (force일 때는 이미 업로드된 logoUrl 사용)
       let finalLogoUrl = logoUrl;
-      if (!isEditMode && logoFile) {
+      if (!isEditMode && logoFile && !force && !logoUrl) {
         finalLogoUrl = await uploadLogoFile(logoFile);
       }
 
@@ -177,15 +192,16 @@ export default function DocumentRegistrationForm({
         logoUrl: finalLogoUrl || null,
         submittersEnabled,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        submitters: submitters.map(({ id, ...rest }) => rest),
+        submitters: submitters.map(({ ...rest }) => rest), // id 포함해서 전송
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        requirements: requirements.map(({ id, ...rest }) => rest),
+        requirements: requirements,
         // Date 객체를 YYYY-MM-DD 문자열로 변환하여 API에 전달
         deadline: deadline ? format(deadline, 'yyyy-MM-dd') : '',
         reminderEnabled,
         emailReminder,
         smsReminder,
         kakaoReminder,
+        force, // 강제 수정 여부
       };
 
       const url = isEditMode ? `/api/document-box/${documentBoxId}` : '/api/document-box';
@@ -202,6 +218,17 @@ export default function DocumentRegistrationForm({
       const data = await response.json();
 
       if (!response.ok || !data.success) {
+        // 제출 내역이 있는 항목 삭제 시도 에러 처리 (409 Conflict)
+        if (data.code === 'CONFLICT_WITH_SUBMISSIONS') {
+            setConfirmDialogData({
+                submitters: data.conflictSubmitters || [],
+                requirements: data.conflictRequirements || []
+            });
+            setConfirmDialogOpen(true);
+            setIsSubmitting(false);
+            return;
+        }
+
         throw new Error(
           data.error ||
             (isEditMode ? '문서함 수정에 실패했습니다' : '문서함 생성에 실패했습니다')
@@ -226,9 +253,25 @@ export default function DocumentRegistrationForm({
             ? '문서함 수정 중 오류가 발생했습니다'
             : '문서함 생성 중 오류가 발생했습니다'
       );
-    } finally {
       setIsSubmitting(false);
     }
+  };
+
+  /**
+   * 폼 제출 핸들러 (이벤트)
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitForm(false);
+  };
+
+  /**
+   * 강제 삭제 확인 핸들러
+   */
+  const handleForceDelete = async () => {
+    setConfirmDialogOpen(false);
+    setConfirmDialogData(null);
+    await submitForm(true);
   };
 
   /**
@@ -243,6 +286,7 @@ export default function DocumentRegistrationForm({
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
       {/* 페이지 헤더 */}
       <PageHeader
@@ -352,5 +396,35 @@ export default function DocumentRegistrationForm({
         </Button>
       </div>
     </form>
+    
+    {/* 삭제 확인 다이얼로그 */}
+    <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>
+                    이미 제출된 내역이 있습니다. 삭제하시겠습니까?
+                </DialogTitle>
+                <DialogDescription>
+                    {(confirmDialogData?.submitters?.length || 0) > 0 && (
+                        <span>
+                            제출 내역이 있는 사용자: <strong>{confirmDialogData?.submitters.join(', ')}</strong><br />
+                        </span>
+                    )}
+                    {(confirmDialogData?.requirements?.length || 0) > 0 && (
+                        <span className="mt-2 inline-block">
+                            제출 내역이 있는 문서: <strong>{confirmDialogData?.requirements.join(', ')}</strong><br />
+                        </span>
+                    )}
+                    <br/>
+                    삭제 시 해당 항목의 모든 제출 데이터가 영구적으로 삭제됩니다. 계속하시겠습니까?
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button variant="ghost" onClick={() => setConfirmDialogOpen(false)}>취소</Button>
+                <Button variant="destructive" onClick={handleForceDelete}>삭제</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }

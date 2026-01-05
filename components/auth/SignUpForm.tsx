@@ -9,6 +9,7 @@ import {
     clearReturnUrlCookie,
     DEFAULT_REDIRECT,
 } from "@/lib/auth/return-url";
+import { getAuthErrorMessage } from "@/lib/auth/error-message";
 
 interface SignUpFormProps {
     callbackURL?: string;
@@ -59,14 +60,15 @@ export default function SignUpForm({ callbackURL }: SignUpFormProps) {
             });
 
             if (result.error) {
-                setError(result.error.message || '회원가입에 실패했습니다.');
+                setError(getAuthErrorMessage(result.error));
             } else {
                 // 회원가입 성공 시 쿠키 삭제 후 리다이렉트
                 clearReturnUrlCookie();
                 router.push(redirectUrl);
             }
-        } catch {
-            setError('회원가입 중 오류가 발생했습니다.');
+        } catch (err) {
+            console.error('Signup error:', err);
+            setError(getAuthErrorMessage(err));
         } finally {
             setIsLoading(false);
         }
