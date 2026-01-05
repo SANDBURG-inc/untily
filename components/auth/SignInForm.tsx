@@ -7,6 +7,8 @@ import Image from "next/image";
 import {
     setReturnUrlCookie,
     clearReturnUrlCookie,
+    getReturnUrlCookie,
+    getRedirectUrl,
     DEFAULT_REDIRECT,
 } from "@/lib/auth/return-url";
 
@@ -20,8 +22,6 @@ export default function SignInForm({ callbackURL }: SignInFormProps) {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-
-    const redirectUrl = callbackURL || DEFAULT_REDIRECT;
 
     // callbackURL이 있으면 쿠키에 저장 (OAuth 플로우 대비)
     useEffect(() => {
@@ -49,6 +49,9 @@ export default function SignInForm({ callbackURL }: SignInFormProps) {
                 setError(result.error.message || '로그인에 실패했습니다.');
             } else {
                 // 로그인 성공 시 쿠키 삭제 후 리다이렉트
+                const cookieUrl = getReturnUrlCookie();
+                const redirectUrl = getRedirectUrl(callbackURL, cookieUrl);
+                
                 clearReturnUrlCookie();
                 router.push(redirectUrl);
             }
@@ -61,6 +64,9 @@ export default function SignInForm({ callbackURL }: SignInFormProps) {
 
     const handleOAuthSignIn = async () => {
         try {
+            const cookieUrl = getReturnUrlCookie();
+            const redirectUrl = getRedirectUrl(callbackURL, cookieUrl);
+
             await authClient.signIn.social({
                 provider: 'google',
                 callbackURL: redirectUrl,
