@@ -76,7 +76,8 @@ export default function SignUpForm({ callbackURL }: SignUpFormProps) {
 
                 // 로그인 성공 시 쿠키 삭제 후 리다이렉트
                 clearReturnUrlCookie();
-                router.replace(redirectUrl);
+                // router.push 대신 window.location.href 사용 (확실한 페이지 이동 및 세션 갱신)
+                window.location.href = redirectUrl;
             }
         } catch (err) {
             console.error('Signup error:', err);
