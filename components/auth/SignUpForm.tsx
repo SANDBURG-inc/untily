@@ -63,7 +63,18 @@ export default function SignUpForm({ callbackURL }: SignUpFormProps) {
             if (result.error) {
                 setError(getAuthErrorMessage(result.error));
             } else {
-                // 회원가입 성공 시 쿠키 삭제 후 리다이렉트
+                // 회원가입 성공 후 자동 로그인 처리
+                const signInResult = await authClient.signIn.email({
+                    email,
+                    password,
+                });
+
+                if (signInResult.error) {
+                    setError('회원가입은 성공했으나 로그인에 실패했습니다. 로그인 페이지에서 다시 시도해주세요.');
+                    return;
+                }
+
+                // 로그인 성공 시 쿠키 삭제 후 리다이렉트
                 clearReturnUrlCookie();
                 router.replace(redirectUrl);
             }
