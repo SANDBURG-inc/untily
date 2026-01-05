@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * 리마인드 내역 컴포넌트
  *
@@ -14,6 +16,8 @@ import { IconButton } from '@/components/shared/IconButton';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Table, Column } from '@/components/shared/Table';
 import { AutoReminderSettings } from '../AutoReminderSettings';
+import { useIntersectionObserver } from '@/lib/hooks/useIntersectionObserver';
+import { useState, useMemo, useCallback } from 'react';
 import {
     type ReminderLog,
     getReminderChannelLabel,
@@ -42,6 +46,22 @@ export function ReminderHistory({
     autoReminderEnabled,
     reminderLogs,
 }: ReminderHistoryProps) {
+    const INITIAL_DISPLAY_COUNT = 20;
+    const LOAD_MORE_COUNT = 20;
+
+    const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
+
+    const displayedLogs = useMemo(() => {
+        return reminderLogs.slice(0, displayCount);
+    }, [reminderLogs, displayCount]);
+
+    const handleLoadMore = useCallback(() => {
+        setDisplayCount((prev) => Math.min(prev + LOAD_MORE_COUNT, reminderLogs.length));
+    }, [reminderLogs.length]);
+
+    const observerRef = useIntersectionObserver({
+        onIntersect: handleLoadMore,
+    });
     /** 테이블 컬럼 정의 */
     const columns: Column<ReminderLog>[] = [
         {
@@ -111,12 +131,17 @@ export function ReminderHistory({
                 />
 
                 {/* 리마인드 로그 테이블 */}
-                <Table
-                    columns={columns}
-                    data={reminderLogs}
-                    keyExtractor={(log) => log.id}
-                    emptyMessage="발송된 리마인드 내역이 없습니다."
-                />
+                <div className="max-h-[500px] overflow-y-auto">
+                    <Table
+                        columns={columns}
+                        data={displayedLogs}
+                        keyExtractor={(log) => log.id}
+                        emptyMessage="발송된 리마인드 내역이 없습니다."
+                    />
+                    {displayedLogs.length < reminderLogs.length && (
+                        <div ref={observerRef} className="h-4 w-full" />
+                    )}
+                </div>
             </CardContent>
         </Card>
     );
