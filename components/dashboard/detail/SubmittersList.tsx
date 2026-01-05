@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Users, Download, FileArchive } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import {
@@ -24,6 +24,7 @@ import {
     formatProgress,
     formatSubmissionDate,
 } from '@/lib/types/submitter';
+import { useIntersectionObserver } from '@/lib/hooks/useIntersectionObserver';
 
 /**
  * 제출자 목록 컴포넌트
@@ -40,7 +41,8 @@ interface SubmittersListProps {
     totalRequiredDocuments: number;
 }
 
-const INITIAL_DISPLAY_COUNT = 5;
+const INITIAL_DISPLAY_COUNT = 20;
+const LOAD_MORE_COUNT = 20;
 
 export function SubmittersList({
     submitters,
@@ -49,7 +51,7 @@ export function SubmittersList({
     totalRequiredDocuments,
 }: SubmittersListProps) {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [showAll, setShowAll] = useState(false);
+    const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [isDownloadingFiles, setIsDownloadingFiles] = useState(false);
 
@@ -63,8 +65,21 @@ export function SubmittersList({
     }, [submitters, statusFilter, totalRequiredDocuments]);
 
     const displayedSubmitters = useMemo(() => {
-        return showAll ? filteredSubmitters : filteredSubmitters.slice(0, INITIAL_DISPLAY_COUNT);
-    }, [filteredSubmitters, showAll]);
+        return filteredSubmitters.slice(0, displayCount);
+    }, [filteredSubmitters, displayCount]);
+
+    const handleLoadMore = useCallback(() => {
+        setDisplayCount((prev) => Math.min(prev + LOAD_MORE_COUNT, filteredSubmitters.length));
+    }, [filteredSubmitters.length]);
+
+    const observerRef = useIntersectionObserver({
+        onIntersect: handleLoadMore,
+    });
+
+    // 필터 변경 시 displayCount 초기화
+    useEffect(() => {
+        setDisplayCount(INITIAL_DISPLAY_COUNT);
+    }, [statusFilter]);
 
     const allSelected = useMemo(() => {
         return submitters.length > 0 && selectedIds.size === submitters.length;
@@ -221,15 +236,8 @@ export function SubmittersList({
                 <CardTitle>
                     <SectionHeader icon={Users} title="제출자 목록" />
                 </CardTitle>
+
                 <CardAction className="flex items-center gap-2">
-                    {filteredSubmitters.length > INITIAL_DISPLAY_COUNT && (
-                        <button
-                            onClick={() => setShowAll(!showAll)}
-                            className="text-sm text-blue-600 hover:text-blue-700"
-                        >
-                            {showAll ? '접기' : '모두보기'}
-                        </button>
-                    )}
                     <IconButton
                         variant="secondary"
                         size="sm"
@@ -271,11 +279,16 @@ export function SubmittersList({
                         </SelectContent>
                     </Select>
                 </div>
-                <Table
-                    columns={columns}
-                    data={displayedSubmitters}
-                    keyExtractor={(s) => s.submitterId}
-                />
+                <div className="max-h-[500px] overflow-y-auto">
+                    <Table
+                        columns={columns}
+                        data={displayedSubmitters}
+                        keyExtractor={(s) => s.submitterId}
+                    />
+                    {displayedSubmitters.length < filteredSubmitters.length && (
+                        <div ref={observerRef} className="h-4 w-full" />
+                    )}
+                </div>
             </CardContent>
         </Card>
     );
