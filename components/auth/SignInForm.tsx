@@ -48,14 +48,19 @@ export default function SignInForm({ callbackURL }: SignInFormProps) {
             if (result.error) {
                 setError(result.error.message || '로그인에 실패했습니다.');
             } else {
+
                 // 로그인 성공 시 쿠키 삭제 후 리다이렉트
                 const cookieUrl = getReturnUrlCookie();
                 const redirectUrl = getRedirectUrl(callbackURL, cookieUrl);
                 
+                console.log('Login success, redirecting to:', redirectUrl);
+                
                 clearReturnUrlCookie();
-                router.push(redirectUrl);
+                // router.push 대신 window.location.href 사용 (확실한 페이지 이동 및 세션 갱신)
+                window.location.href = redirectUrl;
             }
-        } catch {
+        } catch (err) {
+            console.error('Login error:', err);
             setError('로그인 중 오류가 발생했습니다.');
         } finally {
             setIsLoading(false);
