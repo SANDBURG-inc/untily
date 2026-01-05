@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
     setReturnUrlCookie,
     clearReturnUrlCookie,
@@ -62,9 +63,21 @@ export default function SignUpForm({ callbackURL }: SignUpFormProps) {
             if (result.error) {
                 setError(getAuthErrorMessage(result.error));
             } else {
-                // 회원가입 성공 시 쿠키 삭제 후 리다이렉트
+                // 회원가입 성공 후 자동 로그인 처리
+                const signInResult = await authClient.signIn.email({
+                    email,
+                    password,
+                });
+
+                if (signInResult.error) {
+                    setError('회원가입은 성공했으나 로그인에 실패했습니다. 로그인 페이지에서 다시 시도해주세요.');
+                    return;
+                }
+
+                // 로그인 성공 시 쿠키 삭제 후 리다이렉트
                 clearReturnUrlCookie();
-                router.push(redirectUrl);
+                // router.push 대신 window.location.href 사용 (확실한 페이지 이동 및 세션 갱신)
+                window.location.href = redirectUrl;
             }
         } catch (err) {
             console.error('Signup error:', err);
@@ -190,21 +203,19 @@ export default function SignUpForm({ callbackURL }: SignUpFormProps) {
 
                 <div className="mt-6 flex flex-col items-center gap-2">
                     <div className="flex gap-4 text-sm mt-2">
-                        <button
-                            type="button"
+                        <Link
+                            href="/"
                             className="text-gray-500 hover:text-gray-800 transition-colors"
-                            onClick={() => router.push('/')}
                         >
                             홈으로 돌아가기
-                        </button>
+                        </Link>
                         <span className="text-gray-300">|</span>
-                        <button
-                            type="button"
+                        <Link
+                            href={callbackURL ? `/sign-in?callbackURL=${encodeURIComponent(callbackURL)}` : '/sign-in'}
                             className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                            onClick={() => router.push(callbackURL ? `/sign-in?callbackURL=${encodeURIComponent(callbackURL)}` : '/sign-in')}
                         >
                             로그인
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>
