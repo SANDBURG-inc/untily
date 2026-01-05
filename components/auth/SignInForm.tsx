@@ -11,6 +11,7 @@ import {
     getRedirectUrl,
     DEFAULT_REDIRECT,
 } from "@/lib/auth/return-url";
+import { getAuthErrorMessage } from "@/lib/auth/error-message";
 
 interface SignInFormProps {
     callbackURL?: string;
@@ -46,7 +47,7 @@ export default function SignInForm({ callbackURL }: SignInFormProps) {
             });
 
             if (result.error) {
-                setError(result.error.message || '로그인에 실패했습니다.');
+                setError(getAuthErrorMessage(result.error));
             } else {
 
                 // 로그인 성공 시 쿠키 삭제 후 리다이렉트
@@ -61,7 +62,7 @@ export default function SignInForm({ callbackURL }: SignInFormProps) {
             }
         } catch (err) {
             console.error('Login error:', err);
-            setError('로그인 중 오류가 발생했습니다.');
+            setError(getAuthErrorMessage(err));
         } finally {
             setIsLoading(false);
         }
