@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { X, Loader2, FileText } from 'lucide-react';
+import JSZip from 'jszip';
 import { Button } from '@/components/ui/Button';
 import { FileDropZone } from '@/components/shared/FileDropZone';
 import { useFileDrop } from '@/lib/hooks/useFileDrop';
@@ -15,16 +16,56 @@ interface FileUploadModalProps {
   uploadProgress: number;
 }
 
-const ALLOWED_TYPES = [
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+// 위험한 실행 파일 확장자 블랙리스트
+const BLOCKED_EXTENSIONS = [
+  'exe', 'sh', 'bat', 'cmd', 'ps1', 'vbs', 'js', 'jar', 'msi', 'scr', 'com', 'pif',
+  'hta', 'cpl', 'msc', 'gadget', 'inf', 'reg', 'lnk', 'ws', 'wsf', 'wsc', 'wsh',
 ];
 
-const ALLOWED_EXTENSIONS = '.pdf,.jpg,.jpeg,.png,.doc,.docx';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+// 파일 확장자가 차단 목록에 있는지 확인
+const isBlockedExtension = (filename: string): boolean => {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  return ext ? BLOCKED_EXTENSIONS.includes(ext) : false;
+};
+
+// ZIP 파일 내부에 차단된 확장자가 있는지 검사
+const checkZipContents = async (file: File): Promise<string | null> => {
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const files = Object.keys(zip.files);
+    const blockedFiles = files.filter(f => isBlockedExtension(f));
+
+    if (blockedFiles.length > 0) {
+      return `압축 파일에 실행 파일이 포함되어 있어 업로드할 수 없습니다.`;
+    }
+    return null;
+  } catch {
+    return 'ZIP 파일을 읽는 중 오류가 발생했습니다.';
+  }
+};
+
+// 파일 유효성 검사
+const validateFile = async (file: File): Promise<string | null> => {
+  // 파일 크기 체크
+  if (file.size > MAX_FILE_SIZE) {
+    return '파일 크기는 10MB 이하여야 합니다.';
+  }
+
+  // 차단된 확장자 체크
+  if (isBlockedExtension(file.name)) {
+    return '보안상의 이유로 이 파일 형식은 업로드할 수 없습니다.';
+  }
+
+  // ZIP 파일인 경우 내부 검사
+  const ext = file.name.split('.').pop()?.toLowerCase();
+  if (ext === 'zip') {
+    return await checkZipContents(file);
+  }
+
+  return null;
+};
 
 export default function FileUploadModal({
   isOpen,
@@ -36,25 +77,22 @@ export default function FileUploadModal({
 }: FileUploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
-  const validateFile = (file: File): string | null => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return 'PDF, JPG, PNG, DOC, DOCX 파일만 업로드 가능합니다.';
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return '파일 크기는 10MB 이하여야 합니다.';
-    }
-    return null;
-  };
-
-  const handleFileSelect = useCallback((file: File) => {
-    const validationError = validateFile(file);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-    setSelectedFile(file);
+  const handleFileSelect = useCallback(async (file: File) => {
+    setIsValidating(true);
     setError(null);
+
+    try {
+      const validationError = await validateFile(file);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+      setSelectedFile(file);
+    } finally {
+      setIsValidating(false);
+    }
   }, []);
 
   const {
@@ -149,8 +187,7 @@ export default function FileUploadModal({
               {/* Drag & Drop Area */}
               <FileDropZone
                 isDragging={isDragging}
-                disabled={isUploading}
-                accept={ALLOWED_EXTENSIONS}
+                disabled={isUploading || isValidating}
                 fileInputRef={fileInputRef}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -185,11 +222,8 @@ export default function FileUploadModal({
             </>
           )}
 
-          {/* Info Text - Bullet list */}
-          <div className="mt-4 space-y-1 text-sm text-gray-500">
-            <p>• 최대 파일 크기: 10MB</p>
-            <p>• 지원 형식: PDF, JPG, PNG, DOC, DOCX</p>
-          </div>
+          {/* Info Text */}
+          <p className="mt-4 text-sm text-gray-500">• 최대 파일 크기: 10MB</p>
 
           {/* Error Message */}
           {error && (

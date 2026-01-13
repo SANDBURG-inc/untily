@@ -127,7 +127,7 @@ export default function DocumentUploadItem({
           )}
         </div>
         {requiredDocument.documentDescription && (
-          <p className="text-base text-muted-foreground">{requiredDocument.documentDescription}</p>
+          <p className="text-base text-muted-foreground whitespace-pre-wrap">{requiredDocument.documentDescription}</p>
         )}
       </div>
 
