@@ -30,16 +30,33 @@ const isBlockedExtension = (filename: string): boolean => {
   return ext ? BLOCKED_EXTENSIONS.includes(ext) : false;
 };
 
-// ZIP 파일 내부에 차단된 확장자가 있는지 검사
-const checkZipContents = async (file: File): Promise<string | null> => {
-  try {
-    const zip = await JSZip.loadAsync(file);
-    const files = Object.keys(zip.files);
-    const blockedFiles = files.filter(f => isBlockedExtension(f));
+// ZIP 파일 내부에 차단된 확장자가 있는지 검사 (중첩 ZIP 포함)
+const checkZipContents = async (
+  zipData: File | ArrayBuffer,
+  depth: number = 0
+): Promise<string | null> => {
+  // 무한 재귀 방지 (최대 3단계까지)
+  if (depth > 3) return null;
 
-    if (blockedFiles.length > 0) {
-      return `압축 파일에 실행 파일이 포함되어 있어 업로드할 수 없습니다.`;
+  try {
+    const zip = await JSZip.loadAsync(zipData);
+    const fileEntries = Object.entries(zip.files);
+
+    for (const [filename, zipEntry] of fileEntries) {
+      // 차단된 확장자 체크
+      if (isBlockedExtension(filename)) {
+        return '압축 파일에 실행 파일이 포함되어 있어 업로드할 수 없습니다.';
+      }
+
+      // 중첩 ZIP 파일 재귀 검사
+      const ext = filename.split('.').pop()?.toLowerCase();
+      if (ext === 'zip' && !zipEntry.dir) {
+        const nestedZipData = await zipEntry.async('arraybuffer');
+        const nestedError = await checkZipContents(nestedZipData, depth + 1);
+        if (nestedError) return nestedError;
+      }
     }
+
     return null;
   } catch {
     return 'ZIP 파일을 읽는 중 오류가 발생했습니다.';
@@ -223,7 +240,10 @@ export default function FileUploadModal({
           )}
 
           {/* Info Text */}
-          <p className="mt-4 text-sm text-gray-500">• 최대 파일 크기: 10MB</p>
+          <div className="mt-4 space-y-0.5">
+            <p className="text-sm text-gray-500">• 최대 파일 크기: 10MB</p>
+            <p className="text-xs text-gray-400">• 일부 확장자는 보안상 제한될 수 있습니다.</p>
+          </div>
 
           {/* Error Message */}
           {error && (
