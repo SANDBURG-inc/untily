@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { uploadFile, replaceFile, deleteFile } from '@/lib/s3/upload';
+import { useState, useCallback, useRef } from 'react';
+import { uploadFile, replaceFile, deleteFile, classifyUploadError } from '@/lib/s3/upload';
+import type { UploadTask } from '@/lib/types/upload';
 import FileUploadModal from './FileUploadModal';
 import FilePreview from './FilePreview';
 import FileUploadButton from './FileUploadButton';
+import UploadProgressIndicator from './UploadProgressIndicator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -34,6 +36,20 @@ interface DocumentUploadItemProps {
   showCard?: boolean;
 }
 
+/**
+ * 문서 업로드 아이템 컴포넌트
+ *
+ * 비동기 업로드 방식:
+ * - 모달에서 파일 선택 후 즉시 닫힘
+ * - DocumentUploadItem에서 업로드 진행 상태 표시
+ * - 취소/재시도 기능 지원
+ *
+ * TODO: 복수 파일 업로드 시 아래 구조로 변경
+ * const [uploadTasks, setUploadTasks] = useState<Map<string, UploadTask>>(new Map());
+ * - key: task.id (UUID)
+ * - 각 파일별 독립적인 진행률/에러 상태 관리
+ * - UploadProgressIndicator를 map으로 렌더링
+ */
 export default function DocumentUploadItem({
   requiredDocument,
   documentBoxId,
@@ -46,13 +62,33 @@ export default function DocumentUploadItem({
 }: DocumentUploadItemProps) {
   const [upload, setUpload] = useState<UploadedDocument | null>(existingUpload ?? null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  const handleUpload = useCallback(async (file: File) => {
-    setIsUploading(true);
-    setUploadProgress(0);
+  // 비동기 업로드 상태
+  const [uploadTask, setUploadTask] = useState<UploadTask | null>(null);
+
+  // 현재 업로드 작업의 AbortController 참조
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  /**
+   * 비동기 업로드 시작
+   * 모달에서 파일 선택 시 호출됨
+   */
+  const startUpload = useCallback(async (file: File) => {
+    // 새 AbortController 생성
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    const taskId = crypto.randomUUID();
+
+    // 업로드 시작 상태 설정
+    setUploadTask({
+      id: taskId,
+      file,
+      status: 'uploading',
+      progress: 0,
+      abortController,
+    });
 
     try {
       let result;
@@ -65,7 +101,10 @@ export default function DocumentUploadItem({
           submitterId,
           requiredDocumentId: requiredDocument.requiredDocumentId,
           existingDocumentId: upload.submittedDocumentId,
-          onProgress: setUploadProgress,
+          onProgress: (progress) => {
+            setUploadTask((prev) => (prev ? { ...prev, progress } : null));
+          },
+          signal: abortController.signal,
         });
       } else {
         // 새 파일 업로드
@@ -74,10 +113,14 @@ export default function DocumentUploadItem({
           documentBoxId,
           submitterId,
           requiredDocumentId: requiredDocument.requiredDocumentId,
-          onProgress: setUploadProgress,
+          onProgress: (progress) => {
+            setUploadTask((prev) => (prev ? { ...prev, progress } : null));
+          },
+          signal: abortController.signal,
         });
       }
 
+      // 업로드 성공
       const newUpload: UploadedDocument = {
         submittedDocumentId: result.submittedDocumentId,
         filename: result.filename,
@@ -86,18 +129,76 @@ export default function DocumentUploadItem({
         size: file.size,
       };
 
+      setUploadTask(null);
       setUpload(newUpload);
       onUploadComplete?.(newUpload);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : '업로드 중 오류가 발생했습니다.';
-      onUploadError?.(errorMsg);
-      throw err;
+      // 사용자 취소인 경우 에러 표시 안 함
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
+
+      // 에러 분류 및 상태 업데이트
+      const uploadError = classifyUploadError(err);
+      setUploadTask((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: 'error',
+              error: uploadError,
+            }
+          : null
+      );
+
+      onUploadError?.(uploadError.message);
     } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      abortControllerRef.current = null;
     }
   }, [upload, documentBoxId, submitterId, requiredDocument.requiredDocumentId, onUploadComplete, onUploadError]);
 
+  /**
+   * 모달에서 파일 선택 시 호출
+   */
+  const handleFileSelect = useCallback((file: File) => {
+    setIsModalOpen(false);
+    startUpload(file);
+  }, [startUpload]);
+
+  /**
+   * 업로드 취소/삭제
+   */
+  const handleCancel = useCallback(async () => {
+    if (!uploadTask) return;
+
+    // 업로드 중인 경우 AbortController로 중단
+    if (uploadTask.status === 'uploading' && abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // presigned URL 요청 시 생성된 DB 레코드가 있으면 삭제
+    if (uploadTask.submittedDocumentId) {
+      try {
+        await deleteFile(uploadTask.submittedDocumentId);
+      } catch {
+        // 삭제 실패해도 UI는 초기화
+      }
+    }
+
+    setUploadTask(null);
+  }, [uploadTask]);
+
+  /**
+   * 업로드 재시도
+   */
+  const handleRetry = useCallback(() => {
+    if (uploadTask?.file) {
+      startUpload(uploadTask.file);
+    }
+  }, [uploadTask, startUpload]);
+
+  /**
+   * 업로드된 파일 삭제
+   */
   const handleRemove = async () => {
     if (!upload) return;
 
@@ -132,7 +233,15 @@ export default function DocumentUploadItem({
       </div>
 
       {/* Upload Area */}
-      {upload ? (
+      {uploadTask ? (
+        // 업로드 진행 중 또는 에러 상태
+        <UploadProgressIndicator
+          task={uploadTask}
+          onRetry={handleRetry}
+          onCancel={handleCancel}
+        />
+      ) : upload ? (
+        // 업로드 완료 상태
         <FilePreview
           filename={upload.originalFilename}
           size={upload.size}
@@ -140,6 +249,7 @@ export default function DocumentUploadItem({
           isRemoving={isRemoving}
         />
       ) : (
+        // 초기 상태
         <FileUploadButton onClick={() => setIsModalOpen(true)} />
       )}
     </>
@@ -159,9 +269,7 @@ export default function DocumentUploadItem({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         documentTitle={requiredDocument.documentTitle}
-        onUpload={handleUpload}
-        isUploading={isUploading}
-        uploadProgress={uploadProgress}
+        onFileSelect={handleFileSelect}
       />
     </>
   );

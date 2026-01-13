@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { X, Loader2, FileText } from 'lucide-react';
+import { X, FileText } from 'lucide-react';
 import JSZip from 'jszip';
 import { Button } from '@/components/ui/Button';
 import { FileDropZone } from '@/components/shared/FileDropZone';
@@ -11,9 +11,8 @@ interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   documentTitle: string;
-  onUpload: (file: File) => Promise<void>;
-  isUploading: boolean;
-  uploadProgress: number;
+  /** 업로드 버튼 클릭 시 호출 (검증 완료된 파일) */
+  onFileSelect: (file: File) => void;
 }
 
 // 위험한 실행 파일 확장자 블랙리스트
@@ -85,19 +84,33 @@ const validateFile = async (file: File): Promise<string | null> => {
   return null;
 };
 
+// 파일 크기 포맷팅
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+/**
+ * 파일 업로드 모달
+ *
+ * 파일 선택 및 유효성 검사 담당
+ * 실제 업로드는 부모 컴포넌트(DocumentUploadItem)에서 처리
+ *
+ * 흐름: 파일 선택 → 선택된 파일 확인 → "업로드" 버튼 클릭 → 모달 닫힘 + 업로드 시작
+ */
 export default function FileUploadModal({
   isOpen,
   onClose,
   documentTitle: _documentTitle, // Reserved for future use
-  onUpload,
-  isUploading,
-  uploadProgress,
+  onFileSelect,
 }: FileUploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
-  const handleFileSelect = useCallback(async (file: File) => {
+  // 파일 선택 시 유효성 검사 후 상태에 저장
+  const handleFileValidate = useCallback(async (file: File) => {
     setIsValidating(true);
     setError(null);
 
@@ -107,6 +120,8 @@ export default function FileUploadModal({
         setError(validationError);
         return;
       }
+
+      // 유효성 검사 통과 → 선택된 파일로 저장
       setSelectedFile(file);
     } finally {
       setIsValidating(false);
@@ -123,25 +138,21 @@ export default function FileUploadModal({
     openFilePicker,
     resetInput,
   } = useFileDrop({
-    onFileSelect: handleFileSelect,
-    disabled: isUploading,
+    onFileSelect: handleFileValidate,
+    disabled: isValidating,
   });
 
-  const handleUpload = async () => {
+  // 업로드 버튼 클릭 시 부모에게 파일 전달 후 모달 닫기
+  const handleUpload = () => {
     if (!selectedFile) return;
-
-    try {
-      await onUpload(selectedFile);
-      handleClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '업로드 중 오류가 발생했습니다.');
-    }
+    onFileSelect(selectedFile);
+    handleClose();
   };
 
   const handleClose = () => {
-    if (isUploading) return;
     setSelectedFile(null);
     setError(null);
+    resetInput();
     onClose();
   };
 
@@ -149,12 +160,6 @@ export default function FileUploadModal({
     setSelectedFile(null);
     setError(null);
     resetInput();
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   if (!isOpen) return null;
@@ -176,7 +181,7 @@ export default function FileUploadModal({
             variant="ghost"
             size="icon"
             onClick={handleClose}
-            disabled={isUploading}
+            disabled={isValidating}
             className="h-8 w-8 text-gray-400 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
@@ -185,59 +190,40 @@ export default function FileUploadModal({
 
         {/* Content */}
         <div className="px-6 pb-6">
-          {/* Uploading State */}
-          {isUploading ? (
-            <div className="border-2 border-slate-200 rounded-xl p-8">
-              <div className="flex flex-col items-center">
-                <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-                <p className="text-sm text-slate-600 mb-2">업로드 중...</p>
-                <div className="w-full bg-slate-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-                <p className="text-xs text-slate-500 mt-2">{uploadProgress}%</p>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Drag & Drop Area */}
-              <FileDropZone
-                isDragging={isDragging}
-                disabled={isUploading || isValidating}
-                fileInputRef={fileInputRef}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onInputChange={handleInputChange}
-                onSelectClick={openFilePicker}
-                size="sm"
-              />
+          {/* Drag & Drop Area */}
+          <FileDropZone
+            isDragging={isDragging}
+            disabled={isValidating}
+            fileInputRef={fileInputRef}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onInputChange={handleInputChange}
+            onSelectClick={openFilePicker}
+            size="sm"
+          />
 
-              {/* Selected File - Below drag area */}
-              {selectedFile && (
-                <div className="flex items-center gap-3 mt-4 p-3 border border-slate-200 rounded-lg">
-                  <FileText className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 truncate">
-                      {selectedFile.name}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {formatFileSize(selectedFile.size)}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleRemoveFile}
-                    className="h-6 w-6 text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-            </>
+          {/* Selected File - Below drag area */}
+          {selectedFile && (
+            <div className="flex items-center gap-3 mt-4 p-3 border border-slate-200 rounded-lg">
+              <FileText className="w-5 h-5 text-slate-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-900 truncate">
+                  {selectedFile.name}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {formatFileSize(selectedFile.size)}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRemoveFile}
+                className="h-6 w-6 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           )}
 
           {/* Info Text */}
@@ -257,14 +243,13 @@ export default function FileUploadModal({
           <Button
             variant="outline"
             onClick={handleClose}
-            disabled={isUploading}
             className="flex-1"
           >
             취소
           </Button>
           <Button
             onClick={handleUpload}
-            disabled={!selectedFile || isUploading}
+            disabled={!selectedFile}
             className="flex-1"
           >
             업로드
