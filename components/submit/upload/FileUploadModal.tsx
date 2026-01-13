@@ -45,7 +45,7 @@ const checkZipContents = async (
     for (const [filename, zipEntry] of fileEntries) {
       // 차단된 확장자 체크
       if (isBlockedExtension(filename)) {
-        return '압축 파일에 실행 파일이 포함되어 있어 업로드할 수 없습니다.';
+        return '압축 파일 안에 업로드할 수 없는 파일이 포함되어 있습니다.';
       }
 
       // 중첩 ZIP 파일 재귀 검사
@@ -72,7 +72,8 @@ const validateFile = async (file: File): Promise<string | null> => {
 
   // 차단된 확장자 체크
   if (isBlockedExtension(file.name)) {
-    return '보안상의 이유로 이 파일 형식은 업로드할 수 없습니다.';
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    return `'.${ext}' 형식의 파일은 업로드할 수 없습니다.`;
   }
 
   // ZIP 파일인 경우 내부 검사
@@ -242,7 +243,7 @@ export default function FileUploadModal({
           {/* Info Text */}
           <div className="mt-4 space-y-0.5">
             <p className="text-sm text-gray-500">• 최대 파일 크기: 10MB</p>
-            <p className="text-xs text-gray-400">• 일부 확장자는 보안상 제한될 수 있습니다.</p>
+            <p className="text-xs text-gray-400">• 일부 파일 형식은 업로드가 제한됩니다.</p>
           </div>
 
           {/* Error Message */}
