@@ -37,8 +37,9 @@ export default async function EditDocumentBoxPage({
                 name: r.documentTitle,
                 type: r.isRequired ? '필수' : '옵션',
                 description: r.documentDescription || '',
+                templates: (r.templates as { s3Key: string; filename: string }[]) || [],
             }))
-            : [{ id: '1', name: '', type: '필수', description: '' }],
+            : [{ id: '1', name: '', type: '필수', description: '', templates: [] }],
         deadline: documentBox.endDate.toISOString().split('T')[0],
         reminderEnabled: documentBox.documentBoxRemindTypes.length > 0,
         emailReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'EMAIL'),
@@ -56,3 +57,4 @@ export default async function EditDocumentBoxPage({
         </main>
     );
 }
+ 
