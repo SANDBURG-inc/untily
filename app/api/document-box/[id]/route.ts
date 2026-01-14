@@ -1,8 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
-import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse } from '@/lib/types/document';
+import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse, TemplateFile } from '@/lib/types/document';
 import { deleteMultipleFromS3 } from '@/lib/s3/delete';
+import { createTemplateZip, deleteTemplateZip, hasTemplatesChanged } from '@/lib/s3/zip';
+import { S3_BUCKET, S3_REGION } from '@/lib/s3/client';
+
+/**
+ * S3 URL에서 키 추출
+ * @example 'https://bucket.s3.region.amazonaws.com/logo/abc.png' -> 'logo/abc.png'
+ */
+function extractS3Key(url: string): string | null {
+    const prefix = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/`;
+    if (url.startsWith(prefix)) {
+        return url.slice(prefix.length);
+    }
+    return null;
+}
+
+// ZIP 업데이트가 필요한 requirement 정보
+interface ZipUpdateTask {
+    requiredDocumentId: string;
+    templates: TemplateFile[];
+    existingZipKey: string | null;
+}
 
 export async function PUT(
     request: NextRequest,
@@ -74,6 +95,10 @@ export async function PUT(
 
         // S3에서 삭제할 키들을 저장할 배열
         const s3KeysToDelete: string[] = [];
+        // ZIP 업데이트가 필요한 항목들
+        const zipUpdateTasks: ZipUpdateTask[] = [];
+        // 삭제할 ZIP 키들
+        const zipKeysToDelete: string[] = [];
 
         // Update document box with all related data in a transaction
         const documentBox = await prisma.$transaction(async (tx) => {
@@ -86,6 +111,22 @@ export async function PUT(
                     endDate,
                 },
             });
+
+            // 기존 문서함 로고 조회 (S3 삭제용)
+            const existingLogo = await tx.logo.findFirst({
+                where: {
+                    documentBoxId: id,
+                    type: 'DOCUMENT_BOX',
+                },
+            });
+
+            // 로고가 변경/제거된 경우 기존 파일 S3 삭제 예약
+            if (existingLogo && existingLogo.imageUrl !== logoUrl) {
+                const oldLogoKey = extractS3Key(existingLogo.imageUrl);
+                if (oldLogoKey) {
+                    s3KeysToDelete.push(oldLogoKey);
+                }
+            }
 
             // 기존 문서함 로고 삭제
             await tx.logo.deleteMany({
@@ -213,33 +254,85 @@ export async function PUT(
             const processedReqIds = new Set<string>();
 
             for (const req of requirements) {
+                const newTemplates = req.templates || [];
+
                 if (req.id && existingReqMap.has(req.id)) {
-                    // 기존 항목 업데이트
+                    // 기존 항목 업데이트 (양식 파일 목록 포함)
+                    const existing = existingReqMap.get(req.id)!;
+                    const existingTemplates = (existing.templates as TemplateFile[] | null) || [];
+                    const templatesChanged = hasTemplatesChanged(existingTemplates, newTemplates);
+
                     await tx.requiredDocument.update({
                         where: { requiredDocumentId: req.id },
                         data: {
                             documentTitle: req.name,
                             documentDescription: req.description || null,
                             isRequired: req.type === '필수',
+                            templates: JSON.parse(JSON.stringify(newTemplates)),
+                            // 템플릿 변경 시 ZIP 키 초기화 (트랜잭션 후 재생성)
+                            templateZipKey: templatesChanged ? null : existing.templateZipKey,
                         },
                     });
                     processedReqIds.add(req.id);
+
+                    // 템플릿이 변경된 경우 ZIP 업데이트 작업 추가
+                    if (templatesChanged) {
+                        // 제거된 템플릿 파일 S3 삭제 예약
+                        const newTemplateKeys = new Set(newTemplates.map(t => t.s3Key).filter(Boolean));
+                        for (const oldTemplate of existingTemplates) {
+                            if (oldTemplate.s3Key && !newTemplateKeys.has(oldTemplate.s3Key)) {
+                                s3KeysToDelete.push(oldTemplate.s3Key);
+                            }
+                        }
+
+                        if (existing.templateZipKey) {
+                            zipKeysToDelete.push(existing.templateZipKey);
+                        }
+                        zipUpdateTasks.push({
+                            requiredDocumentId: req.id,
+                            templates: newTemplates,
+                            existingZipKey: null,
+                        });
+                    }
                 } else {
-                    // 새 항목 생성
-                    await tx.requiredDocument.create({
+                    // 새 항목 생성 (양식 파일 목록 포함)
+                    const created = await tx.requiredDocument.create({
                         data: {
                             documentTitle: req.name,
                             documentDescription: req.description || null,
                             isRequired: req.type === '필수',
                             documentBoxId: box.documentBoxId,
+                            templates: JSON.parse(JSON.stringify(newTemplates)),
                         },
                     });
+
+                    // 새 항목도 양식이 2개 이상이면 ZIP 생성 필요
+                    if (newTemplates.length >= 2) {
+                        zipUpdateTasks.push({
+                            requiredDocumentId: created.requiredDocumentId,
+                            templates: newTemplates,
+                            existingZipKey: null,
+                        });
+                    }
                 }
             }
 
             // 목록에서 제거된 서류 항목 삭제
             for (const existingReq of existingRequirements) {
                 if (!processedReqIds.has(existingReq.requiredDocumentId)) {
+                    // 기존 ZIP 키가 있으면 삭제 목록에 추가
+                    if (existingReq.templateZipKey) {
+                        zipKeysToDelete.push(existingReq.templateZipKey);
+                    }
+
+                    // 개별 템플릿 파일도 S3 삭제 목록에 추가
+                    const templatesList = (existingReq.templates as TemplateFile[] | null) || [];
+                    for (const template of templatesList) {
+                        if (template.s3Key) {
+                            s3KeysToDelete.push(template.s3Key);
+                        }
+                    }
+
                     // 기존 제출 내역 확인
                     const submissionCount = await tx.submittedDocument.count({
                         where: { requiredDocumentId: existingReq.requiredDocumentId },
@@ -329,6 +422,35 @@ export async function PUT(
         // 트랜잭션이 성공적으로 완료된 후 S3 파일 삭제 수행
         if (s3KeysToDelete.length > 0) {
             await deleteMultipleFromS3(s3KeysToDelete);
+        }
+
+        // 기존 ZIP 파일 삭제
+        for (const zipKey of zipKeysToDelete) {
+            await deleteTemplateZip(zipKey);
+        }
+
+        // ZIP 파일 생성/업데이트 (트랜잭션 외부에서 수행, 실패해도 수정은 성공)
+        try {
+            for (const task of zipUpdateTasks) {
+                // 양식이 2개 이상일 때만 ZIP 생성
+                if (task.templates.length >= 2) {
+                    const zipKey = await createTemplateZip({
+                        templates: task.templates,
+                        documentBoxId: id,
+                        requiredDocumentId: task.requiredDocumentId,
+                    });
+
+                    if (zipKey) {
+                        await prisma.requiredDocument.update({
+                            where: { requiredDocumentId: task.requiredDocumentId },
+                            data: { templateZipKey: zipKey },
+                        });
+                    }
+                }
+            }
+        } catch (zipError) {
+            // ZIP 생성 실패는 로깅만 (문서함 수정은 성공)
+            console.error('Failed to update template ZIP:', zipError);
         }
 
         return NextResponse.json<CreateDocumentBoxResponse>({

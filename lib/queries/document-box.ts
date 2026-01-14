@@ -32,6 +32,7 @@ export interface DocumentBoxDetail {
         documentTitle: string;
         documentDescription: string | null;
         isRequired: boolean;
+        templates: { s3Key: string; filename: string }[] | null;
     }[];
     documentBoxRemindTypes: {
         remindType: 'EMAIL' | 'SMS' | 'PUSH';
@@ -117,7 +118,10 @@ export async function getDocumentBoxWithSubmissionStatus(
         userId: documentBox.userId,
         hasSubmitter: documentBox.hasSubmitter,
         submitters: submittersWithStatus,
-        requiredDocuments: documentBox.requiredDocuments,
+        requiredDocuments: documentBox.requiredDocuments.map(doc => ({
+            ...doc,
+            templates: (doc.templates as { s3Key: string; filename: string }[] | null) ?? null,
+        })),
         documentBoxRemindTypes: documentBox.documentBoxRemindTypes,
         reminderLogs: documentBox.reminderLogs,
         totalRequiredDocuments: documentBox.requiredDocuments.length,

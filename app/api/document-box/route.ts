@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
-import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse } from '@/lib/types/document';
+import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse, TemplateFile } from '@/lib/types/document';
+import { createTemplateZip } from '@/lib/s3/zip';
 
 export async function POST(request: Request) {
     try {
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
                 });
             }
 
-            // Create required documents
+            // Create required documents (양식 파일 목록 포함)
             if (requirements.length > 0) {
                 await tx.requiredDocument.createMany({
                     data: requirements.map((req) => ({
@@ -91,6 +92,7 @@ export async function POST(request: Request) {
                         documentDescription: req.description || null,
                         isRequired: req.type === '필수',
                         documentBoxId: box.documentBoxId,
+                        templates: JSON.parse(JSON.stringify(req.templates || [])),
                     })),
                 });
             }
@@ -129,6 +131,36 @@ export async function POST(request: Request) {
 
             return box;
         });
+
+        // 트랜잭션 완료 후 ZIP 생성 (비동기, 실패해도 문서함 생성은 성공)
+        try {
+            const createdRequirements = await prisma.requiredDocument.findMany({
+                where: { documentBoxId: documentBox.documentBoxId },
+            });
+
+            for (const req of createdRequirements) {
+                const templates = (req.templates as TemplateFile[] | null) || [];
+
+                // 양식 2개 이상일 때만 ZIP 생성
+                if (templates.length >= 2) {
+                    const zipKey = await createTemplateZip({
+                        templates,
+                        documentBoxId: documentBox.documentBoxId,
+                        requiredDocumentId: req.requiredDocumentId,
+                    });
+
+                    if (zipKey) {
+                        await prisma.requiredDocument.update({
+                            where: { requiredDocumentId: req.requiredDocumentId },
+                            data: { templateZipKey: zipKey },
+                        });
+                    }
+                }
+            }
+        } catch (zipError) {
+            // ZIP 생성 실패는 로깅만 (문서함 생성은 성공)
+            console.error('Failed to create template ZIP:', zipError);
+        }
 
         return NextResponse.json<CreateDocumentBoxResponse>({
             success: true,
