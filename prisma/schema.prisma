@@ -66,6 +66,14 @@ model RequiredDocument {
   documentBoxId       String
   documentBox         DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
 
+  // 양식 파일 목록 (JSON 배열)
+  // 형식: [{s3Key: string, filename: string}, ...]
+  templates           Json?       @default("[]")
+
+  // 양식 파일 ZIP (2개 이상일 때 미리 생성)
+  // S3 경로: templates/{documentBoxId}_zip/{requiredDocumentId}.zip
+  templateZipKey      String?
+
   submittedDocuments SubmittedDocument[]
 }
 
