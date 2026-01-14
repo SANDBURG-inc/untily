@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { LegalLinks } from "@/components/legal";
 import {
     setReturnUrlCookie,
     clearReturnUrlCookie,
@@ -186,6 +187,17 @@ export default function SignInForm({ callbackURL }: SignInFormProps) {
                             회원가입
                         </button>
                     </div>
+                </div>
+
+                {/* 약관 동의 안내 */}
+                <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+                    <p className="text-xs text-gray-400 mb-1">
+                        로그인하면 하단 정책에 모두 동의한 것으로 간주합니다.
+                    </p>
+                    <LegalLinks
+                        className="justify-center"
+                        linkClassName="text-xs"
+                    />
                 </div>
             </div>
         </div>
