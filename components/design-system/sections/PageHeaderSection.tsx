@@ -10,7 +10,7 @@ export function PageHeaderSection() {
     <ComponentShowcase
       id="page-header"
       title="PageHeader"
-      description="페이지 제목과 설명을 표준화된 스타일로 표시합니다. @/components/shared/PageHeader"
+      description="페이지 제목과 설명을 표준화된 스타일로 표시합니다. components/shared/PageHeader.tsx"
     >
       <div className="flex flex-col gap-8 w-full">
         {/* 좌측 정렬 + 액션 버튼 */}
