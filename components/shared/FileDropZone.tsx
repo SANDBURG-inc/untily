@@ -11,6 +11,8 @@ interface FileDropZoneProps {
   disabled?: boolean;
   /** 허용 파일 확장자 (예: ".jpg,.jpeg,.png"). 생략 시 모든 파일 허용 */
   accept?: string;
+  /** 복수 파일 선택 허용 여부 */
+  multiple?: boolean;
   /** 파일 input ref */
   fileInputRef: RefObject<HTMLInputElement | null>;
   /** 드래그 오버 핸들러 */
@@ -23,8 +25,8 @@ interface FileDropZoneProps {
   onInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
   /** 파일 선택 버튼 클릭 핸들러 */
   onSelectClick: () => void;
-  /** 크기 변형 (sm: 작은 모달용, lg: 큰 모달용) */
-  size?: 'sm' | 'lg';
+  /** 크기 변형 (sm: 작은 모달용, md: 중간 크기, lg: 큰 모달용) */
+  size?: 'sm' | 'md' | 'lg';
   /** 힌트 텍스트 */
   hint?: string;
   /** 미리보기 영역 (파일 선택 후 표시) */
@@ -38,6 +40,7 @@ export function FileDropZone({
   isDragging,
   disabled = false,
   accept,
+  multiple = false,
   fileInputRef,
   onDragOver,
   onDragLeave,
@@ -50,6 +53,7 @@ export function FileDropZone({
 }: FileDropZoneProps) {
   const sizeClasses = {
     sm: 'p-8',
+    md: 'p-8 min-h-[150px]',
     lg: 'p-8 min-h-[200px]',
   };
 
@@ -71,6 +75,7 @@ export function FileDropZone({
         ref={fileInputRef}
         type="file"
         accept={accept}
+        multiple={multiple}
         onChange={onInputChange}
         className="hidden"
         disabled={disabled}

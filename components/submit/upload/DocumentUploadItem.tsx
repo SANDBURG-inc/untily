@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import { Download, Loader2 } from 'lucide-react';
 import { uploadFile, replaceFile, deleteFile, classifyUploadError } from '@/lib/s3/upload';
 import type { UploadTask } from '@/lib/types/upload';
-import FileUploadModal from './FileUploadModal';
+import FileUploadDialog from './FileUploadDialog';
 import FilePreview from './FilePreview';
 import FileUploadButton from './FileUploadButton';
 import UploadProgressIndicator from './UploadProgressIndicator';
@@ -18,11 +19,21 @@ export interface UploadedDocument {
   size?: number;
 }
 
+/** 양식 파일 정보 */
+interface TemplateFile {
+  s3Key: string;
+  filename: string;
+}
+
 export interface RequiredDocumentInfo {
   requiredDocumentId: string;
   documentTitle: string;
   documentDescription: string | null;
   isRequired: boolean;
+  // 양식 파일 목록 (여러 개 가능)
+  templates?: TemplateFile[];
+  // 양식 ZIP 파일 S3 키 (2개 이상일 때 미리 생성됨)
+  templateZipKey?: string | null;
 }
 
 interface DocumentUploadItemProps {
@@ -63,6 +74,7 @@ export default function DocumentUploadItem({
   const [upload, setUpload] = useState<UploadedDocument | null>(existingUpload ?? null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
 
   // 비동기 업로드 상태
   const [uploadTask, setUploadTask] = useState<UploadTask | null>(null);
@@ -197,6 +209,70 @@ export default function DocumentUploadItem({
   }, [uploadTask, startUpload]);
 
   /**
+   * 양식 파일 다운로드 (개별 파일)
+   */
+  const handleTemplateDownload = useCallback(async (s3Key: string, filename: string) => {
+    setIsDownloadingTemplate(true);
+    try {
+      const res = await fetch(
+        `/api/template/download?s3Key=${encodeURIComponent(s3Key)}&requiredDocumentId=${requiredDocument.requiredDocumentId}`
+      );
+
+      if (!res.ok) {
+        throw new Error('다운로드 URL을 가져오는데 실패했습니다.');
+      }
+
+      const { downloadUrl } = await res.json();
+
+      // 다운로드 시작
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename || '양식';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Template download error:', err);
+      onUploadError?.(err instanceof Error ? err.message : '양식 다운로드에 실패했습니다.');
+    } finally {
+      setIsDownloadingTemplate(false);
+    }
+  }, [requiredDocument.requiredDocumentId, onUploadError]);
+
+  /**
+   * 양식 ZIP 파일 다운로드 (여러 파일)
+   */
+  const handleZipDownload = useCallback(async () => {
+    setIsDownloadingTemplate(true);
+    try {
+      const res = await fetch(
+        `/api/template/download-zip?requiredDocumentId=${requiredDocument.requiredDocumentId}`
+      );
+
+      if (!res.ok) {
+        throw new Error('ZIP 다운로드 URL을 가져오는데 실패했습니다.');
+      }
+
+      const { downloadUrl, filename } = await res.json();
+
+      // 다운로드 시작
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename || '양식.zip';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('ZIP download error:', err);
+      onUploadError?.(err instanceof Error ? err.message : '양식 다운로드에 실패했습니다.');
+    } finally {
+      setIsDownloadingTemplate(false);
+    }
+  }, [requiredDocument.requiredDocumentId, onUploadError]);
+
+  /**
    * 업로드된 파일 삭제
    */
   const handleRemove = async () => {
@@ -218,13 +294,39 @@ export default function DocumentUploadItem({
     <>
       {/* Header */}
       <div className="items-start mb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-medium text-foreground">{requiredDocument.documentTitle}</h3>
-          {requiredDocument.isRequired && (
-            <Badge variant="required">필수서류</Badge>
-          )}
-          {!requiredDocument.isRequired && (
-            <Badge variant="optional">선택</Badge>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-medium text-foreground">{requiredDocument.documentTitle}</h3>
+            {requiredDocument.isRequired && (
+              <Badge variant="required">필수서류</Badge>
+            )}
+            {!requiredDocument.isRequired && (
+              <Badge variant="optional">선택</Badge>
+            )}
+          </div>
+
+          {/* 양식 다운로드 버튼 */}
+          {requiredDocument.templates && requiredDocument.templates.length > 0 && (
+            <button
+              type="button"
+              onClick={
+                requiredDocument.templates.length >= 2 && requiredDocument.templateZipKey
+                  ? handleZipDownload
+                  : () => handleTemplateDownload(
+                      requiredDocument.templates![0].s3Key,
+                      requiredDocument.templates![0].filename
+                    )
+              }
+              disabled={isDownloadingTemplate}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDownloadingTemplate ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span>양식 다운로드</span>
+            </button>
           )}
         </div>
         {requiredDocument.documentDescription && (
@@ -265,10 +367,9 @@ export default function DocumentUploadItem({
         <div>{content}</div>
       )}
 
-      <FileUploadModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        documentTitle={requiredDocument.documentTitle}
+      <FileUploadDialog
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
         onFileSelect={handleFileSelect}
       />
     </>

@@ -9,11 +9,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AlertBanner } from '@/components/shared/AlertBanner';
 import { SubmitActionFooter } from '@/app/submit/_components';
 
+/** 양식 파일 정보 */
+interface TemplateFile {
+  s3Key: string;
+  filename: string;
+}
+
 interface RequiredDocument {
   requiredDocumentId: string;
   documentTitle: string;
   documentDescription: string | null;
   isRequired: boolean;
+  // 양식 파일 목록 (여러 개 가능)
+  templates?: TemplateFile[];
 }
 
 interface SubmittedDocument {
