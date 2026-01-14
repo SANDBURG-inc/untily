@@ -14,7 +14,7 @@ export function useRequirements(options: UseRequirementsOptions = {}): UseRequir
 
   const [requirements, setRequirements] = useState<DocumentRequirement[]>(
     initialData?.requirements || [
-      { id: '1', name: '', type: '필수', description: '', templates: [] },
+      { id: '1', name: '', type: '필수', description: '', templates: [], allowMultiple: false },
     ]
   );
 

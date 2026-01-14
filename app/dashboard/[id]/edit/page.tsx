@@ -38,8 +38,9 @@ export default async function EditDocumentBoxPage({
                 type: r.isRequired ? '필수' : '옵션',
                 description: r.documentDescription || '',
                 templates: (r.templates as { s3Key: string; filename: string }[]) || [],
+                allowMultiple: r.allowMultipleFiles ?? false,
             }))
-            : [{ id: '1', name: '', type: '필수', description: '', templates: [] }],
+            : [{ id: '1', name: '', type: '필수', description: '', templates: [], allowMultiple: false }],
         deadline: documentBox.endDate.toISOString().split('T')[0],
         reminderEnabled: documentBox.documentBoxRemindTypes.length > 0,
         emailReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'EMAIL'),

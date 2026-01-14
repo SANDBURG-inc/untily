@@ -54,20 +54,23 @@ export default function PublicCheckoutView({
     phone: initialSubmitter.phone,
   });
 
-  // 업로드된 파일을 requiredDocument 기준으로 매핑
+  // 업로드된 파일을 requiredDocument 기준으로 매핑 (복수 파일 지원)
   const [uploadedFilesMap, setUploadedFilesMap] = useState(() => {
-    const map = new Map<string, SubmittedDocument>();
+    const map = new Map<string, SubmittedDocument[]>();
     initialSubmitter.submittedDocuments.forEach((doc) => {
-      map.set(doc.requiredDocumentId, doc);
+      const existing = map.get(doc.requiredDocumentId) || [];
+      existing.push(doc);
+      map.set(doc.requiredDocumentId, existing);
     });
     return map;
   });
 
-  // 필수 서류 검증
+  // 필수 서류 검증 (1개 이상 파일이 있으면 충족)
   const requiredDocs = documentBox.requiredDocuments.filter((doc) => doc.isRequired);
-  const missingRequiredDocs = requiredDocs.filter(
-    (doc) => !uploadedFilesMap.has(doc.requiredDocumentId)
-  );
+  const missingRequiredDocs = requiredDocs.filter((doc) => {
+    const uploads = uploadedFilesMap.get(doc.requiredDocumentId);
+    return !uploads || uploads.length === 0;
+  });
   const canSubmit = missingRequiredDocs.length === 0;
 
   const handleSave = () => {
@@ -92,16 +95,17 @@ export default function PublicCheckoutView({
     setSubmitterInfo(data);
   };
 
-  const handleFilesChange = useCallback((uploads: Map<string, UploadedDocument>) => {
-    const newMap = new Map<string, SubmittedDocument>();
-    uploads.forEach((upload, requiredDocId) => {
-      newMap.set(requiredDocId, {
+  const handleFilesChange = useCallback((uploads: Map<string, UploadedDocument[]>) => {
+    const newMap = new Map<string, SubmittedDocument[]>();
+    uploads.forEach((uploadList, requiredDocId) => {
+      const docs = uploadList.map((upload) => ({
         submittedDocumentId: upload.submittedDocumentId,
         requiredDocumentId: requiredDocId,
         filename: upload.filename,
         originalFilename: upload.originalFilename,
         size: upload.size,
-      });
+      }));
+      newMap.set(requiredDocId, docs);
     });
     setUploadedFilesMap(newMap);
   }, []);
@@ -135,18 +139,19 @@ export default function PublicCheckoutView({
     }
   };
 
-  // 파일 목록 데이터 구성
+  // 파일 목록 데이터 구성 (복수 파일인 경우 첫 번째 파일 기준, 실제 목록은 EditableFileListCard 내부에서 관리)
   const fileListItems = documentBox.requiredDocuments.map((reqDoc) => {
-    const uploaded = uploadedFilesMap.get(reqDoc.requiredDocumentId);
+    const uploads = uploadedFilesMap.get(reqDoc.requiredDocumentId) || [];
+    const firstUpload = uploads[0];
     return {
       requiredDocumentId: reqDoc.requiredDocumentId,
       documentTitle: reqDoc.documentTitle,
       documentDescription: reqDoc.documentDescription,
       isRequired: reqDoc.isRequired,
-      filename: uploaded?.filename || null,
-      originalFilename: uploaded?.originalFilename || null,
-      submittedDocumentId: uploaded?.submittedDocumentId,
-      size: uploaded?.size,
+      filename: firstUpload?.filename || null,
+      originalFilename: firstUpload?.originalFilename || null,
+      submittedDocumentId: firstUpload?.submittedDocumentId,
+      size: firstUpload?.size,
     };
   });
 

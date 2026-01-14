@@ -20,6 +20,8 @@ export interface DocumentRequirement {
     templates?: TemplateFile[];
     // 양식 ZIP 파일 S3 키 (2개 이상일 때 미리 생성됨)
     templateZipKey?: string | null;
+    // 복수 파일 업로드 허용 여부
+    allowMultiple?: boolean;
 }
 
 export interface CreateDocumentBoxRequest {

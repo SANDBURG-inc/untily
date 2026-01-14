@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Plus, X, FileText, ChevronDown, Paperclip, Loader2 } from 'lucide-react';
 import type { DocumentRequirement, TemplateFile } from '@/lib/types/document';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { IconButton } from '@/components/shared/IconButton';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import FileUploadDialog from '@/components/submit/upload/FileUploadDialog';
@@ -72,6 +73,7 @@ export function DocumentRequirementsCard({
       type: '필수',
       description: '',
       templates: [],
+      allowMultiple: false,
     };
     onRequirementsChange([...requirements, newRequirement]);
   };
@@ -82,7 +84,7 @@ export function DocumentRequirementsCard({
   const updateRequirement = (
     id: string,
     field: keyof DocumentRequirement,
-    value: string
+    value: string | boolean
   ) => {
     onRequirementsChange(
       requirements.map((r) => (r.id === id ? { ...r, [field]: value } : r))
@@ -196,6 +198,23 @@ export function DocumentRequirementsCard({
                   rows={2}
                   className="w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 resize-none"
                 />
+              </div>
+
+              {/* 복수 파일 허용 체크박스 */}
+              <div className="flex items-center gap-2 mt-3">
+                <Checkbox
+                  id={`multiple-${requirement.id}`}
+                  checked={requirement.allowMultiple ?? false}
+                  onCheckedChange={(checked) =>
+                    updateRequirement(requirement.id, 'allowMultiple', checked as boolean)
+                  }
+                />
+                <label
+                  htmlFor={`multiple-${requirement.id}`}
+                  className="text-sm text-gray-700 cursor-pointer select-none"
+                >
+                  받을 파일이 여러 개예요
+                </label>
               </div>
 
               {/* 양식 파일 영역 - 배경 없이 심플하게 */}

@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import DocumentUploadItem from '@/components/submit/upload/DocumentUploadItem';
+import type { UploadedDocument } from '@/components/submit/upload/DocumentUploadItem';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { LabeledProgress } from '@/components/shared/LabeledProgress';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,6 +23,8 @@ interface RequiredDocument {
   isRequired: boolean;
   // 양식 파일 목록 (여러 개 가능)
   templates?: TemplateFile[];
+  // 복수 파일 업로드 허용 여부
+  allowMultipleFiles?: boolean;
 }
 
 interface SubmittedDocument {
@@ -46,14 +49,6 @@ export interface BaseUploadFormProps {
   checkoutUrl: string;
 }
 
-interface UploadedDocument {
-  submittedDocumentId: string;
-  filename: string;
-  originalFilename: string;
-  s3Key: string;
-  size?: number;
-}
-
 export default function BaseUploadForm({
   documentBox,
   submitter,
@@ -63,36 +58,34 @@ export default function BaseUploadForm({
 }: BaseUploadFormProps) {
   const router = useRouter();
 
-  // 기존 업로드 파일을 Map으로 초기화
-  const initialUploads = new Map<string, UploadedDocument>();
+  // 기존 업로드 파일을 Map으로 초기화 (복수 파일 지원)
+  const initialUploads = new Map<string, UploadedDocument[]>();
   submitter.submittedDocuments.forEach((doc) => {
-    initialUploads.set(doc.requiredDocumentId, {
+    const existing = initialUploads.get(doc.requiredDocumentId) || [];
+    existing.push({
       submittedDocumentId: doc.submittedDocumentId,
       filename: doc.filename,
       originalFilename: doc.originalFilename,
       s3Key: '',
       size: doc.size,
     });
+    initialUploads.set(doc.requiredDocumentId, existing);
   });
 
-  const [uploadedDocs, setUploadedDocs] = useState<Map<string, UploadedDocument>>(initialUploads);
+  const [uploadedDocs, setUploadedDocs] = useState<Map<string, UploadedDocument[]>>(initialUploads);
   const [error, setError] = useState<string | null>(null);
 
-  const handleUploadComplete = useCallback((requiredDocumentId: string, upload: UploadedDocument) => {
+  const handleUploadsChange = useCallback((requiredDocumentId: string, uploads: UploadedDocument[]) => {
     setUploadedDocs((prev) => {
       const newMap = new Map(prev);
-      newMap.set(requiredDocumentId, upload);
+      if (uploads.length > 0) {
+        newMap.set(requiredDocumentId, uploads);
+      } else {
+        newMap.delete(requiredDocumentId);
+      }
       return newMap;
     });
     setError(null);
-  }, []);
-
-  const handleUploadRemove = useCallback((requiredDocumentId: string) => {
-    setUploadedDocs((prev) => {
-      const newMap = new Map(prev);
-      newMap.delete(requiredDocumentId);
-      return newMap;
-    });
   }, []);
 
   const handleUploadError = useCallback((errorMsg: string) => {
@@ -102,9 +95,10 @@ export default function BaseUploadForm({
   const handleSubmit = () => {
     // 필수 서류 업로드 확인
     const requiredDocs = documentBox.requiredDocuments.filter((doc) => doc.isRequired);
-    const missingDocs = requiredDocs.filter(
-      (doc) => !uploadedDocs.has(doc.requiredDocumentId)
-    );
+    const missingDocs = requiredDocs.filter((doc) => {
+      const uploads = uploadedDocs.get(doc.requiredDocumentId);
+      return !uploads || uploads.length === 0;
+    });
 
     if (missingDocs.length > 0) {
       setError(`필수 서류를 모두 업로드해 주세요: ${missingDocs.map((d) => d.documentTitle).join(', ')}`);
@@ -115,7 +109,8 @@ export default function BaseUploadForm({
     router.push(checkoutUrl);
   };
 
-  const uploadedCount = uploadedDocs.size;
+  // 업로드된 서류 수 (파일이 1개 이상 있는 항목)
+  const uploadedCount = Array.from(uploadedDocs.values()).filter((uploads) => uploads.length > 0).length;
   const requiredCount = documentBox.requiredDocuments.filter((d) => d.isRequired).length;
   const totalCount = documentBox.requiredDocuments.length;
   const allRequiredUploaded = uploadedCount >= requiredCount;
@@ -148,17 +143,16 @@ export default function BaseUploadForm({
         {/* 서류 업로드 영역 */}
         <div className="space-y-4 mb-24">
           {documentBox.requiredDocuments.map((doc) => {
-            const existingUpload = uploadedDocs.get(doc.requiredDocumentId);
+            const existingUploads = uploadedDocs.get(doc.requiredDocumentId) || [];
             return (
               <DocumentUploadItem
                 key={doc.requiredDocumentId}
                 requiredDocument={doc}
                 documentBoxId={documentBoxId}
                 submitterId={submitterId}
-                existingUpload={existingUpload}
-                onUploadComplete={(upload) => handleUploadComplete(doc.requiredDocumentId, upload)}
+                existingUploads={existingUploads}
+                onUploadsChange={(uploads) => handleUploadsChange(doc.requiredDocumentId, uploads)}
                 onUploadError={handleUploadError}
-                onUploadRemove={() => handleUploadRemove(doc.requiredDocumentId)}
               />
             );
           })}

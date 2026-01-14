@@ -91,6 +91,7 @@ export async function POST(request: Request) {
                         documentTitle: req.name,
                         documentDescription: req.description || null,
                         isRequired: req.type === '필수',
+                        allowMultipleFiles: req.allowMultiple ?? false,
                         documentBoxId: box.documentBoxId,
                         templates: JSON.parse(JSON.stringify(req.templates || [])),
                     })),

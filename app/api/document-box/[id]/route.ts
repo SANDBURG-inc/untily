@@ -268,6 +268,7 @@ export async function PUT(
                             documentTitle: req.name,
                             documentDescription: req.description || null,
                             isRequired: req.type === '필수',
+                            allowMultipleFiles: req.allowMultiple ?? false,
                             templates: JSON.parse(JSON.stringify(newTemplates)),
                             // 템플릿 변경 시 ZIP 키 초기화 (트랜잭션 후 재생성)
                             templateZipKey: templatesChanged ? null : existing.templateZipKey,
@@ -301,6 +302,7 @@ export async function PUT(
                             documentTitle: req.name,
                             documentDescription: req.description || null,
                             isRequired: req.type === '필수',
+                            allowMultipleFiles: req.allowMultiple ?? false,
                             documentBoxId: box.documentBoxId,
                             templates: JSON.parse(JSON.stringify(newTemplates)),
                         },

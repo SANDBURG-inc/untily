@@ -30,6 +30,7 @@ export default async function UploadPage({ params }: UploadPageProps) {
     isRequired: doc.isRequired,
     templates: (doc.templates as Array<{ s3Key: string; filename: string }>) || [],
     templateZipKey: doc.templateZipKey,
+    allowMultipleFiles: doc.allowMultipleFiles,
   }));
 
   return (

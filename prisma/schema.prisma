@@ -63,6 +63,7 @@ model RequiredDocument {
   documentTitle       String
   documentDescription String?
   isRequired          Boolean     @default(true)
+  allowMultipleFiles  Boolean     @default(false)
   documentBoxId       String
   documentBox         DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
 
