@@ -22,6 +22,7 @@ interface SubmitLandingViewProps {
   documentBoxId: string;
   submitterId: string;
   logoUrl: string;
+  isAuthenticated?: boolean;
 }
 
 export default function SubmitLandingView({
@@ -30,6 +31,7 @@ export default function SubmitLandingView({
   documentBoxId,
   submitterId,
   logoUrl,
+  isAuthenticated = false,
 }: SubmitLandingViewProps) {
   const uploadUrl = `/submit/${documentBoxId}/${submitterId}/upload`;
   const signInUrl = `/sign-in?callbackURL=${encodeURIComponent(uploadUrl)}`;
@@ -74,8 +76,8 @@ export default function SubmitLandingView({
               className="w-full"
               asChild
             >
-              <Link href={signInUrl}>
-                제출하기
+              <Link href={isAuthenticated ? uploadUrl : signInUrl}>
+                {isAuthenticated ? '문서 제출하기' : '로그인하고 제출하기'}
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </Button>

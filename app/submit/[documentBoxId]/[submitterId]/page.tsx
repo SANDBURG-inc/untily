@@ -12,7 +12,7 @@ export default async function SubmitLandingPage({ params }: SubmitLandingPagePro
 
   const result = await validateSubmitterAuth(documentBoxId, submitterId);
 
-  // 문서함/제출자 없음, 만료됨, 인증 성공 → 리다이렉트
+  // 문서함/제출자 없음, 만료됨 → 리다이렉트
   const validResult = handleSubmitterLandingRedirects(result, documentBoxId, submitterId);
 
   // 이메일 불일치
@@ -26,7 +26,10 @@ export default async function SubmitLandingPage({ params }: SubmitLandingPagePro
     );
   }
 
-  // 미인증 상태 → 랜딩 페이지 표시
+  // 인증 여부 확인
+  const isAuthenticated = validResult.status === 'success';
+
+  // 랜딩 페이지 표시 (인증 여부와 관계없이)
   return (
     <SubmitLandingView
       submitter={{
@@ -42,6 +45,7 @@ export default async function SubmitLandingPage({ params }: SubmitLandingPagePro
       documentBoxId={documentBoxId}
       submitterId={submitterId}
       logoUrl={validResult.logoUrl}
+      isAuthenticated={isAuthenticated}
     />
   );
 }
