@@ -9,8 +9,8 @@ interface FileDropZoneProps {
   isDragging: boolean;
   /** 비활성화 여부 */
   disabled?: boolean;
-  /** 허용 파일 확장자 (예: ".jpg,.jpeg,.png") */
-  accept: string;
+  /** 허용 파일 확장자 (예: ".jpg,.jpeg,.png"). 생략 시 모든 파일 허용 */
+  accept?: string;
   /** 파일 input ref */
   fileInputRef: RefObject<HTMLInputElement | null>;
   /** 드래그 오버 핸들러 */

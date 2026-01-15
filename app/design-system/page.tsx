@@ -12,17 +12,32 @@ import { CardSection } from "@/components/design-system/sections/CardSection"
 import { InputSection } from "@/components/design-system/sections/InputSection"
 import { DialogSection } from "@/components/design-system/sections/DialogSection"
 import { SelectSection } from "@/components/design-system/sections/SelectSection"
+import { SwitchSection } from "@/components/design-system/sections/SwitchSection"
+import { CheckboxSection } from "@/components/design-system/sections/CheckboxSection"
+import { DatePickerSection } from "@/components/design-system/sections/DatePickerSection"
 
-// Custom
+// Custom: Layout
 import { PageHeaderSection } from "@/components/design-system/sections/PageHeaderSection"
+import { SectionHeaderSection } from "@/components/design-system/sections/SectionHeaderSection"
+
+// Custom: Data Display
 import { PaginationSection } from "@/components/design-system/sections/PaginationSection"
 import { TableSection } from "@/components/design-system/sections/TableSection"
+import { StatCardSection } from "@/components/design-system/sections/StatCardSection"
+
+// Custom: Progress
 import { LabeledProgressSection } from "@/components/design-system/sections/LabeledProgressSection"
+
+// Custom: Feedback
+import { AlertBannerSection } from "@/components/design-system/sections/AlertBannerSection"
+
+// Custom: Form
+import { FileDropZoneSection } from "@/components/design-system/sections/FileDropZoneSection"
 
 export default function DesignSystemPage() {
   return (
     <div className="space-y-16">
-      {/* General */}
+      {/* ===== General ===== */}
       <IntroSection />
 
       <hr className="border-border/40" />
@@ -31,7 +46,7 @@ export default function DesignSystemPage() {
       <hr className="border-border/40" />
       <TypographySection />
 
-      {/* ShadCN */}
+      {/* ===== ShadCN ===== */}
       <hr className="border-border/40" />
       <ButtonSection />
 
@@ -48,20 +63,45 @@ export default function DesignSystemPage() {
       <SelectSection />
 
       <hr className="border-border/40" />
+      <SwitchSection />
+
+      <hr className="border-border/40" />
+      <CheckboxSection />
+
+      <hr className="border-border/40" />
+      <DatePickerSection />
+
+      <hr className="border-border/40" />
       <DialogSection />
 
-      {/* Custom */}
+      {/* ===== Custom: Layout ===== */}
       <hr className="border-border/40" />
       <PageHeaderSection />
+
+      <hr className="border-border/40" />
+      <SectionHeaderSection />
+
+      {/* ===== Custom: Data Display ===== */}
+      <hr className="border-border/40" />
+      <TableSection />
 
       <hr className="border-border/40" />
       <PaginationSection />
 
       <hr className="border-border/40" />
-      <TableSection />
+      <StatCardSection />
 
+      {/* ===== Custom: Progress ===== */}
       <hr className="border-border/40" />
       <LabeledProgressSection />
+
+      {/* ===== Custom: Feedback ===== */}
+      <hr className="border-border/40" />
+      <AlertBannerSection />
+
+      {/* ===== Custom: Form ===== */}
+      <hr className="border-border/40" />
+      <FileDropZoneSection />
 
       <div className="h-20" /> {/* Spacer */}
     </div>

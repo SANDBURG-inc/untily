@@ -29,18 +29,45 @@ const GROUPS: SidebarGroup[] = [
       { title: "Button", href: "#buttons" },
       { title: "Badge", href: "#badges" },
       { title: "Card", href: "#cards" },
-      { title: "Switch", href: "#inputs" },
+      { title: "Input", href: "#input" },
       { title: "Select", href: "#select" },
+      { title: "Switch", href: "#switch" },
+      { title: "Checkbox", href: "#checkbox" },
+      { title: "DatePicker", href: "#date-picker" },
       { title: "Dialog", href: "#dialog" },
     ],
   },
   {
-    category: "Custom",
+    category: "Custom: Layout",
     items: [
       { title: "PageHeader", href: "#page-header" },
-      { title: "Pagination", href: "#pagination" },
+      { title: "SectionHeader", href: "#section-header" },
+    ],
+  },
+  {
+    category: "Custom: Data Display",
+    items: [
       { title: "Table", href: "#table" },
+      { title: "Pagination", href: "#pagination" },
+      { title: "StatCard", href: "#stat-card" },
+    ],
+  },
+  {
+    category: "Custom: Progress",
+    items: [
       { title: "LabeledProgress", href: "#labeled-progress" },
+    ],
+  },
+  {
+    category: "Custom: Feedback",
+    items: [
+      { title: "AlertBanner", href: "#alert-banner" },
+    ],
+  },
+  {
+    category: "Custom: Form",
+    items: [
+      { title: "FileDropZone", href: "#file-drop-zone" },
     ],
   },
 ]
@@ -104,7 +131,7 @@ export function DesignSystemSidebar({ className }: { className?: string }) {
           </div>
         )}
       </nav>
-      
+
       <div className="border-t pt-4">
         <p className="text-xs text-muted-foreground">
           v1.0.0 &copy; {new Date().getFullYear()} Untily

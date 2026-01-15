@@ -27,7 +27,7 @@ export function RequiredDocumentCard({
                 </Badge>
             </div>
             {description && (
-                <p className="text-xs text-gray-500">{description}</p>
+                <p className="text-xs text-gray-500 whitespace-pre-wrap">{description}</p>
             )}
         </div>
     );

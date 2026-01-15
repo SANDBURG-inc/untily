@@ -13,7 +13,7 @@ export function PaginationSection() {
     <ComponentShowcase
       id="pagination"
       title="Pagination"
-      description="목록 페이지에서 사용하는 이전/다음 페이지 네비게이션 컴포넌트입니다. Server Component에서 사용 가능하며, Link 기반으로 동작합니다. @/components/shared/Pagination"
+      description="목록 페이지에서 사용하는 이전/다음 페이지 네비게이션 컴포넌트입니다. Server Component에서 사용 가능하며, Link 기반으로 동작합니다. components/shared/Pagination.tsx"
     >
       <div className="flex flex-col gap-8 w-full">
         {/* 기본 사용법 */}

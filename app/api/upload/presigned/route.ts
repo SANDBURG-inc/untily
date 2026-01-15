@@ -72,11 +72,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '파일 크기가 10MB를 초과합니다.' }, { status: 400 });
     }
 
-    // 9. 파일 확장자 체크
-    const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+    // 9. 파일 확장자 체크 (위험한 실행 파일만 차단)
+    const blockedExtensions = [
+      'exe', 'sh', 'bat', 'cmd', 'ps1', 'vbs', 'js', 'jar', 'msi', 'scr', 'com', 'pif',
+      'hta', 'cpl', 'msc', 'gadget', 'inf', 'reg', 'lnk', 'ws', 'wsf', 'wsc', 'wsh',
+    ];
     const ext = filename.split('.').pop()?.toLowerCase();
-    if (!ext || !allowedExtensions.includes(ext)) {
-      return NextResponse.json({ error: '허용되지 않는 파일 형식입니다. (PDF, JPG, PNG만 가능)' }, { status: 400 });
+    if (ext && blockedExtensions.includes(ext)) {
+      return NextResponse.json({ error: '보안상의 이유로 이 파일 형식은 업로드할 수 없습니다.' }, { status: 400 });
     }
 
     // 10. S3 키 생성 (식별용 - timestamp + 원본파일명)

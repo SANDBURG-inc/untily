@@ -50,7 +50,7 @@ export function TableSection() {
     <ComponentShowcase
       id="table"
       title="Table"
-      description="제네릭 테이블 컴포넌트입니다. 컬럼 기반 설계로 다양한 데이터 타입에 대응합니다. @/components/shared/Table"
+      description="제네릭 테이블 컴포넌트입니다. 컬럼 기반 설계로 다양한 데이터 타입에 대응합니다. components/shared/Table.tsx"
     >
       <div className="flex flex-col gap-8 w-full">
         {/* 기본 테이블 */}

@@ -8,7 +8,7 @@ export function LabeledProgressSection() {
     <ComponentShowcase
       id="labeled-progress"
       title="LabeledProgress"
-      description="라벨과 진행률 값을 함께 표시하는 프로그레스 바입니다. @/components/shared/LabeledProgress"
+      description="라벨과 진행률 값을 함께 표시하는 프로그레스 바입니다. components/shared/LabeledProgress.tsx"
     >
       <div className="flex flex-col gap-8 w-full">
         {/* Count 모드 */}

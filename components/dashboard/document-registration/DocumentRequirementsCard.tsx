@@ -127,14 +127,14 @@ export function DocumentRequirementsCard({
                 <label className="block text-sm font-medium text-gray-900 mb-2">
                   설명
                 </label>
-                <input
-                  type="text"
+                <textarea
                   value={requirement.description}
                   onChange={(e) =>
                     updateRequirement(requirement.id, 'description', e.target.value)
                   }
                   placeholder="예: 3개월 이내 발급"
-                  className="w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400"
+                  rows={2}
+                  className="w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 resize-none"
                 />
               </div>
             </div>
