@@ -11,10 +11,13 @@ export default async function PublicSubmitLandingPage({ params }: PublicSubmitLa
 
   const result = await validatePublicSubmitAuth(documentBoxId);
 
-  // 문서함 없음, 공개 제출 아님, 만료됨, 인증 성공 → 리다이렉트
+  // 문서함 없음, 공개 제출 아님, 만료됨 → 리다이렉트
   const validResult = handlePublicLandingRedirects(result, documentBoxId);
 
-  // 미인증 상태 → 랜딩 페이지 표시
+  // 인증 여부 확인
+  const isAuthenticated = validResult.status === 'success';
+
+  // 랜딩 페이지 표시 (인증 여부와 관계없이)
   return (
     <PublicSubmitLandingView
       documentBox={{
@@ -25,6 +28,7 @@ export default async function PublicSubmitLandingPage({ params }: PublicSubmitLa
       }}
       documentBoxId={documentBoxId}
       logoUrl={validResult.documentBox.logoUrl}
+      isAuthenticated={isAuthenticated}
     />
   );
 }
