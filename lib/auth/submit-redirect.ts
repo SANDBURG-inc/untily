@@ -15,7 +15,7 @@ import type { SubmitterAuthResult } from './submitter-auth';
 /**
  * 공개 제출 인증 결과에 따른 리다이렉트 처리
  *
- * not_found, not_public, expired, not_authenticated 상태를 처리하고
+ * not_found, not_public, closed, expired, not_authenticated 상태를 처리하고
  * success 상태만 반환합니다.
  *
  * @param result - validatePublicSubmitAuth 결과
@@ -37,6 +37,10 @@ export function handlePublicAuthRedirects(
 
   if (result.status === 'not_public') {
     redirect('/submit/not-found');
+  }
+
+  if (result.status === 'closed') {
+    redirect(`/submit/closed?title=${encodeURIComponent(result.documentBox.boxTitle)}`);
   }
 
   if (result.status === 'expired') {
@@ -72,6 +76,10 @@ export function handlePublicLandingRedirects(
     redirect('/submit/not-found');
   }
 
+  if (result.status === 'closed') {
+    redirect(`/submit/closed?title=${encodeURIComponent(result.documentBox.boxTitle)}`);
+  }
+
   if (result.status === 'expired') {
     redirect(`/submit/expired?title=${encodeURIComponent(result.documentBox.boxTitle)}`);
   }
@@ -90,7 +98,7 @@ export function handlePublicLandingRedirects(
 /**
  * 지정 제출 인증 결과에 따른 리다이렉트 처리
  *
- * not_found, expired, not_authenticated, email_mismatch 상태를 처리하고
+ * not_found, closed, expired, not_authenticated, email_mismatch 상태를 처리하고
  * success 상태만 반환합니다.
  *
  * @param result - validateSubmitterAuth 결과
@@ -110,6 +118,10 @@ export function handleSubmitterAuthRedirects(
 ): Extract<SubmitterAuthResult, { status: 'success' }> {
   if (result.status === 'not_found') {
     redirect('/submit/not-found');
+  }
+
+  if (result.status === 'closed') {
+    redirect(`/submit/closed?title=${encodeURIComponent(result.documentBox.boxTitle)}`);
   }
 
   if (result.status === 'expired') {
@@ -145,6 +157,10 @@ export function handleSubmitterLandingRedirects(
 ): Extract<SubmitterAuthResult, { status: 'not_authenticated' | 'email_mismatch' }> {
   if (result.status === 'not_found') {
     redirect('/submit/not-found');
+  }
+
+  if (result.status === 'closed') {
+    redirect(`/submit/closed?title=${encodeURIComponent(result.documentBox.boxTitle)}`);
   }
 
   if (result.status === 'expired') {

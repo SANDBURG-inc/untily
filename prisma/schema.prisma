@@ -34,6 +34,15 @@ enum LogoType {
   DOCUMENT_BOX // 문서함별 로고
 }
 
+// 문서함 상태
+// - OPEN: 제출 가능 (기본값)
+// - CLOSED: 제출 불가 (소유자 탈퇴, 수동 닫기)
+// Phase 2에서 OPEN_EXPIRED, CLOSED_EXPIRED, OPEN_RESUME 추가 예정
+enum DocumentBoxStatus {
+  OPEN
+  CLOSED
+}
+
 model DocumentBox {
   documentBoxId  String   @id @default(cuid())
   boxTitle       String
@@ -48,6 +57,11 @@ model DocumentBox {
   // [후방호환성] 기존 데이터는 null이며, null인 경우 true로 취급
   // 관련 유틸: lib/utils/document-box.ts > hasDesignatedSubmitters()
   hasSubmitter Boolean?
+
+  // 문서함 상태
+  // - OPEN: 제출 가능 (기본값)
+  // - CLOSED: 제출 불가 (소유자 탈퇴, 수동 닫기)
+  status DocumentBoxStatus @default(OPEN)
 
   logos                  Logo[]
   submitters             Submitter[]

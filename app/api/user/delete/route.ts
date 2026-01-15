@@ -45,11 +45,16 @@ export async function DELETE() {
                 });
             }
 
-            // 2. 관리자 역할 처리: DocumentBox.userId 익명화 (삭제하지 않음)
+            // 2. 관리자 역할 처리: DocumentBox 익명화 및 상태 변경
+            // - userId 익명화 (삭제하지 않음)
+            // - status를 CLOSED로 변경하여 제출 차단
             const timestamp = Date.now();
             await tx.documentBox.updateMany({
                 where: { userId },
-                data: { userId: `DELETED_USER_${timestamp}` },
+                data: {
+                    userId: `DELETED_USER_${timestamp}`,
+                    status: 'CLOSED',
+                },
             });
 
             // 3. S3 파일 처리: 기본 로고만 삭제

@@ -24,6 +24,7 @@
  *     case 'success': return <UploadForm />;
  *     case 'not_authenticated': return <LoginPrompt />;
  *     case 'not_found': redirect('/submit/not-found');
+ *     case 'closed': redirect('/submit/closed');
  *     case 'expired': redirect('/submit/expired');
  *     case 'not_public': redirect('/submit/not-found');
  *   }
@@ -64,6 +65,7 @@ export type PublicSubmitAuthResult =
   | { status: 'success'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox; logoUrl: string }
   | { status: 'not_authenticated'; documentBox: DocumentBoxWithLogo }
   | { status: 'not_found' }
+  | { status: 'closed'; documentBox: DocumentBox }
   | { status: 'expired'; documentBox: DocumentBox }
   | { status: 'not_public'; documentBox: DocumentBox };
 
@@ -72,10 +74,11 @@ export type PublicSubmitAuthResult =
  *
  * 검증 순서:
  * 1. 문서함 존재 여부 확인
- * 2. 공개 제출 문서함 여부 확인 (hasSubmitter=false)
- * 3. 문서함 만료 여부 확인
- * 4. Neon Auth 로그인 여부 확인
- * 5. 기존 Submitter 조회 또는 새로 생성
+ * 2. 문서함 상태 확인 (CLOSED인 경우 제출 불가)
+ * 3. 공개 제출 문서함 여부 확인 (hasSubmitter=false)
+ * 4. 문서함 만료 여부 확인
+ * 5. Neon Auth 로그인 여부 확인
+ * 6. 기존 Submitter 조회 또는 새로 생성
  *
  * @param documentBoxId 문서함 ID
  * @returns PublicSubmitAuthResult
@@ -95,17 +98,22 @@ export async function validatePublicSubmitAuth(
     return { status: 'not_found' };
   }
 
-  // 2. 공개 제출 문서함 여부 확인
+  // 2. 문서함 상태 확인 (CLOSED인 경우 제출 불가)
+  if (documentBox.status !== 'OPEN') {
+    return { status: 'closed', documentBox };
+  }
+
+  // 3. 공개 제출 문서함 여부 확인
   if (hasDesignatedSubmitters(documentBox.hasSubmitter)) {
     return { status: 'not_public', documentBox };
   }
 
-  // 3. 만료 체크
+  // 4. 만료 체크
   if (new Date() > documentBox.endDate) {
     return { status: 'expired', documentBox };
   }
 
-  // 4. 로고 URL 조회
+  // 5. 로고 URL 조회
   const logoUrl = await getLogoForDocumentBox(documentBoxId);
 
   // 5. Neon Auth 로그인 확인

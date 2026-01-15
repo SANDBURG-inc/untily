@@ -22,6 +22,7 @@
  *     case 'not_authenticated': return <LoginPrompt />;
  *     case 'email_mismatch': return <EmailMismatchView />;
  *     case 'not_found': redirect('/submit/not-found');
+ *     case 'closed': redirect('/submit/closed');
  *     case 'expired': redirect('/submit/expired');
  *   }
  * }
@@ -55,6 +56,7 @@ export type SubmitterAuthResult =
   | { status: 'not_authenticated'; submitter: SubmitterWithDocumentBox; logoUrl: string }
   | { status: 'email_mismatch'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox; logoUrl: string }
   | { status: 'not_found' }
+  | { status: 'closed'; documentBox: DocumentBox }
   | { status: 'expired'; documentBox: DocumentBox };
 
 /**
@@ -72,11 +74,12 @@ export type SubmitterWithDocumentBox = Submitter & {
  *
  * 검증 순서:
  * 1. 문서함 존재 여부 확인
- * 2. 문서함 만료 여부 확인
- * 3. 제출자 존재 여부 확인
- * 4. Neon Auth 로그인 여부 확인
- * 5. 이메일 일치 여부 확인
- * 6. userId 연결 (최초 로그인 시)
+ * 2. 문서함 상태 확인 (CLOSED인 경우 제출 불가)
+ * 3. 문서함 만료 여부 확인
+ * 4. 제출자 존재 여부 확인
+ * 5. Neon Auth 로그인 여부 확인
+ * 6. 이메일 일치 여부 확인
+ * 7. userId 연결 (최초 로그인 시)
  *
  * @param documentBoxId 문서함 ID
  * @param submitterId 제출자 ID
@@ -103,12 +106,17 @@ export async function validateSubmitterAuth(
     return { status: 'not_found' };
   }
 
-  // 2. 만료 체크
+  // 2. 문서함 상태 확인 (CLOSED인 경우 제출 불가)
+  if (documentBox.status !== 'OPEN') {
+    return { status: 'closed', documentBox };
+  }
+
+  // 3. 만료 체크
   if (new Date() > documentBox.endDate) {
     return { status: 'expired', documentBox };
   }
 
-  // 3. 제출자 확인
+  // 4. 제출자 확인
   const submitter = documentBox.submitters.find(
     (s) => s.submitterId === submitterId
   );
