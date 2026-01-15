@@ -27,93 +27,32 @@ export async function DELETE() {
         const s3KeysToDelete: string[] = [];
 
         await prisma.$transaction(async (tx) => {
-            const documentBoxes = await tx.documentBox.findMany({
+            // 1. 제출자 역할 처리: userId로 연결된 모든 Submitter 익명화
+            const submitters = await tx.submitter.findMany({
                 where: { userId },
-                include: {
-                    submitters: {
-                        include: {
-                            submittedDocuments: true,
-                            reminderRecipients: true,
-                        },
-                    },
-                    requiredDocuments: {
-                        include: {
-                            submittedDocuments: true,
-                        },
-                    },
-                    logos: true,
-                    reminderLogs: {
-                        include: {
-                            recipients: true,
-                        },
-                    },
-                    documentBoxRemindTypes: true,
-                },
+                select: { submitterId: true },
             });
 
-            for (const box of documentBoxes) {
-                for (const submitter of box.submitters) {
-                    for (const doc of submitter.submittedDocuments) {
-                        s3KeysToDelete.push(doc.s3Key);
-                    }
-                }
-
-                for (const req of box.requiredDocuments) {
-                    const templates = (req.templates as TemplateFile[] | null) || [];
-                    for (const template of templates) {
-                        if (template.s3Key) {
-                            s3KeysToDelete.push(template.s3Key);
-                        }
-                    }
-                    if (req.templateZipKey) {
-                        s3KeysToDelete.push(req.templateZipKey);
-                    }
-                }
-
-                for (const logo of box.logos) {
-                    const logoKey = extractS3Key(logo.imageUrl);
-                    if (logoKey) {
-                        s3KeysToDelete.push(logoKey);
-                    }
-                }
-
-                for (const log of box.reminderLogs) {
-                    await tx.reminderRecipient.deleteMany({
-                        where: { reminderLogId: log.id },
-                    });
-                }
-
-                await tx.reminderLog.deleteMany({
-                    where: { documentBoxId: box.documentBoxId },
-                });
-
-                await tx.submittedDocument.deleteMany({
-                    where: { submitter: { documentBoxId: box.documentBoxId } },
-                });
-
-                await tx.reminderRecipient.deleteMany({
-                    where: { submitter: { documentBoxId: box.documentBoxId } },
-                });
-
-                await tx.submitter.deleteMany({
-                    where: { documentBoxId: box.documentBoxId },
-                });
-
-                await tx.requiredDocument.deleteMany({
-                    where: { documentBoxId: box.documentBoxId },
-                });
-
-                await tx.documentBoxRemindType.deleteMany({
-                    where: { documentBoxId: box.documentBoxId },
-                });
-
-                await tx.logo.deleteMany({
-                    where: { documentBoxId: box.documentBoxId },
+            for (const submitter of submitters) {
+                await tx.submitter.update({
+                    where: { submitterId: submitter.submitterId },
+                    data: {
+                        name: '탈퇴한 사용자',
+                        email: `deleted_${submitter.submitterId}@deleted.local`,
+                        phone: '000-0000-0000',
+                        userId: null,
+                    },
                 });
             }
 
-            await tx.documentBox.deleteMany({ where: { userId } });
+            // 2. 관리자 역할 처리: DocumentBox.userId 익명화 (삭제하지 않음)
+            const timestamp = Date.now();
+            await tx.documentBox.updateMany({
+                where: { userId },
+                data: { userId: `DELETED_USER_${timestamp}` },
+            });
 
+            // 3. S3 파일 처리: 기본 로고만 삭제
             const defaultLogos = await tx.logo.findMany({
                 where: { userId, type: 'DEFAULT' },
             });
@@ -126,20 +65,25 @@ export async function DELETE() {
             await tx.logo.deleteMany({
                 where: { userId, type: 'DEFAULT' },
             });
+
+            // 주의: 문서함 관련 데이터는 모두 보존
+            // - Submitter, SubmittedDocument, RequiredDocument 등은 삭제하지 않음
+            // - S3 제출 파일, 양식 파일, 문서함 로고는 삭제하지 않음
         });
 
+        // S3에서 기본 로고만 삭제
         if (s3KeysToDelete.length > 0) {
             await deleteMultipleFromS3(s3KeysToDelete);
         }
 
         return NextResponse.json({
             success: true,
-            message: 'User data deleted successfully',
+            message: 'User data anonymized successfully',
         });
     } catch (error) {
-        console.error('Error deleting user data:', error);
+        console.error('Error anonymizing user data:', error);
         return NextResponse.json(
-            { success: false, error: error instanceof Error ? error.message : 'Failed to delete user data' },
+            { success: false, error: error instanceof Error ? error.message : 'Failed to anonymize user data' },
             { status: 500 }
         );
     }
