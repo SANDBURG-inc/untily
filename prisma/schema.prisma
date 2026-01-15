@@ -14,11 +14,11 @@ datasource db {
 }
 
 model Logo {
-  logoId        String   @id @default(cuid())
-  imageUrl      String
-  createdAt     DateTime @default(now())
-  userId        String
-  type          LogoType @default(DEFAULT)
+  logoId    String   @id @default(cuid())
+  imageUrl  String
+  createdAt DateTime @default(now())
+  userId    String
+  type      LogoType @default(DEFAULT)
 
   // 문서함 로고인 경우에만 사용 (type이 DOCUMENT_BOX일 때)
   documentBoxId String?
@@ -30,8 +30,8 @@ model Logo {
 }
 
 enum LogoType {
-  DEFAULT       // 사용자 기본 로고
-  DOCUMENT_BOX  // 문서함별 로고
+  DEFAULT // 사용자 기본 로고
+  DOCUMENT_BOX // 문서함별 로고
 }
 
 model DocumentBox {
@@ -69,27 +69,27 @@ model RequiredDocument {
 
   // 양식 파일 목록 (JSON 배열)
   // 형식: [{s3Key: string, filename: string}, ...]
-  templates           Json?       @default("[]")
+  templates Json? @default("[]")
 
   // 양식 파일 ZIP (2개 이상일 때 미리 생성)
   // S3 경로: templates/{documentBoxId}_zip/{requiredDocumentId}.zip
-  templateZipKey      String?
+  templateZipKey String?
 
   submittedDocuments SubmittedDocument[]
 }
 
 model Submitter {
-  submitterId   String          @id @default(cuid())
+  submitterId   String      @id @default(cuid())
   name          String
   email         String
   phone         String
   documentBoxId String
-  documentBox   DocumentBox     @relation(fields: [documentBoxId], references: [documentBoxId])
+  documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
 
   // 제출자 인증 관련 필드
-  userId        String?         // Stack Auth 사용자 ID (로그인 시 연결)
-  status        SubmitterStatus @default(PENDING)
-  submittedAt   DateTime?       // 제출 완료 시간
+  userId      String? // Stack Auth 사용자 ID (로그인 시 연결)
+  status      SubmitterStatus @default(PENDING)
+  submittedAt DateTime? // 제출 완료 시간
 
   submittedDocuments SubmittedDocument[]
   reminderRecipients ReminderRecipient[]
@@ -99,24 +99,24 @@ model Submitter {
 }
 
 model SubmittedDocument {
-  submittedDocumentId String           @id @default(cuid())
+  submittedDocumentId String @id @default(cuid())
 
   // S3 관련 필드
-  s3Key               String
-  filename            String           // 관리자용 가공 파일명 (서류명_날짜_제출자명.확장자)
-  originalFilename    String           // 원본 파일명 (사용자가 업로드한 파일명)
-  size                Int
-  mimeType            String
+  s3Key            String
+  filename         String // 관리자용 가공 파일명 (서류명_날짜_제출자명.확장자)
+  originalFilename String // 원본 파일명 (사용자가 업로드한 파일명)
+  size             Int
+  mimeType         String
 
   // 기존 필드
-  fileUrl             String
-  createdAt           DateTime         @default(now())
+  fileUrl   String
+  createdAt DateTime @default(now())
 
   // 관계 필드
-  requiredDocumentId  String
-  requiredDocument    RequiredDocument @relation(fields: [requiredDocumentId], references: [requiredDocumentId])
-  submitterId         String
-  submitter           Submitter        @relation(fields: [submitterId], references: [submitterId])
+  requiredDocumentId String
+  requiredDocument   RequiredDocument @relation(fields: [requiredDocumentId], references: [requiredDocumentId])
+  submitterId        String
+  submitter          Submitter        @relation(fields: [submitterId], references: [submitterId])
 
   @@index([submitterId])
   @@index([requiredDocumentId])
