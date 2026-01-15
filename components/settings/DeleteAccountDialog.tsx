@@ -77,7 +77,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="grid grid-cols-2 gap-3 sm:gap-3">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
