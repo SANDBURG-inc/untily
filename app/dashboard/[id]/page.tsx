@@ -1,5 +1,5 @@
 import { Edit, Send } from 'lucide-react';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { IconButton } from '@/components/shared/IconButton';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -10,8 +10,11 @@ import {
     ReminderHistory,
 } from '@/components/dashboard/detail';
 import { ensureAuthenticated } from '@/lib/auth';
-import { getDocumentBoxWithSubmissionStatus } from '@/lib/queries/document-box';
-import { calculateSubmissionStats } from '@/lib/utils/document-box';
+import {
+    getDocumentBoxAccessInfo,
+    getDocumentBoxWithSubmissionStatus,
+} from '@/lib/queries/document-box';
+import { calculateSubmissionStats, hasDesignatedSubmitters } from '@/lib/utils/document-box';
 
 /**
  * 문서함 상세 페이지
@@ -28,6 +31,29 @@ export default async function DocumentBoxDetailPage({
     const user = await ensureAuthenticated();
     const { id } = await params;
 
+    // 1. 문서함 접근 권한 확인
+    const accessInfo = await getDocumentBoxAccessInfo(id, user.id, user.email || '');
+
+    // 문서함이 존재하지 않음 → 404
+    if (!accessInfo) {
+        notFound();
+    }
+
+    // 2. 소유자가 아니면 제출 페이지로 리다이렉트
+    if (!accessInfo.isOwner) {
+        if (!hasDesignatedSubmitters(accessInfo.hasSubmitter)) {
+            // 공개 제출 문서함 → /submit/[documentBoxId]
+            redirect(`/submit/${id}`);
+        } else if (accessInfo.submitterId) {
+            // 제출자 지정 문서함 + 등록된 제출자 → /submit/[documentBoxId]/[submitterId]
+            redirect(`/submit/${id}/${accessInfo.submitterId}`);
+        } else {
+            // 제출자 지정 문서함 + 미등록 → 404
+            notFound();
+        }
+    }
+
+    // 3. 소유자면 상세 정보 조회
     const documentBox = await getDocumentBoxWithSubmissionStatus(id, user.id);
 
     if (!documentBox) {

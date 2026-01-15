@@ -148,6 +148,55 @@ export async function getDocumentBoxForEdit(documentBoxId: string, userId: strin
     return documentBox;
 }
 
+// 문서함 접근 정보 타입 (권한 체크용)
+export interface DocumentBoxAccessInfo {
+    exists: boolean;
+    isOwner: boolean;
+    hasSubmitter: boolean | null;
+    submitterId: string | null; // 비소유자일 때 이메일로 찾은 submitter
+}
+
+/**
+ * 문서함 접근 정보 조회 (권한 체크 + 리다이렉트용)
+ * - 문서함 존재 여부와 소유권을 분리해서 확인
+ * - 비소유자일 경우 이메일로 등록된 submitter 검색
+ */
+export async function getDocumentBoxAccessInfo(
+    documentBoxId: string,
+    userId: string,
+    userEmail: string
+): Promise<DocumentBoxAccessInfo | null> {
+    const documentBox = await prisma.documentBox.findUnique({
+        where: { documentBoxId },
+        select: {
+            userId: true,
+            hasSubmitter: true,
+            submitters: {
+                where: { email: { equals: userEmail, mode: 'insensitive' } },
+                select: { submitterId: true },
+                take: 1,
+            },
+        },
+    });
+
+    // 문서함이 존재하지 않음
+    if (!documentBox) {
+        return null;
+    }
+
+    const isOwner = documentBox.userId === userId;
+
+    return {
+        exists: true,
+        isOwner,
+        hasSubmitter: documentBox.hasSubmitter,
+        // 비소유자일 때만 submitterId 반환 (소유자는 필요 없음)
+        submitterId: !isOwner && documentBox.submitters.length > 0
+            ? documentBox.submitters[0].submitterId
+            : null,
+    };
+}
+
 /**
  * 사용자의 문서함 목록 조회
  */
