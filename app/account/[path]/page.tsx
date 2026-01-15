@@ -1,18 +1,17 @@
-import { AccountView } from '@neondatabase/neon-js/auth/react/ui';
-import { accountViewPaths } from '@neondatabase/neon-js/auth/react/ui/server';
+import { redirect } from 'next/navigation';
 
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return Object.values(accountViewPaths).map((path) => ({ path }));
-}
-
-export default async function AccountPage({ params }: { params: Promise<{ path: string }> }) {
-  const { path } = await params;
-
-  return (
-    <main className="container mx-auto p-4 md:p-6">
-      <AccountView path={path} />
-    </main>
-  );
+/**
+ * 기존 Neon Auth의 AccountView 경로를 새로운 통합 계정 페이지로 리다이렉트
+ *
+ * 이전 경로:
+ * - /account/settings
+ * - /account/security
+ * - /account/api-keys
+ * - /account/organizations
+ *
+ * 새로운 경로:
+ * - /account (통합 페이지)
+ */
+export default async function LegacyAccountPage() {
+  redirect('/account');
 }
