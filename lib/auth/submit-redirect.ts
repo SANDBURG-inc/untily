@@ -135,19 +135,19 @@ export function handleSubmitterAuthRedirects(
 /**
  * 지정 제출 랜딩 페이지용 리다이렉트 처리
  *
- * 랜딩 페이지는 not_authenticated, email_mismatch를 허용하므로 별도 함수로 분리
- * success인 경우 upload/complete로 리다이렉트됨
+ * 랜딩 페이지는 not_authenticated, email_mismatch, success를 허용하므로 별도 함수로 분리
+ * 에러 상태만 리다이렉트하고 나머지는 랜딩 페이지에 유지
  *
  * @param result - validateSubmitterAuth 결과
  * @param documentBoxId - 문서함 ID
  * @param submitterId - 제출자 ID
- * @returns not_authenticated 또는 email_mismatch 상태의 result
+ * @returns not_authenticated, email_mismatch 또는 success 상태의 result
  */
 export function handleSubmitterLandingRedirects(
   result: SubmitterAuthResult,
   documentBoxId: string,
   submitterId: string
-): Extract<SubmitterAuthResult, { status: 'not_authenticated' | 'email_mismatch' }> {
+): Extract<SubmitterAuthResult, { status: 'not_authenticated' | 'email_mismatch' | 'success' }> {
   if (result.status === 'not_found') {
     redirect('/submit/not-found');
   }
@@ -160,13 +160,6 @@ export function handleSubmitterLandingRedirects(
     redirect(`/submit/expired?title=${encodeURIComponent(result.documentBox.boxTitle)}`);
   }
 
-  // success인 경우 제출 완료 여부에 따라 리다이렉트
-  if (result.status === 'success') {
-    if (result.submitter.status === 'SUBMITTED') {
-      redirect(`/submit/${documentBoxId}/${submitterId}/complete`);
-    }
-    redirect(`/submit/${documentBoxId}/${submitterId}/upload`);
-  }
-
+  // not_authenticated, email_mismatch, success 모두 랜딩 페이지에 유지
   return result;
 }
