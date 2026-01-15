@@ -54,6 +54,7 @@ model DocumentBox {
   requiredDocuments      RequiredDocument[]
   documentBoxRemindTypes DocumentBoxRemindType[]
   reminderLogs           ReminderLog[]
+  reminderSchedules      ReminderSchedule[]
 
   @@index([userId])
 }
@@ -134,6 +135,59 @@ enum RemindType {
   EMAIL
   SMS
   PUSH
+}
+
+// ============================================================================
+// 사용자 구독 관리
+// ============================================================================
+
+enum SubscriptionPlan {
+  FREE  // 무료
+  BETA  // 베타 기간 무료
+  BASIC // 기본 플랜
+  PRO   // 프로 플랜
+}
+
+model User {
+  userId           String           @id @default(cuid())
+  authUserId       String           @unique // Neon Auth user.id
+  subscriptionPlan SubscriptionPlan @default(BETA)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([authUserId])
+}
+
+// ============================================================================
+// 리마인더 스케줄
+// ============================================================================
+
+enum ReminderTimeUnit {
+  DAY  // n일 전
+  WEEK // n주 전
+}
+
+model ReminderSchedule {
+  id            String           @id @default(cuid())
+  documentBoxId String
+  documentBox   DocumentBox      @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
+
+  // 발송 시점 설정
+  timeValue Int              // 숫자 값 (1, 2, 3...)
+  timeUnit  ReminderTimeUnit // DAY 또는 WEEK
+  sendTime  String           // HH:mm 형식 (예: "09:00", "14:30")
+
+  // 채널 설정
+  channel RemindType @default(EMAIL)
+
+  // 순서 (UI 표시 및 관리용)
+  order Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentBoxId])
+  @@index([sendTime])
 }
 
 enum SubmitterStatus {

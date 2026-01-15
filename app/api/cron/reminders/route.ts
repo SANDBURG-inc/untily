@@ -3,156 +3,104 @@ import prisma from '@/lib/db';
 import { Resend } from 'resend';
 import { generateReminderEmailHtml } from '@/lib/email-templates';
 
-export const dynamic = 'force-dynamic'; // Prevent caching
+export const dynamic = 'force-dynamic';
 
+/**
+ * 자동 리마인더 Cron Job
+ *
+ * 30분마다 실행되어 해당 시간에 발송 예정인 리마인더를 처리합니다.
+ * - ReminderSchedule 기반: 사용자가 설정한 발송 시점(n일/주 전, 시간)에 맞춰 발송
+ * - 기존 DocumentBoxRemindType 기반: 하위 호환성 유지 (마감 3일 전, 09:00 발송)
+ */
 export async function GET(request: Request) {
     try {
-        // 1. Calculate Target Date: Today + 3 days
-        const today = new Date();
-        const targetDate = new Date(today);
-        targetDate.setDate(today.getDate() + 3);
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
 
-        // Normalize to YYYY-MM-DD for database query (assuming endDate is stored with time, we compare date parts)
-        // Or better: Define a range for that day.
-        const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-        const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+        // 현재 시간을 30분 단위로 정규화
+        const normalizedMinute = currentMinute < 30 ? '00' : '30';
+        const currentSendTime = `${String(currentHour).padStart(2, '0')}:${normalizedMinute}`;
 
-        console.log(`[Auto-Reminder] Checking for deadlines between ${startOfDay.toISOString()} and ${endOfDay.toISOString()}`);
+        console.log(`[Auto-Reminder] Running at ${now.toISOString()}, sendTime: ${currentSendTime}`);
 
-        // 2. Find DocumentBoxes
-        // - Ending on target date
-        // - Has EMAIL reminder type enabled
-        const documentBoxes = await prisma.documentBox.findMany({
+        let totalEmailsSent = 0;
+        const results: {
+            documentBoxId: string;
+            title: string;
+            scheduleId?: string;
+            recipients: number;
+            logId: string;
+            source: 'schedule' | 'legacy';
+        }[] = [];
+
+        // ================================================================
+        // 1. 새로운 ReminderSchedule 기반 발송
+        // ================================================================
+        const schedules = await prisma.reminderSchedule.findMany({
             where: {
-                endDate: {
-                    gte: startOfDay,
-                    lte: endOfDay,
-                },
-                documentBoxRemindTypes: {
-                    some: {
-                        remindType: 'EMAIL',
-                    },
-                },
+                sendTime: currentSendTime,
+                channel: 'EMAIL',
             },
             include: {
-                requiredDocuments: true,
-                submitters: {
+                documentBox: {
                     include: {
-                        submittedDocuments: true,
+                        requiredDocuments: true,
+                        submitters: {
+                            include: {
+                                submittedDocuments: true,
+                            },
+                        },
                     },
                 },
             },
         });
 
-        console.log(`[Auto-Reminder] Found ${documentBoxes.length} document boxes expecting reminders.`);
+        console.log(`[Auto-Reminder] Found ${schedules.length} schedules for ${currentSendTime}`);
 
-        let totalEmailsSent = 0;
-        const results = [];
+        for (const schedule of schedules) {
+            const box = schedule.documentBox;
 
-        // 3. Process each DocumentBox
-        for (const box of documentBoxes) {
-            // Filter Required Docs
-            const requiredDocs = box.requiredDocuments.filter(d => d.isRequired);
-            const requiredDocIds = requiredDocs.map(d => d.requiredDocumentId);
+            // 발송 대상 날짜 계산
+            const targetDate = calculateTargetDate(
+                box.endDate,
+                schedule.timeValue,
+                schedule.timeUnit
+            );
 
-            if (requiredDocIds.length === 0) continue; // No required docs, skip
+            // 오늘이 발송 대상 날짜인지 확인
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            targetDate.setHours(0, 0, 0, 0);
 
-            const incompleteSubmitters = box.submitters.filter(submitter => {
-                if (!submitter.email) return false;
-
-                // Check if all required docs are submitted
-                const submittedDocIds = submitter.submittedDocuments.map(sd => sd.requiredDocumentId);
-                const isComplete = requiredDocIds.every(reqId => submittedDocIds.includes(reqId));
-
-                return !isComplete;
-            });
-
-            if (incompleteSubmitters.length === 0) continue;
-
-            console.log(`[Auto-Reminder] Box "${box.boxTitle}" has ${incompleteSubmitters.length} incomplete submitters.`);
-
-            // 4. Send Batch Emails
-            const resend = new Resend(process.env.RESEND_API_KEY || process.env.SMTP_PASS);
-
-            const emails = incompleteSubmitters.map(submitter => {
-                const submissionLink = `https://untily.kr/submit/${box.documentBoxId}/${submitter.submitterId}`;
-
-                const emailHtml = generateReminderEmailHtml({
-                    submitterName: submitter.name,
-                    documentBoxTitle: box.boxTitle,
-                    documentBoxDescription: box.boxDescription,
-                    endDate: box.endDate,
-                    requiredDocuments: box.requiredDocuments.map(doc => ({
-                        name: doc.documentTitle,
-                        description: doc.documentDescription,
-                        isRequired: doc.isRequired,
-                    })),
-                    submissionLink: submissionLink,
-                });
-
-                return {
-                    from: 'untily@untily.kr',
-                    to: submitter.email,
-                    subject: `[리마인드] ${box.boxTitle} 서류 제출 마감 3일 전입니다`, // Slightly different subject for auto-reminder
-                    html: emailHtml,
-                };
-            });
-
-            if (emails.length > 0) {
-                // Log BEFORE sending to capture intent, or AFTER to capture success? 
-                // Let's create the log entry first so we have an ID for tracking, although we can't easily link batch email IDs back.
-                // Actually, we'll create the log now.
-
-                const log = await prisma.reminderLog.create({
-                    data: {
-                        documentBoxId: box.documentBoxId,
-                        channel: 'EMAIL',
-                        isAuto: true,
-                        sentAt: new Date(),
-                        recipients: {
-                            create: incompleteSubmitters.map(s => ({ submitterId: s.submitterId }))
-                        }
-                    }
-                });
-
-                // 5. Send in chunks of 100 just in case (Resend limit)
-                // Assuming efficient for now, but simple chunking is safer
-                const chunkSize = 100;
-                const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-                for (let i = 0; i < emails.length; i += chunkSize) {
-                    const chunk = emails.slice(i, i + chunkSize);
-
-                    // If not the first chunk or if we've already sent other batches in this run,
-                    // we should wait to respect Resend's 2 requests/sec limit.
-                    if (i > 0 || totalEmailsSent > 0) {
-                        await delay(500); // Wait 500ms to stay under 2 requests/sec
-                    }
-
-                    const { error } = await resend.batch.send(chunk);
-
-                    if (error) {
-                        console.error(`[Auto-Reminder] Failed to send batch for box ${box.documentBoxId}:`, error);
-                    } else {
-                        totalEmailsSent += chunk.length;
-                    }
-                }
-
-                results.push({
-                    documentBoxId: box.documentBoxId,
-                    title: box.boxTitle,
-                    recipients: incompleteSubmitters.length,
-                    logId: log.id
-                });
+            if (today.getTime() !== targetDate.getTime()) {
+                continue;
             }
+
+            // 미제출자 필터링
+            const emailResult = await sendReminderEmails(box, schedule.id, 'schedule');
+            if (emailResult) {
+                totalEmailsSent += emailResult.emailsSent;
+                results.push(emailResult.result);
+            }
+        }
+
+        // ================================================================
+        // 2. 기존 DocumentBoxRemindType 기반 발송 (하위 호환성)
+        // 09:00에만 실행, ReminderSchedule이 없는 문서함 대상
+        // ================================================================
+        if (currentSendTime === '09:00') {
+            const legacyResult = await processLegacyReminders();
+            totalEmailsSent += legacyResult.emailsSent;
+            results.push(...legacyResult.results);
         }
 
         return NextResponse.json({
             success: true,
-            message: `Processed ${documentBoxes.length} boxes. Sent ${totalEmailsSent} emails.`,
-            details: results
+            message: `Processed at ${currentSendTime}. Sent ${totalEmailsSent} emails.`,
+            scheduleCount: schedules.length,
+            details: results,
         });
-
     } catch (error) {
         console.error('[Auto-Reminder] Error executing cron:', error);
         return NextResponse.json(
@@ -160,4 +108,247 @@ export async function GET(request: Request) {
             { status: 500 }
         );
     }
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * 마감일 기준 발송 대상 날짜 계산
+ */
+function calculateTargetDate(
+    endDate: Date,
+    timeValue: number,
+    timeUnit: string
+): Date {
+    const target = new Date(endDate);
+
+    if (timeUnit === 'DAY') {
+        target.setDate(target.getDate() - timeValue);
+    } else if (timeUnit === 'WEEK') {
+        target.setDate(target.getDate() - timeValue * 7);
+    }
+
+    return target;
+}
+
+/**
+ * 마감일까지 남은 일수 계산
+ */
+function calculateDaysLeft(endDate: Date): number {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
+    const diffTime = end.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * 리마인더 이메일 발송
+ */
+async function sendReminderEmails(
+    box: {
+        documentBoxId: string;
+        boxTitle: string;
+        boxDescription: string | null;
+        endDate: Date;
+        requiredDocuments: {
+            requiredDocumentId: string;
+            documentTitle: string;
+            documentDescription: string | null;
+            isRequired: boolean;
+        }[];
+        submitters: {
+            submitterId: string;
+            name: string;
+            email: string;
+            submittedDocuments: {
+                requiredDocumentId: string;
+            }[];
+        }[];
+    },
+    scheduleId: string | undefined,
+    source: 'schedule' | 'legacy'
+): Promise<{ emailsSent: number; result: typeof results[0] } | null> {
+    // 필수 서류 필터링
+    const requiredDocs = box.requiredDocuments.filter((d) => d.isRequired);
+    const requiredDocIds = requiredDocs.map((d) => d.requiredDocumentId);
+
+    if (requiredDocIds.length === 0) return null;
+
+    // 미제출자 필터링
+    const incompleteSubmitters = box.submitters.filter((submitter) => {
+        if (!submitter.email) return false;
+        const submittedDocIds = submitter.submittedDocuments.map(
+            (sd) => sd.requiredDocumentId
+        );
+        return !requiredDocIds.every((reqId) => submittedDocIds.includes(reqId));
+    });
+
+    if (incompleteSubmitters.length === 0) return null;
+
+    console.log(
+        `[Auto-Reminder] Box "${box.boxTitle}" has ${incompleteSubmitters.length} incomplete submitters (source: ${source})`
+    );
+
+    const resend = new Resend(process.env.RESEND_API_KEY || process.env.SMTP_PASS);
+    const daysLeft = calculateDaysLeft(box.endDate);
+
+    const emails = incompleteSubmitters.map((submitter) => {
+        const submissionLink = `https://untily.kr/submit/${box.documentBoxId}/${submitter.submitterId}`;
+
+        const emailHtml = generateReminderEmailHtml({
+            submitterName: submitter.name,
+            documentBoxTitle: box.boxTitle,
+            documentBoxDescription: box.boxDescription,
+            endDate: box.endDate,
+            requiredDocuments: box.requiredDocuments.map((doc) => ({
+                name: doc.documentTitle,
+                description: doc.documentDescription,
+                isRequired: doc.isRequired,
+            })),
+            submissionLink,
+        });
+
+        return {
+            from: 'untily@untily.kr',
+            to: submitter.email,
+            subject: `[리마인드] ${box.boxTitle} 서류 제출 마감 ${daysLeft}일 전입니다`,
+            html: emailHtml,
+        };
+    });
+
+    // ReminderLog 생성
+    const log = await prisma.reminderLog.create({
+        data: {
+            documentBoxId: box.documentBoxId,
+            channel: 'EMAIL',
+            isAuto: true,
+            sentAt: new Date(),
+            recipients: {
+                create: incompleteSubmitters.map((s) => ({
+                    submitterId: s.submitterId,
+                })),
+            },
+        },
+    });
+
+    // 배치 발송
+    let emailsSent = 0;
+    const chunkSize = 100;
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    for (let i = 0; i < emails.length; i += chunkSize) {
+        const chunk = emails.slice(i, i + chunkSize);
+        if (i > 0) {
+            await delay(500);
+        }
+        const { error } = await resend.batch.send(chunk);
+        if (error) {
+            console.error(
+                `[Auto-Reminder] Failed to send batch for box ${box.documentBoxId}:`,
+                error
+            );
+        } else {
+            emailsSent += chunk.length;
+        }
+    }
+
+    const results: {
+        documentBoxId: string;
+        title: string;
+        scheduleId?: string;
+        recipients: number;
+        logId: string;
+        source: 'schedule' | 'legacy';
+    }[] = [];
+
+    return {
+        emailsSent,
+        result: {
+            documentBoxId: box.documentBoxId,
+            title: box.boxTitle,
+            scheduleId,
+            recipients: incompleteSubmitters.length,
+            logId: log.id,
+            source,
+        },
+    };
+}
+
+/**
+ * 기존 DocumentBoxRemindType 기반 리마인더 처리 (하위 호환성)
+ * ReminderSchedule이 없고 DocumentBoxRemindType만 있는 문서함 대상
+ */
+async function processLegacyReminders(): Promise<{
+    emailsSent: number;
+    results: {
+        documentBoxId: string;
+        title: string;
+        scheduleId?: string;
+        recipients: number;
+        logId: string;
+        source: 'schedule' | 'legacy';
+    }[];
+}> {
+    const today = new Date();
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + 3);
+
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // ReminderSchedule이 없고 DocumentBoxRemindType만 있는 문서함 조회
+    const documentBoxes = await prisma.documentBox.findMany({
+        where: {
+            endDate: {
+                gte: startOfDay,
+                lte: endOfDay,
+            },
+            documentBoxRemindTypes: {
+                some: {
+                    remindType: 'EMAIL',
+                },
+            },
+            reminderSchedules: {
+                none: {},
+            },
+        },
+        include: {
+            requiredDocuments: true,
+            submitters: {
+                include: {
+                    submittedDocuments: true,
+                },
+            },
+        },
+    });
+
+    console.log(
+        `[Auto-Reminder] Found ${documentBoxes.length} legacy document boxes (no schedules)`
+    );
+
+    let totalEmailsSent = 0;
+    const results: {
+        documentBoxId: string;
+        title: string;
+        scheduleId?: string;
+        recipients: number;
+        logId: string;
+        source: 'schedule' | 'legacy';
+    }[] = [];
+
+    for (const box of documentBoxes) {
+        const emailResult = await sendReminderEmails(box, undefined, 'legacy');
+        if (emailResult) {
+            totalEmailsSent += emailResult.emailsSent;
+            results.push(emailResult.result);
+        }
+    }
+
+    return { emailsSent: totalEmailsSent, results };
 }

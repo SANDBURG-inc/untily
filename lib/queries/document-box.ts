@@ -48,6 +48,14 @@ export interface DocumentBoxDetail {
             };
         }[];
     }[];
+    reminderSchedules: {
+        id: string;
+        timeValue: number;
+        timeUnit: 'DAY' | 'WEEK';
+        sendTime: string;
+        channel: 'EMAIL' | 'SMS' | 'PUSH';
+        order: number;
+    }[];
     totalRequiredDocuments: number;
 }
 
@@ -83,6 +91,9 @@ export async function getDocumentBoxWithSubmissionStatus(
                         },
                     },
                 },
+            },
+            reminderSchedules: {
+                orderBy: { order: 'asc' },
             },
         },
     });
@@ -124,6 +135,7 @@ export async function getDocumentBoxWithSubmissionStatus(
         })),
         documentBoxRemindTypes: documentBox.documentBoxRemindTypes,
         reminderLogs: documentBox.reminderLogs,
+        reminderSchedules: documentBox.reminderSchedules,
         totalRequiredDocuments: documentBox.requiredDocuments.length,
     };
 }

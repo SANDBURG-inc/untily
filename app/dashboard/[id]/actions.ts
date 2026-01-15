@@ -1,10 +1,18 @@
 'use server';
 
 import prisma from "@/lib/db";
-import { RemindType } from "@/lib/generated/prisma/client";
+import { RemindType, ReminderTimeUnit } from "@/lib/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { Resend } from 'resend';
 import { generateReminderEmailHtml } from '@/lib/email-templates';
+import {
+    type ReminderScheduleInput,
+    MAX_REMINDER_COUNT,
+    TIME_VALUE_RANGE,
+    SEND_TIME_OPTIONS,
+    type ReminderTimeUnitType,
+    type SendTimeOption,
+} from '@/lib/types/reminder';
 
 export async function disableAutoReminder(documentBoxId: string) {
     try {
@@ -125,5 +133,98 @@ export async function sendManualReminder(documentBoxId: string, recipientIds: st
     } catch (error) {
         console.error("Failed to send manual reminder:", error);
         return { success: false, error: "Failed to send manual reminder" };
+    }
+}
+
+// ============================================================================
+// 리마인더 스케줄 관련 액션
+// ============================================================================
+
+/**
+ * 리마인더 스케줄 저장
+ * 기존 스케줄을 모두 삭제하고 새로 생성합니다.
+ */
+export async function saveReminderSchedules(
+    documentBoxId: string,
+    schedules: ReminderScheduleInput[]
+) {
+    try {
+        // 1. 검증: 최대 개수
+        if (schedules.length > MAX_REMINDER_COUNT) {
+            return {
+                success: false,
+                error: `리마인더는 최대 ${MAX_REMINDER_COUNT}개까지 설정할 수 있습니다.`,
+            };
+        }
+
+        // 2. 각 스케줄 유효성 검증
+        for (const schedule of schedules) {
+            const range = TIME_VALUE_RANGE[schedule.timeUnit as keyof typeof TIME_VALUE_RANGE];
+            if (!range) {
+                return { success: false, error: '유효하지 않은 시간 단위입니다.' };
+            }
+            if (schedule.timeValue < range.min || schedule.timeValue > range.max) {
+                return {
+                    success: false,
+                    error: `시간 값은 ${range.min}에서 ${range.max} 사이여야 합니다.`,
+                };
+            }
+            if (!SEND_TIME_OPTIONS.includes(schedule.sendTime as SendTimeOption)) {
+                return { success: false, error: '유효하지 않은 발송 시간입니다.' };
+            }
+        }
+
+        // 3. 트랜잭션으로 기존 삭제 + 새로 생성
+        await prisma.$transaction(async (tx) => {
+            // 기존 스케줄 삭제
+            await tx.reminderSchedule.deleteMany({
+                where: { documentBoxId },
+            });
+
+            // 새 스케줄 생성
+            if (schedules.length > 0) {
+                await tx.reminderSchedule.createMany({
+                    data: schedules.map((schedule, index) => ({
+                        documentBoxId,
+                        timeValue: schedule.timeValue,
+                        timeUnit: schedule.timeUnit as ReminderTimeUnit,
+                        sendTime: schedule.sendTime,
+                        channel: schedule.channel as RemindType,
+                        order: index,
+                    })),
+                });
+            }
+        });
+
+        revalidatePath(`/dashboard/${documentBoxId}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to save reminder schedules:', error);
+        return { success: false, error: '리마인더 설정 저장에 실패했습니다.' };
+    }
+}
+
+/**
+ * 자동 리마인더 비활성화 (모든 스케줄 삭제)
+ * 기존 disableAutoReminder와 함께 새 스케줄도 삭제합니다.
+ */
+export async function disableAutoReminderV2(documentBoxId: string) {
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 기존 DocumentBoxRemindType 삭제 (하위 호환성)
+            await tx.documentBoxRemindType.deleteMany({
+                where: { documentBoxId },
+            });
+            // 새 ReminderSchedule 삭제
+            await tx.reminderSchedule.deleteMany({
+                where: { documentBoxId },
+            });
+        });
+
+        revalidatePath(`/dashboard/${documentBoxId}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to disable auto reminder:', error);
+        return { success: false, error: '자동 리마인드 비활성화에 실패했습니다.' };
     }
 }
