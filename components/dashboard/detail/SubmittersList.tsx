@@ -30,6 +30,7 @@ import {
     formatSubmissionDate,
 } from '@/lib/types/submitter';
 import { useIntersectionObserver } from '@/lib/hooks/useIntersectionObserver';
+import { SubmitterDetailSheet } from './SubmitterDetailSheet';
 
 /**
  * 제출자 목록 컴포넌트
@@ -68,6 +69,10 @@ export function SubmittersList({
     const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [isDownloadingFiles, setIsDownloadingFiles] = useState(false);
+
+    // Sheet 상태
+    const [sheetOpen, setSheetOpen] = useState(false);
+    const [selectedSubmitterId, setSelectedSubmitterId] = useState<string | null>(null);
 
     // 필터링된 제출자 목록
     const filteredSubmitters = useMemo(() => {
@@ -119,6 +124,12 @@ export function SubmittersList({
         });
     }, []);
 
+    // 이름 클릭 시 Sheet 열기
+    const handleNameClick = useCallback((submitterId: string) => {
+        setSelectedSubmitterId(submitterId);
+        setSheetOpen(true);
+    }, []);
+
     const columns: Column<SubmitterWithStatus>[] = useMemo(() => [
         {
             key: 'checkbox',
@@ -139,7 +150,12 @@ export function SubmittersList({
             key: 'name',
             header: '이름',
             render: (submitter) => (
-                <span className="text-sm text-gray-900">{submitter.name}</span>
+                <button
+                    onClick={() => handleNameClick(submitter.submitterId)}
+                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium text-left"
+                >
+                    {submitter.name}
+                </button>
             ),
         },
         {
@@ -197,7 +213,7 @@ export function SubmittersList({
             header: '',
             render: () => <span className="text-sm text-gray-400">...</span>,
         },
-    ], [allSelected, selectedIds, totalRequiredDocuments, handleSelectAll, handleSelectOne]);
+    ], [allSelected, selectedIds, totalRequiredDocuments, endDate, handleSelectAll, handleSelectOne, handleNameClick]);
 
     const handleDownload = () => {
         const headers = ['이름', '이메일', '휴대전화', '제출상태', '제출일', '진행상황'];
@@ -318,6 +334,15 @@ export function SubmittersList({
                     )}
                 </div>
             </CardContent>
+
+            {/* 제출자 상세 Sheet */}
+            <SubmitterDetailSheet
+                open={sheetOpen}
+                onOpenChange={setSheetOpen}
+                submitterId={selectedSubmitterId}
+                documentBoxId={documentBoxId}
+                documentBoxTitle={documentBoxTitle}
+            />
         </Card>
     );
 }

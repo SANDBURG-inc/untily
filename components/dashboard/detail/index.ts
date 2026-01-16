@@ -9,3 +9,6 @@ export { RequiredDocumentCard } from './RequiredDocumentCard';
 export { RequiredDocumentsList } from './RequiredDocumentsList';
 export { ReminderHistory } from './ReminderHistory';
 export { SubmittersList } from './SubmittersList';
+export { SubmittedFileItem } from './SubmittedFileItem';
+export { SubmittedFileList } from './SubmittedFileList';
+export { SubmitterDetailSheet } from './SubmitterDetailSheet';
