@@ -39,6 +39,7 @@ export default async function ReminderSendPage({
             <ReminderSendForm
                 documentBoxId={documentBox.documentBoxId}
                 documentBoxTitle={documentBox.boxTitle}
+                documentBoxDescription={documentBox.boxDescription}
                 endDate={documentBox.endDate}
                 documentBoxStatus={documentBox.status}
                 submitters={documentBox.submitters.map(s => ({

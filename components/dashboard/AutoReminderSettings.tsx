@@ -35,6 +35,7 @@ import {
     MAX_REMINDER_COUNT,
 } from '@/lib/types/reminder';
 import { ReminderScheduleRow } from './ReminderScheduleDialog';
+import { AutoReminderTemplateSelector } from '@/components/email-editor/AutoReminderTemplateSelector';
 
 // ============================================================================
 // Props Interface
@@ -52,6 +53,8 @@ interface AutoReminderSettingsProps {
         timeUnit: 'DAY' | 'WEEK';
         sendTime: string;
     }[];
+    /** 초기 자동 리마인더 템플릿 ID */
+    initialAutoTemplateId?: string | null;
 }
 
 // ============================================================================
@@ -114,6 +117,7 @@ export function AutoReminderSettings({
     documentBoxId,
     initialEnabled,
     initialSchedules = [],
+    initialAutoTemplateId = null,
 }: AutoReminderSettingsProps) {
     const uniqueId = useId();
 
@@ -135,6 +139,7 @@ export function AutoReminderSettings({
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPending, setIsPending] = useState(false);
     const [schedules, setSchedules] = useState<ReminderScheduleState[]>(getInitialSchedules);
+    const [autoTemplateId, setAutoTemplateId] = useState<string | null>(initialAutoTemplateId);
 
     // 토글 핸들러
     const handleToggle = async () => {
@@ -187,6 +192,8 @@ export function AutoReminderSettings({
         if (schedules.length === 0) return;
 
         setIsPending(true);
+
+        // 1. 스케줄 저장
         const result = await saveReminderSchedules(
             documentBoxId,
             schedules.map((s) => ({
@@ -196,6 +203,24 @@ export function AutoReminderSettings({
                 channel: ReminderChannel.EMAIL as ReminderChannelType,
             }))
         );
+
+        // 2. 템플릿 설정 저장
+        if (result.success) {
+            try {
+                await fetch('/api/remind-template/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        documentBoxId,
+                        type: 'SEND',
+                        autoTemplateId: autoTemplateId || null,
+                    }),
+                });
+            } catch (err) {
+                console.error('Failed to save auto template config:', err);
+            }
+        }
+
         setIsPending(false);
 
         if (result.success) {
@@ -294,6 +319,15 @@ export function AutoReminderSettings({
                             <ChannelOption label="문자로 발송할게요" enabled={false} selected={false} />
                             <ChannelOption label="알림톡으로 발송할게요" enabled={false} selected={false} />
                         </div>
+                    </div>
+
+                    {/* 템플릿 선택 */}
+                    <div className="border-t pt-4">
+                        <AutoReminderTemplateSelector
+                            type="SEND"
+                            selectedId={autoTemplateId}
+                            onSelect={setAutoTemplateId}
+                        />
                     </div>
 
                     <DialogFooter className="flex gap-2 sm:flex-row">

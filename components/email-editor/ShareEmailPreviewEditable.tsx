@@ -1,0 +1,333 @@
+'use client';
+
+/**
+ * ShareForm용 편집 가능한 이메일 미리보기 컴포넌트
+ *
+ * 현재 ShareForm의 UI 스타일을 유지하면서 인사말/아랫말 편집 기능을 제공합니다.
+ */
+
+import { useState, useEffect, useCallback } from 'react';
+import { SquarePen, X, Check, Copy } from 'lucide-react';
+import { EmailEditor } from './EmailEditor';
+import { EmailTemplateSelector } from './EmailTemplateSelector';
+import { highlightPlaceholders } from './PlaceholderTag';
+import {
+    generateReminderEmailHtml,
+    DEFAULT_GREETING_HTML,
+    DEFAULT_FOOTER_HTML,
+} from '@/lib/email-templates';
+
+// ============================================================================
+// 타입 정의
+// ============================================================================
+
+interface Template {
+    id: string;
+    name: string;
+    greetingHtml: string;
+    footerHtml: string;
+}
+
+interface ShareEmailPreviewEditableProps {
+    /** 문서함 ID */
+    documentBoxId: string;
+    /** 문서함 제목 */
+    documentBoxTitle: string;
+    /** 문서함 설명 */
+    documentBoxDescription?: string | null;
+    /** 마감일 */
+    endDate: Date;
+    /** 필수 서류 목록 */
+    requiredDocuments: {
+        id: string;
+        name: string;
+        description: string | null;
+        isRequired: boolean;
+    }[];
+    /** 공유 링크 */
+    shareLink: string;
+    /** 템플릿 변경 핸들러 */
+    onTemplateChange: (greetingHtml: string, footerHtml: string) => void;
+    /** 메일 복사 핸들러 */
+    onCopyEmail: (greetingHtml: string, footerHtml: string) => void;
+    /** 복사 완료 상태 */
+    copiedEmail: boolean;
+    /** 링크 복사 핸들러 */
+    onCopyLink: () => void;
+    /** 링크 복사 완료 상태 */
+    copiedLink: boolean;
+}
+
+export function ShareEmailPreviewEditable({
+    documentBoxId,
+    documentBoxTitle,
+    documentBoxDescription,
+    endDate,
+    requiredDocuments,
+    shareLink,
+    onTemplateChange,
+    onCopyEmail,
+    copiedEmail,
+    onCopyLink,
+    copiedLink,
+}: ShareEmailPreviewEditableProps) {
+    // 상태 관리
+    const [isEditing, setIsEditing] = useState(false);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+    const [greetingHtml, setGreetingHtml] = useState(DEFAULT_GREETING_HTML);
+    const [footerHtml, setFooterHtml] = useState(DEFAULT_FOOTER_HTML);
+    const [originalGreeting, setOriginalGreeting] = useState(DEFAULT_GREETING_HTML);
+    const [originalFooter, setOriginalFooter] = useState(DEFAULT_FOOTER_HTML);
+
+    // 수정 여부 확인
+    const hasChanges =
+        greetingHtml !== DEFAULT_GREETING_HTML ||
+        footerHtml !== DEFAULT_FOOTER_HTML;
+
+    // 마지막 사용 템플릿 로드
+    const loadLastUsedTemplate = useCallback(async () => {
+        try {
+            const res = await fetch(
+                `/api/remind-template/config?documentBoxId=${documentBoxId}&type=SHARE`
+            );
+            const data = await res.json();
+
+            if (data.success && data.config) {
+                const { lastGreetingHtml, lastFooterHtml, lastTemplateId } = data.config;
+                if (lastGreetingHtml && lastFooterHtml) {
+                    setGreetingHtml(lastGreetingHtml);
+                    setFooterHtml(lastFooterHtml);
+                    setOriginalGreeting(lastGreetingHtml);
+                    setOriginalFooter(lastFooterHtml);
+                    setSelectedTemplateId(lastTemplateId);
+                    onTemplateChange(lastGreetingHtml, lastFooterHtml);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load last used template:', error);
+        }
+    }, [documentBoxId, onTemplateChange]);
+
+    useEffect(() => {
+        loadLastUsedTemplate();
+    }, [loadLastUsedTemplate]);
+
+    // 템플릿 선택 핸들러
+    const handleTemplateSelect = (template: Template | null) => {
+        if (template) {
+            setSelectedTemplateId(template.id);
+            setGreetingHtml(template.greetingHtml);
+            setFooterHtml(template.footerHtml);
+            onTemplateChange(template.greetingHtml, template.footerHtml);
+        } else {
+            setSelectedTemplateId(null);
+            setGreetingHtml(DEFAULT_GREETING_HTML);
+            setFooterHtml(DEFAULT_FOOTER_HTML);
+            onTemplateChange(DEFAULT_GREETING_HTML, DEFAULT_FOOTER_HTML);
+        }
+    };
+
+    // 편집 모드 진입
+    const enterEditMode = () => {
+        setOriginalGreeting(greetingHtml);
+        setOriginalFooter(footerHtml);
+        setIsEditing(true);
+    };
+
+    // 편집 취소
+    const cancelEdit = () => {
+        setGreetingHtml(originalGreeting);
+        setFooterHtml(originalFooter);
+        setIsEditing(false);
+    };
+
+    // 편집 완료
+    const completeEdit = () => {
+        onTemplateChange(greetingHtml, footerHtml);
+        setIsEditing(false);
+    };
+
+    // 메일 복사 핸들러
+    const handleCopyEmail = () => {
+        onCopyEmail(greetingHtml, footerHtml);
+    };
+
+    return (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <span className="text-lg">✉️</span> 이메일 미리보기
+                </h3>
+                <div className="flex items-center gap-2">
+                    {/* 템플릿 셀렉터 */}
+                    {!isEditing && (
+                        <EmailTemplateSelector
+                            type="SHARE"
+                            selectedId={selectedTemplateId}
+                            currentGreetingHtml={greetingHtml}
+                            currentFooterHtml={footerHtml}
+                            onSelect={handleTemplateSelect}
+                            hasChanges={hasChanges}
+                        />
+                    )}
+
+                    {/* 수정/완료 버튼 */}
+                    {!isEditing ? (
+                        <button
+                            type="button"
+                            onClick={enterEditMode}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            title="이메일 내용 수정"
+                        >
+                            <SquarePen className="w-4 h-4" />
+                            수정
+                        </button>
+                    ) : (
+                        <div className="flex items-center gap-1">
+                            <button
+                                type="button"
+                                onClick={cancelEdit}
+                                className="flex items-center gap-1 px-2.5 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                onClick={completeEdit}
+                                className="flex items-center gap-1 px-2.5 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                <Check className="w-4 h-4" />
+                                완료
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* 이메일 미리보기 - 현재 ShareForm 스타일 유지 */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden p-6 relative">
+                {/* 메일 복사 버튼 */}
+                {!isEditing && (
+                    <button
+                        onClick={handleCopyEmail}
+                        className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                    >
+                        {copiedEmail ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                        메일복사
+                    </button>
+                )}
+
+                <div className="space-y-4 max-w-2xl">
+                    {/* 인사말 (편집 가능) */}
+                    <div
+                        className={
+                            isEditing
+                                ? 'border-2 border-blue-300 rounded-lg p-3 bg-blue-50/30'
+                                : ''
+                        }
+                    >
+                        {isEditing ? (
+                            <div>
+                                <div className="text-xs font-medium text-blue-600 mb-2">
+                                    인사말 (편집 가능)
+                                </div>
+                                <EmailEditor
+                                    content={greetingHtml}
+                                    onChange={setGreetingHtml}
+                                    placeholder="인사말을 입력하세요..."
+                                />
+                            </div>
+                        ) : (
+                            <div
+                                className="text-sm text-slate-700"
+                                dangerouslySetInnerHTML={{
+                                    __html: highlightPlaceholders(greetingHtml),
+                                }}
+                            />
+                        )}
+                    </div>
+
+                    {/* 문서함 정보 (편집 불가) */}
+                    <div className={isEditing ? 'opacity-60' : ''}>
+                        <div>
+                            <h4 className="text-lg font-bold text-slate-900 mb-1">{documentBoxTitle}</h4>
+                            <p className="text-sm text-slate-500">
+                                {documentBoxDescription || "필수 서류를 제출해주세요."}
+                            </p>
+                        </div>
+
+                        <div className="text-sm text-slate-700 space-y-2 mt-4">
+                            <p>📅 <strong>마감일:</strong> {new Date(endDate).toISOString().split('T')[0]}</p>
+                            <div>
+                                <p className="mb-1 font-semibold">📄 제출 서류:</p>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    {requiredDocuments.map(doc => (
+                                        <li key={doc.id}>
+                                            {doc.name}
+                                            {doc.isRequired && (
+                                                <span className="text-red-500 ml-1 font-bold">*</span>
+                                            )}
+                                            {doc.description && (
+                                                <span className="text-slate-400 ml-2">: {doc.description}</span>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 아랫말 (편집 가능) */}
+                    <div
+                        className={
+                            isEditing
+                                ? 'border-2 border-blue-300 rounded-lg p-3 bg-blue-50/30'
+                                : ''
+                        }
+                    >
+                        {isEditing ? (
+                            <div>
+                                <div className="text-xs font-medium text-blue-600 mb-2">
+                                    아랫말 (편집 가능)
+                                </div>
+                                <EmailEditor
+                                    content={footerHtml}
+                                    onChange={setFooterHtml}
+                                    placeholder="아랫말을 입력하세요..."
+                                />
+                            </div>
+                        ) : (
+                            <div
+                                className="text-xs text-slate-500"
+                                dangerouslySetInnerHTML={{
+                                    __html: footerHtml,
+                                }}
+                            />
+                        )}
+                    </div>
+
+                    {/* 제출 링크 */}
+                    <div className="mt-6 p-4 bg-white border border-slate-100 rounded-lg flex items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-wider">
+                                제출 링크
+                            </p>
+                            <p className="text-blue-600 text-sm font-medium truncate underline">
+                                {shareLink}
+                            </p>
+                        </div>
+                        <button
+                            onClick={onCopyLink}
+                            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                        >
+                            {copiedLink ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                            링크복사
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

@@ -55,7 +55,12 @@ export async function enableAutoReminder(documentBoxId: string, type: RemindType
     }
 }
 
-export async function sendManualReminder(documentBoxId: string, recipientIds: string[]) {
+export async function sendManualReminder(
+    documentBoxId: string,
+    recipientIds: string[],
+    customGreetingHtml?: string,
+    customFooterHtml?: string
+) {
     try {
         // 1. Fetch details for email
         const documentBox = await prisma.documentBox.findUnique({
@@ -105,7 +110,9 @@ export async function sendManualReminder(documentBoxId: string, recipientIds: st
                         description: doc.documentDescription,
                         isRequired: doc.isRequired
                     })),
-                    submissionLink: submissionLink
+                    submissionLink: submissionLink,
+                    customGreetingHtml,
+                    customFooterHtml,
                 });
 
                 return {
@@ -126,6 +133,28 @@ export async function sendManualReminder(documentBoxId: string, recipientIds: st
             }
 
             console.log(`Sent batch emails to ${emails.length} recipients for log ${log.id}`, data);
+        }
+
+        // 6. 마지막 사용 템플릿 저장 (커스텀 템플릿 사용 시)
+        if (customGreetingHtml || customFooterHtml) {
+            await prisma.documentBoxTemplateConfig.upsert({
+                where: {
+                    documentBoxId_type: {
+                        documentBoxId,
+                        type: 'SEND',
+                    },
+                },
+                update: {
+                    lastGreetingHtml: customGreetingHtml || null,
+                    lastFooterHtml: customFooterHtml || null,
+                },
+                create: {
+                    documentBoxId,
+                    type: 'SEND',
+                    lastGreetingHtml: customGreetingHtml || null,
+                    lastFooterHtml: customFooterHtml || null,
+                },
+            });
         }
 
         revalidatePath(`/dashboard/${documentBoxId}`);
@@ -270,7 +299,9 @@ export async function updateDocumentBoxStatus(
  */
 export async function sendReminderAfterDeadline(
     documentBoxId: string,
-    recipientIds: string[]
+    recipientIds: string[],
+    customGreetingHtml?: string,
+    customFooterHtml?: string
 ) {
     try {
         // 1. 문서함 조회
@@ -323,6 +354,8 @@ export async function sendReminderAfterDeadline(
                         isRequired: doc.isRequired,
                     })),
                     submissionLink,
+                    customGreetingHtml,
+                    customFooterHtml,
                 });
 
                 return {
@@ -346,6 +379,28 @@ export async function sendReminderAfterDeadline(
             await prisma.documentBox.update({
                 where: { documentBoxId },
                 data: { status: 'OPEN_SOMEONE' },
+            });
+        }
+
+        // 6. 마지막 사용 템플릿 저장 (커스텀 템플릿 사용 시)
+        if (customGreetingHtml || customFooterHtml) {
+            await prisma.documentBoxTemplateConfig.upsert({
+                where: {
+                    documentBoxId_type: {
+                        documentBoxId,
+                        type: 'SEND',
+                    },
+                },
+                update: {
+                    lastGreetingHtml: customGreetingHtml || null,
+                    lastFooterHtml: customFooterHtml || null,
+                },
+                create: {
+                    documentBoxId,
+                    type: 'SEND',
+                    lastGreetingHtml: customGreetingHtml || null,
+                    lastFooterHtml: customFooterHtml || null,
+                },
             });
         }
 
