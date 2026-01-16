@@ -120,6 +120,7 @@ export default async function DocumentBoxDetailPage({
                 documentBoxId={id}
                 documentBoxTitle={documentBox.boxTitle}
                 totalRequiredDocuments={documentBox.totalRequiredDocuments}
+                endDate={documentBox.endDate}
             />
             {/* 3. 수집 서류 목록 */}
             <RequiredDocumentsList documents={documentBox.requiredDocuments} />

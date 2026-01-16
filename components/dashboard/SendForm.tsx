@@ -56,9 +56,10 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, doc
     // 마감 후 발송 확인 Dialog 상태
     const [showAfterDeadlineDialog, setShowAfterDeadlineDialog] = useState(false);
 
-    // 열린 상태가 아닌지 확인 (OPEN, OPEN_RESUME는 열린 상태)
-    // OPEN_RESUME도 모든 사용자가 제출 가능한 상태이므로 Dialog 불필요
-    const isNotOpenStatus = documentBoxStatus !== 'OPEN' && documentBoxStatus !== 'OPEN_RESUME';
+    // 열린 상태가 아닌지 확인 (OPEN, OPEN_RESUME, OPEN_SOMEONE는 열린 상태)
+    // OPEN_RESUME: 모든 사용자가 제출 가능한 상태이므로 Dialog 불필요
+    // OPEN_SOMEONE: 이미 일부 제출 가능 상태이므로 상태 변경 안내 불필요
+    const isNotOpenStatus = documentBoxStatus !== 'OPEN' && documentBoxStatus !== 'OPEN_RESUME' && documentBoxStatus !== 'OPEN_SOMEONE';
 
     const toggleSelect = (id: string) => {
         if (selectedIds.includes(id)) {

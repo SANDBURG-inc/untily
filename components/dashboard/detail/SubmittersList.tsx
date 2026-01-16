@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Users, Download, FileArchive } from 'lucide-react';
+import { Users, Download, FileArchive, ClockAlert } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import {
     Select,
@@ -39,16 +39,25 @@ interface SubmittersListProps {
     documentBoxTitle: string;
     /** 필수 서류 총 개수 */
     totalRequiredDocuments: number;
+    /** 문서함 마감일 (늦은 제출 표시용) */
+    endDate: Date;
 }
 
 const INITIAL_DISPLAY_COUNT = 20;
 const LOAD_MORE_COUNT = 20;
+
+// 마감일 이후 제출 여부 판단
+const isLateSubmission = (submittedAt: Date | null, deadline: Date): boolean => {
+    if (!submittedAt) return false;
+    return new Date(submittedAt) > new Date(deadline);
+};
 
 export function SubmittersList({
     submitters,
     documentBoxId,
     documentBoxTitle,
     totalRequiredDocuments,
+    endDate,
 }: SubmittersListProps) {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
@@ -157,11 +166,17 @@ export function SubmittersList({
         {
             key: 'lastDate',
             header: '제출일',
-            render: (submitter) => (
-                <span className="text-sm text-gray-600">
-                    {formatSubmissionDate(submitter.lastSubmittedAt)}
-                </span>
-            ),
+            render: (submitter) => {
+                const isLate = isLateSubmission(submitter.lastSubmittedAt, endDate);
+                return (
+                    <span className="text-sm text-gray-600 flex items-center gap-1">
+                        {formatSubmissionDate(submitter.lastSubmittedAt)}
+                        {isLate && (
+                            <ClockAlert className="w-3.5 h-3.5 text-orange-500" />
+                        )}
+                    </span>
+                );
+            },
         },
         {
             key: 'progress',
