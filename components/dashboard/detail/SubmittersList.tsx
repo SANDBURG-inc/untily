@@ -4,6 +4,11 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Users, Download, FileArchive, ClockAlert } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -262,19 +267,27 @@ export function SubmittersList({
                         제출현황
                     </IconButton>
                     {submitters.length > 0 && (
-                        <IconButton
-                            variant="primary"
-                            size="sm"
-                            icon={<FileArchive className="w-4 h-4" />}
-                            onClick={handleFilesDownload}
-                            disabled={isDownloadingFiles}
-                        >
-                            {isDownloadingFiles
-                                ? '다운로드 중...'
-                                : selectedIds.size > 0
-                                    ? `다운로드 (${selectedIds.size}명)`
-                                    : '전체 다운로드'}
-                        </IconButton>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <IconButton
+                                    variant="primary"
+                                    size="sm"
+                                    icon={<FileArchive className="w-4 h-4" />}
+                                    onClick={handleFilesDownload}
+                                    disabled={isDownloadingFiles}
+                                >
+                                    {isDownloadingFiles
+                                        ? '다운로드 중...'
+                                        : selectedIds.size > 0
+                                            ? `다운로드 (${selectedIds.size}명)`
+                                            : '전체 다운로드'}
+                                </IconButton>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="max-w-xs text-left">
+                                <p>폴더/제출자별 폴더/파일들로 정리된 압축파일로 저장됩니다.</p>
+                                <p className="mt-1">문서명_제출일자_제출자명 으로 자동 변경되어 저장</p>
+                            </TooltipContent>
+                        </Tooltip>
                     )}
                 </CardAction>
             </CardHeader>
