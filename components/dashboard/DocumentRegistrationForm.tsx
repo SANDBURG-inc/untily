@@ -165,6 +165,9 @@ export default function DocumentRegistrationForm({
           emailReminder={form.emailReminder}
           onEmailReminderChange={form.setEmailReminder}
           submittersEnabled={form.submittersEnabled}
+          documentBoxStatus={form.documentBoxStatus}
+          initialDeadline={form.initialDeadline}
+          onReopenConfirmed={form.setReopenConfirmed}
         />
 
         {/* 하단 액션 버튼 */}

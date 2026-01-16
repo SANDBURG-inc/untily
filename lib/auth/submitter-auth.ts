@@ -39,6 +39,8 @@ import prisma from '@/lib/db';
 import type { DocumentBox, RequiredDocument, Submitter, SubmitterStatus, SubmittedDocument } from '@/lib/generated/prisma/client';
 import type { AuthenticatedUser } from '@/lib/auth';
 import { getLogoForDocumentBox } from '@/lib/queries/logo';
+import { hasReceivedReminderAfterDeadline } from '@/lib/queries/reminder';
+import { isDocumentBoxOpen, isDocumentBoxLimitedOpen, isDocumentBoxClosed } from '@/lib/types/document';
 
 /**
  * Neon Auth 사용자 타입
@@ -106,13 +108,16 @@ export async function validateSubmitterAuth(
     return { status: 'not_found' };
   }
 
-  // 2. 문서함 상태 확인 (CLOSED인 경우 제출 불가)
-  if (documentBox.status !== 'OPEN') {
+  // 2. 문서함 상태 확인
+  // - CLOSED, CLOSED_EXPIRED: 완전히 닫힘
+  // - OPEN_SOMEONE: 리마인드 수신자만 제출 가능 (아래에서 추가 검증)
+  // - OPEN, OPEN_RESUME: 제출 가능
+  if (isDocumentBoxClosed(documentBox.status)) {
     return { status: 'closed', documentBox };
   }
 
-  // 3. 만료 체크
-  if (new Date() > documentBox.endDate) {
+  // 3. 만료 체크 (OPEN 상태일 때만, OPEN_RESUME/OPEN_SOMEONE은 이미 만료 후 상태)
+  if (documentBox.status === 'OPEN' && new Date() > documentBox.endDate) {
     return { status: 'expired', documentBox };
   }
 
@@ -123,6 +128,14 @@ export async function validateSubmitterAuth(
 
   if (!submitter) {
     return { status: 'not_found' };
+  }
+
+  // 5. OPEN_SOMEONE 상태: 마감 후 리마인드 수신자만 제출 가능
+  if (isDocumentBoxLimitedOpen(documentBox.status)) {
+    const canSubmit = await hasReceivedReminderAfterDeadline(documentBoxId, submitterId);
+    if (!canSubmit) {
+      return { status: 'closed', documentBox };
+    }
   }
 
   // SubmitterWithDocumentBox 형태로 조합

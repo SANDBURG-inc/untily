@@ -38,6 +38,7 @@ export function useFormSubmission(): UseFormSubmissionReturn {
         emailReminder,
         smsReminder,
         kakaoReminder,
+        changeStatusToOpen,
         uploadLogoFile,
         uploadTemplateFiles,
         onSuccess,
@@ -83,6 +84,8 @@ export function useFormSubmission(): UseFormSubmissionReturn {
           smsReminder,
           kakaoReminder,
           force,
+          // 수정 모드에서 기한 연장으로 다시 열기 확인 시 상태를 OPEN으로 변경
+          ...(isEditMode && changeStatusToOpen && { changeStatusToOpen: true }),
         };
 
         const url = isEditMode ? `/api/document-box/${documentBoxId}` : '/api/document-box';

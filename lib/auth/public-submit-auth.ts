@@ -43,6 +43,7 @@ import type { AuthenticatedUser } from '@/lib/auth';
 import { hasDesignatedSubmitters } from '@/lib/utils/document-box';
 import { SubmitterWithDocumentBox, NeonAuthUser } from './submitter-auth';
 import { getLogoForDocumentBox } from '@/lib/queries/logo';
+import { isDocumentBoxOpen, isDocumentBoxClosed, isDocumentBoxLimitedOpen } from '@/lib/types/document';
 
 /**
  * 필수서류를 포함한 DocumentBox 타입
@@ -98,8 +99,11 @@ export async function validatePublicSubmitAuth(
     return { status: 'not_found' };
   }
 
-  // 2. 문서함 상태 확인 (CLOSED인 경우 제출 불가)
-  if (documentBox.status !== 'OPEN') {
+  // 2. 문서함 상태 확인
+  // - CLOSED, CLOSED_EXPIRED: 완전히 닫힘
+  // - OPEN_SOMEONE: 공개 제출에서는 지원하지 않음 (지정 제출자 전용)
+  // - OPEN, OPEN_RESUME: 제출 가능
+  if (isDocumentBoxClosed(documentBox.status) || isDocumentBoxLimitedOpen(documentBox.status)) {
     return { status: 'closed', documentBox };
   }
 
@@ -108,8 +112,8 @@ export async function validatePublicSubmitAuth(
     return { status: 'not_public', documentBox };
   }
 
-  // 4. 만료 체크
-  if (new Date() > documentBox.endDate) {
+  // 4. 만료 체크 (OPEN 상태일 때만, OPEN_RESUME는 이미 만료 후 상태)
+  if (documentBox.status === 'OPEN' && new Date() > documentBox.endDate) {
     return { status: 'expired', documentBox };
   }
 

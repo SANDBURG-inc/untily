@@ -2,7 +2,7 @@
  * DocumentBox 폼 관련 Custom Hook 타입 정의
  */
 
-import type { Submitter, DocumentRequirement, TemplateFile } from '@/lib/types/document';
+import type { Submitter, DocumentRequirement, TemplateFile, DocumentBoxStatus } from '@/lib/types/document';
 
 // ===== 초기 데이터 =====
 
@@ -21,6 +21,8 @@ export interface DocumentBoxInitialData {
   emailReminder: boolean;
   smsReminder: boolean;
   kakaoReminder: boolean;
+  /** 문서함 상태 (수정 모드에서만 사용) */
+  status?: DocumentBoxStatus;
 }
 
 // ===== useBasicInfo =====
@@ -133,6 +135,8 @@ export interface SubmitFormParams {
   emailReminder: boolean;
   smsReminder: boolean;
   kakaoReminder: boolean;
+  /** 상태를 OPEN으로 변경할지 여부 (기한 연장으로 다시 열기 확인 시) */
+  changeStatusToOpen?: boolean;
   // 파일 업로드 함수 (의존성 주입)
   uploadLogoFile: (file: File) => Promise<string>;
   uploadTemplateFiles: (
@@ -186,6 +190,11 @@ export interface UseDocumentBoxFormReturn
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   handleForceDelete: () => Promise<void>;
   handleCancel: () => void;
+  // 다시 열기 관련 (기한 연장으로 닫힌 문서함을 다시 열 때)
+  documentBoxStatus?: DocumentBoxStatus;
+  initialDeadline?: Date;
+  reopenConfirmed: boolean;
+  setReopenConfirmed: (confirmed: boolean) => void;
   // 유틸리티
   isEditMode: boolean;
   effectiveLogoUrl: string;

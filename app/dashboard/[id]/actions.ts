@@ -1,7 +1,7 @@
 'use server';
 
 import prisma from "@/lib/db";
-import { RemindType, ReminderTimeUnit } from "@/lib/generated/prisma/client";
+import { RemindType, ReminderTimeUnit, DocumentBoxStatus } from "@/lib/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { Resend } from 'resend';
 import { generateReminderEmailHtml } from '@/lib/email-templates';
@@ -226,5 +226,136 @@ export async function disableAutoReminderV2(documentBoxId: string) {
     } catch (error) {
         console.error('Failed to disable auto reminder:', error);
         return { success: false, error: '자동 리마인드 비활성화에 실패했습니다.' };
+    }
+}
+
+// ============================================================================
+// 문서함 상태 관리 액션
+// ============================================================================
+
+/**
+ * 문서함 상태 변경
+ *
+ * 주의: 이 함수는 페이지 레벨에서 권한 확인이 완료된 후에만 호출되어야 합니다.
+ *
+ * @param documentBoxId 문서함 ID
+ * @param newStatus 새 상태
+ */
+export async function updateDocumentBoxStatus(
+    documentBoxId: string,
+    newStatus: DocumentBoxStatus
+) {
+    try {
+        await prisma.documentBox.update({
+            where: { documentBoxId },
+            data: { status: newStatus },
+        });
+
+        revalidatePath('/dashboard');
+        revalidatePath(`/dashboard/${documentBoxId}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to update document box status:', error);
+        return { success: false, error: '상태 변경에 실패했습니다.' };
+    }
+}
+
+/**
+ * 마감 후 리마인드 발송 시 상태를 OPEN_SOMEONE으로 변경
+ *
+ * 주의: 이 함수는 페이지 레벨에서 권한 확인이 완료된 후에만 호출되어야 합니다.
+ *
+ * @param documentBoxId 문서함 ID
+ * @param recipientIds 수신자 ID 목록
+ */
+export async function sendReminderAfterDeadline(
+    documentBoxId: string,
+    recipientIds: string[]
+) {
+    try {
+        // 1. 문서함 조회
+        const documentBox = await prisma.documentBox.findUnique({
+            where: { documentBoxId },
+            include: { requiredDocuments: true },
+        });
+
+        if (!documentBox) {
+            return { success: false, error: '문서함을 찾을 수 없습니다.' };
+        }
+
+        // 2. 제출자 목록 조회
+        const submitters = await prisma.submitter.findMany({
+            where: { submitterId: { in: recipientIds } },
+        });
+
+        // 3. 리마인드 로그 생성 (sentAfterDeadline=true)
+        const log = await prisma.reminderLog.create({
+            data: {
+                documentBoxId,
+                channel: 'EMAIL',
+                isAuto: false,
+                sentAt: new Date(),
+                sentAfterDeadline: true, // 마감 후 발송 표시
+                recipients: {
+                    create: recipientIds.map((submitterId) => ({
+                        submitterId,
+                    })),
+                },
+            },
+        });
+
+        // 4. 이메일 발송
+        const resend = new Resend(process.env.RESEND_API_KEY || process.env.SMTP_PASS);
+
+        const emails = submitters
+            .filter((submitter) => submitter.email)
+            .map((submitter) => {
+                const submissionLink = `https://untily.kr/submit/${documentBoxId}/${submitter.submitterId}`;
+
+                const emailHtml = generateReminderEmailHtml({
+                    submitterName: submitter.name,
+                    documentBoxTitle: documentBox.boxTitle,
+                    documentBoxDescription: documentBox.boxDescription,
+                    endDate: documentBox.endDate,
+                    requiredDocuments: documentBox.requiredDocuments.map((doc) => ({
+                        name: doc.documentTitle,
+                        description: doc.documentDescription,
+                        isRequired: doc.isRequired,
+                    })),
+                    submissionLink,
+                });
+
+                return {
+                    from: 'untily@untily.kr',
+                    to: submitter.email,
+                    subject: `[문서 제출 요청] ${documentBox.boxTitle} 서류 제출`,
+                    html: emailHtml,
+                };
+            });
+
+        if (emails.length > 0) {
+            const { error } = await resend.batch.send(emails);
+            if (error) {
+                console.error('Failed to send batch emails:', error);
+                throw new Error('Failed to send batch emails');
+            }
+        }
+
+        // 5. 상태를 OPEN_SOMEONE으로 변경 (아직 OPEN_SOMEONE이 아닌 경우)
+        if (documentBox.status !== 'OPEN_SOMEONE') {
+            await prisma.documentBox.update({
+                where: { documentBoxId },
+                data: { status: 'OPEN_SOMEONE' },
+            });
+        }
+
+        revalidatePath('/dashboard');
+        revalidatePath(`/dashboard/${documentBoxId}`);
+        revalidatePath(`/dashboard/${documentBoxId}/send`);
+
+        return { success: true, logId: log.id };
+    } catch (error) {
+        console.error('Failed to send reminder after deadline:', error);
+        return { success: false, error: '리마인드 발송에 실패했습니다.' };
     }
 }

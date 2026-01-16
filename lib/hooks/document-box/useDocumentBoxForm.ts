@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { uploadToS3 } from '@/lib/s3/upload';
 import type { UseDocumentBoxFormOptions, UseDocumentBoxFormReturn, TemplateFile } from './types';
@@ -42,6 +42,14 @@ export function useDocumentBoxForm(
   const requirementsHook = useRequirements({ initialData });
   const submissionSettings = useSubmissionSettings({ initialData });
   const formSubmission = useFormSubmission();
+
+  // 다시 열기 확인 상태 (기한 연장으로 닫힌 문서함을 다시 열 때)
+  const [reopenConfirmed, setReopenConfirmed] = useState(false);
+
+  // 초기 마감일 (수정 모드에서 기한 연장 감지용)
+  const initialDeadline = initialData?.deadline
+    ? new Date(initialData.deadline)
+    : undefined;
 
   // === 파생 상태 ===
   const effectiveLogoUrl = isEditMode
@@ -136,6 +144,8 @@ export function useDocumentBoxForm(
         emailReminder: submissionSettings.emailReminder,
         smsReminder: submissionSettings.smsReminder,
         kakaoReminder: submissionSettings.kakaoReminder,
+        // 기한 연장으로 다시 열기 확인된 경우 상태를 OPEN으로 변경
+        changeStatusToOpen: reopenConfirmed,
         uploadLogoFile,
         uploadTemplateFiles: (reqs, boxId) =>
           templateFilesHook.uploadTemplateFiles(reqs, boxId) as Promise<
@@ -158,6 +168,7 @@ export function useDocumentBoxForm(
       requirementsHook,
       submissionSettings,
       formSubmission,
+      reopenConfirmed,
       uploadLogoFile,
       templateFilesHook,
       isEditMode,
@@ -225,6 +236,12 @@ export function useDocumentBoxForm(
     setDeadline: submissionSettings.setDeadline,
     setReminderEnabled: submissionSettings.setReminderEnabled,
     setEmailReminder: submissionSettings.setEmailReminder,
+
+    // 다시 열기 관련 (기한 연장으로 닫힌 문서함을 다시 열 때)
+    documentBoxStatus: initialData?.status,
+    initialDeadline,
+    reopenConfirmed,
+    setReopenConfirmed,
 
     // 폼 제출
     isSubmitting: formSubmission.isSubmitting,

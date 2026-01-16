@@ -35,12 +35,17 @@ enum LogoType {
 }
 
 // 문서함 상태
-// - OPEN: 제출 가능 (기본값)
+// - OPEN: 제출 가능 (기본값, 마감 전)
 // - CLOSED: 제출 불가 (소유자 탈퇴, 수동 닫기)
-// Phase 2에서 OPEN_EXPIRED, CLOSED_EXPIRED, OPEN_RESUME 추가 예정
+// - OPEN_SOMEONE: 마감 후 제한적 오픈 (마감 후 리마인드 수신자만 제출 가능)
+// - CLOSED_EXPIRED: 마감 후 기본 상태 (완전 닫힘)
+// - OPEN_RESUME: 마감 후 관리자가 다시 연 상태 (자동으로 닫히지 않음)
 enum DocumentBoxStatus {
   OPEN
   CLOSED
+  OPEN_SOMEONE
+  CLOSED_EXPIRED
+  OPEN_RESUME
 }
 
 model DocumentBox {
@@ -216,7 +221,11 @@ model ReminderLog {
   sentAt        DateTime            @default(now())
   channel       RemindType
   isAuto        Boolean // true: 자동, false: 수동
-  recipients    ReminderRecipient[]
+
+  // 마감 후 발송 여부 (OPEN_SOMEONE 상태에서 제출 허용 판단에 사용)
+  sentAfterDeadline Boolean @default(false)
+
+  recipients ReminderRecipient[]
 }
 
 model ReminderRecipient {

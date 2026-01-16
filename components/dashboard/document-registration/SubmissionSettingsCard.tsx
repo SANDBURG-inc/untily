@@ -1,11 +1,27 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import { Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { DatePicker } from '@/components/ui/date-picker';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/Button';
+import type { DocumentBoxStatus } from '@/lib/types/document';
+import {
+  DOCUMENT_BOX_STATUS_LABELS,
+  isDocumentBoxClosed,
+  isDocumentBoxLimitedOpen,
+} from '@/lib/types/document';
 
 interface SubmissionSettingsCardProps {
   /** 제출 마감일 (Date 객체) */
@@ -22,6 +38,12 @@ interface SubmissionSettingsCardProps {
   onEmailReminderChange: (enabled: boolean) => void;
   /** 제출자 기능 활성화 여부 (비활성화 시 리마인드 기능도 비활성화) */
   submittersEnabled: boolean;
+  /** 문서함 현재 상태 (수정 모드에서만 전달) */
+  documentBoxStatus?: DocumentBoxStatus;
+  /** 초기 마감일 (수정 모드에서 기한 연장 감지용) */
+  initialDeadline?: Date;
+  /** 기한 연장으로 인한 다시 열기 확인 완료 콜백 */
+  onReopenConfirmed?: (confirmed: boolean) => void;
 }
 
 /**
@@ -29,6 +51,8 @@ interface SubmissionSettingsCardProps {
  *
  * 제출 옵션을 설정하는 카드 컴포넌트입니다.
  * 제출 마감일과 리마인드 자동 발송 설정을 관리합니다.
+ *
+ * 수정 모드에서 닫힌 문서함의 기한을 연장하면 "다시 열기" 확인 Dialog를 표시합니다.
  */
 export function SubmissionSettingsCard({
   deadline,
@@ -38,8 +62,99 @@ export function SubmissionSettingsCard({
   emailReminder,
   onEmailReminderChange,
   submittersEnabled,
+  documentBoxStatus,
+  initialDeadline,
+  onReopenConfirmed,
 }: SubmissionSettingsCardProps) {
+  // 다시 열기 확인 Dialog 상태
+  const [showReopenDialog, setShowReopenDialog] = useState(false);
+  const [reopenConfirmed, setReopenConfirmed] = useState(false);
+
+  // 닫힌 상태인지 확인 (CLOSED, CLOSED_EXPIRED, OPEN_SOMEONE)
+  const isClosedStatus =
+    documentBoxStatus &&
+    (isDocumentBoxClosed(documentBoxStatus) || isDocumentBoxLimitedOpen(documentBoxStatus));
+
+  // 기한이 연장되었는지 확인
+  const isDeadlineExtended =
+    deadline && initialDeadline && deadline.getTime() > initialDeadline.getTime();
+
+  // 기한 변경 시 다시 열기 Dialog 표시 로직
+  const handleDeadlineChange = useCallback(
+    (date: Date | undefined) => {
+      onDeadlineChange(date);
+
+      // 닫힌 상태에서 기한이 연장되면 Dialog 표시
+      if (
+        isClosedStatus &&
+        date &&
+        initialDeadline &&
+        date.getTime() > initialDeadline.getTime() &&
+        !reopenConfirmed
+      ) {
+        setShowReopenDialog(true);
+      }
+    },
+    [onDeadlineChange, isClosedStatus, initialDeadline, reopenConfirmed]
+  );
+
+  // 다시 열기 확인 처리
+  const handleReopenConfirm = useCallback(() => {
+    setReopenConfirmed(true);
+    setShowReopenDialog(false);
+    onReopenConfirmed?.(true);
+  }, [onReopenConfirmed]);
+
+  // 다시 열기 취소 처리 (기존 기한으로 복원)
+  const handleReopenCancel = useCallback(() => {
+    setShowReopenDialog(false);
+    // 기존 기한으로 복원
+    if (initialDeadline) {
+      onDeadlineChange(initialDeadline);
+    }
+    onReopenConfirmed?.(false);
+  }, [initialDeadline, onDeadlineChange, onReopenConfirmed]);
+
+  // 기한이 다시 줄어들면 reopenConfirmed 리셋
+  useEffect(() => {
+    if (!isDeadlineExtended && reopenConfirmed) {
+      setReopenConfirmed(false);
+      onReopenConfirmed?.(false);
+    }
+  }, [isDeadlineExtended, reopenConfirmed, onReopenConfirmed]);
+
   return (
+    <>
+    {/* 다시 열기 확인 Dialog */}
+    <Dialog open={showReopenDialog} onOpenChange={setShowReopenDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>문서함이 다시 열립니다</DialogTitle>
+          <DialogDescription asChild>
+            <div className="space-y-3 pt-2 text-muted-foreground text-sm">
+              <p>
+                제출 기한을 연장하면 문서함이 <strong className="text-blue-600">다시 열림</strong> 상태로 변경됩니다.
+              </p>
+              <p>
+                현재 문서함 상태: <strong className="text-foreground">{documentBoxStatus ? DOCUMENT_BOX_STATUS_LABELS[documentBoxStatus] : ''}</strong>
+              </p>
+              <p className="text-xs">
+                다시 열린 문서함에서는 <strong>모든 사용자</strong>가 서류를 제출할 수 있습니다.
+              </p>
+            </div>
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="ghost" onClick={handleReopenCancel}>
+            취소
+          </Button>
+          <Button variant="primary" onClick={handleReopenConfirm}>
+            확인
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
     <Card variant="compact" className="mb-8">
       <CardHeader variant="compact">
         <CardTitle>
@@ -56,7 +171,7 @@ export function SubmissionSettingsCard({
             </label>
             <DatePicker
               date={deadline}
-              onDateChange={onDeadlineChange}
+              onDateChange={handleDeadlineChange}
               placeholder="제출 마감일을 선택해주세요"
             />
           </div>
@@ -142,5 +257,6 @@ export function SubmissionSettingsCard({
         </div>
       </CardContent>
     </Card>
+    </>
   );
 }

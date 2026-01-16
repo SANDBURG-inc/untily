@@ -2,10 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { sendManualReminder } from "@/app/dashboard/[id]/actions";
+import { sendManualReminder, sendReminderAfterDeadline } from "@/app/dashboard/[id]/actions";
 import { generateReminderEmailHtml } from '@/lib/email-templates';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/Button";
+import type { DocumentBoxStatus } from "@/lib/types/document";
+import { DOCUMENT_BOX_STATUS_LABELS } from "@/lib/types/document";
 
 interface Submitter {
     submitterId: string;
@@ -25,11 +36,13 @@ interface Props {
     documentBoxId: string;
     documentBoxTitle: string;
     endDate: Date;
+    /** 문서함 상태 */
+    documentBoxStatus: DocumentBoxStatus;
     submitters: Submitter[];
     requiredDocuments: RequiredDocument[];
 }
 
-export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, submitters, requiredDocuments }: Props) {
+export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, documentBoxStatus, submitters, requiredDocuments }: Props) {
     const router = useRouter();
 
     // Initial state: Select only unsubmitted users
@@ -39,6 +52,12 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
 
     const [selectedIds, setSelectedIds] = useState<string[]>(unsubmittedIds);
     const [isPending, setIsPending] = useState(false);
+
+    // 마감 후 발송 확인 Dialog 상태
+    const [showAfterDeadlineDialog, setShowAfterDeadlineDialog] = useState(false);
+
+    // OPEN 상태로 시작하지 않는 문서함인지 확인
+    const isNotOpenStatus = documentBoxStatus !== 'OPEN';
 
     const toggleSelect = (id: string) => {
         if (selectedIds.includes(id)) {
@@ -68,10 +87,34 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
             alert("수신자를 한 명 이상 선택해주세요.");
             return;
         }
+
+        // OPEN 상태가 아니면 확인 Dialog 표시
+        if (isNotOpenStatus) {
+            setShowAfterDeadlineDialog(true);
+            return;
+        }
+
+        // 일반 발송
         if (!confirm(`${selectedIds.length}명에게 리마인드 이메일을 발송하시겠습니까?`)) return;
 
         setIsPending(true);
         const result = await sendManualReminder(documentBoxId, selectedIds);
+        setIsPending(false);
+
+        if (result.success) {
+            router.push(`/dashboard/${documentBoxId}/send/success`);
+            router.refresh();
+        } else {
+            alert("발송 실패: " + result.error);
+        }
+    };
+
+    // 마감 후 발송 확인
+    const handleAfterDeadlineSend = async () => {
+        setShowAfterDeadlineDialog(false);
+        setIsPending(true);
+
+        const result = await sendReminderAfterDeadline(documentBoxId, selectedIds);
         setIsPending(false);
 
         if (result.success) {
@@ -204,6 +247,36 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
                     </button>
                 </div>
             </div>
+
+            {/* 마감 후 발송 확인 Dialog */}
+            <Dialog open={showAfterDeadlineDialog} onOpenChange={setShowAfterDeadlineDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>마감 후 리마인드 발송</DialogTitle>
+                        <DialogDescription asChild>
+                            <div className="space-y-3 pt-2 text-muted-foreground text-sm">
+                                <p>
+                                    현재 문서함이 <strong className="text-foreground">{DOCUMENT_BOX_STATUS_LABELS[documentBoxStatus]}</strong> 상태입니다.
+                                </p>
+                                <p>
+                                    리마인드를 발송하면 문서함 상태가 <strong className="text-blue-600">일부 제출 가능</strong>으로 변경됩니다.
+                                </p>
+                                <p className="text-xs">
+                                    이 경우, <strong>이번에 리마인드를 받은 사람만</strong> 서류를 제출할 수 있습니다.
+                                </p>
+                            </div>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="ghost" onClick={() => setShowAfterDeadlineDialog(false)}>
+                            취소
+                        </Button>
+                        <Button variant="primary" onClick={handleAfterDeadlineSend}>
+                            동의하고 발송
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -40,6 +40,7 @@ export default async function ReminderSendPage({
                 documentBoxId={documentBox.documentBoxId}
                 documentBoxTitle={documentBox.boxTitle}
                 endDate={documentBox.endDate}
+                documentBoxStatus={documentBox.status}
                 submitters={documentBox.submitters.map(s => ({
                     submitterId: s.submitterId,
                     name: s.name,

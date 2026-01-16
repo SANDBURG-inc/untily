@@ -102,6 +102,7 @@ export default async function DashboardPage() {
                                 unsubmittedCount={unsubmittedCount}
                                 status={status}
                                 hasLimitedSubmitters={hasLimitedSubmitters}
+                                documentBoxStatus={box.status}
                             />
                         );
                     })}

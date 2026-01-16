@@ -46,6 +46,7 @@ export default async function EditDocumentBoxPage({
         emailReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'EMAIL'),
         smsReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'SMS'),
         kakaoReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'PUSH'),
+        status: documentBox.status,
     };
 
     return (

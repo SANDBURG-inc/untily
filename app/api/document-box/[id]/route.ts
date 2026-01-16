@@ -60,7 +60,7 @@ export async function PUT(
             );
         }
 
-        const body: CreateDocumentBoxRequest & { force?: boolean } = await request.json();
+        const body: CreateDocumentBoxRequest & { force?: boolean; changeStatusToOpen?: boolean } = await request.json();
         const {
             documentName,
             description,
@@ -73,7 +73,8 @@ export async function PUT(
             emailReminder,
             smsReminder,
             kakaoReminder,
-            force
+            force,
+            changeStatusToOpen,
         } = body;
 
         // Validate required fields
@@ -109,6 +110,8 @@ export async function PUT(
                     boxTitle: documentName,
                     boxDescription: description || null,
                     endDate,
+                    // 기한 연장으로 다시 열기 확인 시 상태를 OPEN으로 변경
+                    ...(changeStatusToOpen && { status: 'OPEN' }),
                 },
             });
 
