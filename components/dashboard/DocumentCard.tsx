@@ -1,8 +1,10 @@
 import { LabeledProgress } from "@/components/shared/LabeledProgress";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import type { DocumentBoxStatus } from "@/lib/types/document";
-import { StatusChangeDropdown } from "./StatusChangeDropdown";
+import {
+    type DocumentBoxStatus,
+    DOCUMENT_BOX_STATUS_SHORT_LABELS,
+} from "@/lib/types/document";
 
 interface DocumentCardProps {
     title: string;
@@ -46,6 +48,21 @@ export function DocumentCard({
         }
     };
 
+    // 문서함 상태별 Badge variant (조회 전용)
+    const getBoxStatusVariant = (boxStatus: DocumentBoxStatus) => {
+        switch (boxStatus) {
+            case 'OPEN':
+            case 'OPEN_RESUME':
+                return 'success' as const;
+            case 'OPEN_SOMEONE':
+                return 'warning' as const;
+            case 'CLOSED':
+            case 'CLOSED_EXPIRED':
+            default:
+                return 'secondary' as const;
+        }
+    };
+
     const statusInfo = getStatusInfo();
 
     return (
@@ -55,10 +72,9 @@ export function DocumentCard({
                     <Badge variant={statusInfo.variant}>
                         {statusInfo.label}
                     </Badge>
-                    <StatusChangeDropdown
-                        documentBoxId={documentBoxId}
-                        currentStatus={documentBoxStatus}
-                    />
+                    <Badge variant={getBoxStatusVariant(documentBoxStatus)}>
+                        {DOCUMENT_BOX_STATUS_SHORT_LABELS[documentBoxStatus]}
+                    </Badge>
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-1">{title}</h3>
                 <p className="text-slate-500 text-sm">{description}</p>

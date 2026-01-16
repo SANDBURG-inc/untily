@@ -1,4 +1,5 @@
 import prisma from '@/lib/db';
+import type { DocumentBoxStatus } from '@/lib/types/document';
 
 /**
  * 문서함 관련 Prisma 쿼리 레이어
@@ -23,6 +24,8 @@ export interface DocumentBoxDetail {
     createdAt: Date;
     endDate: Date;
     userId: string;
+    /** 문서함 상태 (OPEN, CLOSED, OPEN_SOMEONE, CLOSED_EXPIRED, OPEN_RESUME) */
+    status: DocumentBoxStatus;
     // 지정 제출자 여부 (null은 true로 취급 - 후방호환성)
     // 관련 유틸: lib/utils/document-box.ts > hasDesignatedSubmitters()
     hasSubmitter: boolean | null;
@@ -127,6 +130,7 @@ export async function getDocumentBoxWithSubmissionStatus(
         createdAt: documentBox.createdAt,
         endDate: documentBox.endDate,
         userId: documentBox.userId,
+        status: documentBox.status as DocumentBoxStatus,
         hasSubmitter: documentBox.hasSubmitter,
         submitters: submittersWithStatus,
         requiredDocuments: documentBox.requiredDocuments.map(doc => ({
