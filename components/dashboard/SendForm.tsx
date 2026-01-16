@@ -6,17 +6,8 @@ import { sendManualReminder, sendReminderAfterDeadline } from "@/app/dashboard/[
 import { generateReminderEmailHtml } from '@/lib/email-templates';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/Button";
 import type { DocumentBoxStatus } from "@/lib/types/document";
-import { DOCUMENT_BOX_STATUS_LABELS } from "@/lib/types/document";
+import { DocumentBoxStatusChangeDialog } from "@/components/shared/DocumentBoxStatusChangeDialog";
 
 interface Submitter {
     submitterId: string;
@@ -251,34 +242,23 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, doc
             </div>
 
             {/* 마감 후 발송 확인 Dialog */}
-            <Dialog open={showAfterDeadlineDialog} onOpenChange={setShowAfterDeadlineDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>마감 후 리마인드 발송</DialogTitle>
-                        <DialogDescription asChild>
-                            <div className="space-y-3 pt-2 text-muted-foreground text-sm">
-                                <p>
-                                    현재 문서함이 <strong className="text-foreground">{DOCUMENT_BOX_STATUS_LABELS[documentBoxStatus]}</strong> 상태입니다.
-                                </p>
-                                <p>
-                                    리마인드를 발송하면 문서함 상태가 <strong className="text-blue-600">일부 제출 가능</strong>으로 변경됩니다.
-                                </p>
-                                <p className="text-xs">
-                                    이 경우, <strong>이번에 리마인드를 받은 사람만</strong> 서류를 제출할 수 있습니다.
-                                </p>
-                            </div>
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button variant="ghost" onClick={() => setShowAfterDeadlineDialog(false)}>
-                            취소
-                        </Button>
-                        <Button variant="primary" onClick={handleAfterDeadlineSend}>
-                            동의하고 발송
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <DocumentBoxStatusChangeDialog
+                open={showAfterDeadlineDialog}
+                onOpenChange={setShowAfterDeadlineDialog}
+                title="마감 후 리마인드 발송"
+                currentStatus={documentBoxStatus}
+                newStatus="일부 제출 가능"
+                newStatusColor="orange"
+                description={
+                    <p>
+                        리마인드를 발송하면 <strong>이번에 리마인드를 받은 사람만</strong>{' '}
+                        서류를 제출할 수 있습니다.
+                    </p>
+                }
+                confirmText="동의하고 발송"
+                onConfirm={handleAfterDeadlineSend}
+                onCancel={() => setShowAfterDeadlineDialog(false)}
+            />
         </div>
     );
 }

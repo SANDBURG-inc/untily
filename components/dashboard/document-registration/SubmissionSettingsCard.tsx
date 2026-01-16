@@ -7,21 +7,9 @@ import { Switch } from '@/components/ui/switch';
 import { DatePicker } from '@/components/ui/date-picker';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/Button';
 import type { DocumentBoxStatus } from '@/lib/types/document';
-import {
-  DOCUMENT_BOX_STATUS_LABELS,
-  isDocumentBoxClosed,
-  isDocumentBoxLimitedOpen,
-} from '@/lib/types/document';
+import { isDocumentBoxClosed, isDocumentBoxLimitedOpen } from '@/lib/types/document';
+import { DocumentBoxStatusChangeDialog } from '@/components/shared/DocumentBoxStatusChangeDialog';
 
 interface SubmissionSettingsCardProps {
   /** 제출 마감일 (Date 객체) */
@@ -70,6 +58,10 @@ export function SubmissionSettingsCard({
   const [showReopenDialog, setShowReopenDialog] = useState(false);
   const [reopenConfirmed, setReopenConfirmed] = useState(false);
 
+  // 과거 날짜 경고 Dialog 상태
+  const [showPastDateDialog, setShowPastDateDialog] = useState(false);
+  const [pendingPastDate, setPendingPastDate] = useState<Date | undefined>(undefined);
+
   // 닫힌 상태인지 확인 (CLOSED, CLOSED_EXPIRED, OPEN_SOMEONE)
   const isClosedStatus =
     documentBoxStatus &&
@@ -79,24 +71,60 @@ export function SubmissionSettingsCard({
   const isDeadlineExtended =
     deadline && initialDeadline && deadline.getTime() > initialDeadline.getTime();
 
-  // 기한 변경 시 다시 열기 Dialog 표시 로직
+  // 과거 날짜인지 확인 (오늘 자정 기준)
+  const isPastDate = useCallback((date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date.getTime() < today.getTime();
+  }, []);
+
+  // OPEN 상태인지 확인 (Cron이 CLOSED_EXPIRED로 전환하는 대상)
+  // OPEN_SOMEONE, OPEN_RESUME는 특수 상태로 마감 후에도 전환되지 않음
+  const isOpenStatus = documentBoxStatus === 'OPEN';
+
+  // 기한 변경 시 Dialog 표시 로직
   const handleDeadlineChange = useCallback(
     (date: Date | undefined) => {
+      // OPEN 상태에서만 과거 날짜 경고 (Cron이 CLOSED_EXPIRED로 전환)
+      // OPEN_SOMEONE, OPEN_RESUME는 특수 상태로 경고 불필요
+      if (date && isPastDate(date) && isOpenStatus) {
+        setPendingPastDate(date);
+        setShowPastDateDialog(true);
+        return;
+      }
+
       onDeadlineChange(date);
 
-      // 닫힌 상태에서 기한이 연장되면 Dialog 표시
+      // 닫힌 상태에서 기한이 미래로 연장되면 다시 열기 Dialog 표시
+      // 조건: 닫힌 상태 + 초기 마감일보다 연장 + 미래 날짜 (현재 시점 이후)
       if (
         isClosedStatus &&
         date &&
         initialDeadline &&
         date.getTime() > initialDeadline.getTime() &&
+        !isPastDate(date) &&  // 미래 날짜여야 다시 열림
         !reopenConfirmed
       ) {
         setShowReopenDialog(true);
       }
     },
-    [onDeadlineChange, isClosedStatus, initialDeadline, reopenConfirmed]
+    [onDeadlineChange, isClosedStatus, isOpenStatus, initialDeadline, reopenConfirmed, isPastDate]
   );
+
+  // 과거 날짜 확인 처리
+  const handlePastDateConfirm = useCallback(() => {
+    if (pendingPastDate) {
+      onDeadlineChange(pendingPastDate);
+    }
+    setShowPastDateDialog(false);
+    setPendingPastDate(undefined);
+  }, [pendingPastDate, onDeadlineChange]);
+
+  // 과거 날짜 취소 처리
+  const handlePastDateCancel = useCallback(() => {
+    setShowPastDateDialog(false);
+    setPendingPastDate(undefined);
+  }, []);
 
   // 다시 열기 확인 처리
   const handleReopenConfirm = useCallback(() => {
@@ -125,35 +153,42 @@ export function SubmissionSettingsCard({
 
   return (
     <>
+    {/* 과거 날짜 경고 Dialog (OPEN 상태에서만 표시) */}
+    <DocumentBoxStatusChangeDialog
+      open={showPastDateDialog}
+      onOpenChange={setShowPastDateDialog}
+      title="문서함이 자동으로 닫힙니다"
+      newStatus="기한 만료"
+      newStatusColor="red"
+      currentStatus={documentBoxStatus}
+      description={
+        <p>
+          제출 마감일을 <strong>과거</strong>로 설정하면 문서함이 자동으로{' '}
+          <strong>기한 만료</strong> 상태로 전환됩니다.
+          닫힌 문서함에서는 더 이상 서류를 제출할 수 없습니다.
+        </p>
+      }
+      onConfirm={handlePastDateConfirm}
+      onCancel={handlePastDateCancel}
+    />
+
     {/* 다시 열기 확인 Dialog */}
-    <Dialog open={showReopenDialog} onOpenChange={setShowReopenDialog}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>문서함이 다시 열립니다</DialogTitle>
-          <DialogDescription asChild>
-            <div className="space-y-3 pt-2 text-muted-foreground text-sm">
-              <p>
-                제출 기한을 연장하면 문서함이 <strong className="text-blue-600">다시 열림</strong> 상태로 변경됩니다.
-              </p>
-              <p>
-                현재 문서함 상태: <strong className="text-foreground">{documentBoxStatus ? DOCUMENT_BOX_STATUS_LABELS[documentBoxStatus] : ''}</strong>
-              </p>
-              <p className="text-xs">
-                다시 열린 문서함에서는 <strong>모든 사용자</strong>가 서류를 제출할 수 있습니다.
-              </p>
-            </div>
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="ghost" onClick={handleReopenCancel}>
-            취소
-          </Button>
-          <Button variant="primary" onClick={handleReopenConfirm}>
-            확인
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <DocumentBoxStatusChangeDialog
+      open={showReopenDialog}
+      onOpenChange={setShowReopenDialog}
+      title="문서함이 다시 열립니다"
+      newStatus="다시 열림"
+      newStatusColor="blue"
+      currentStatus={documentBoxStatus}
+      description={
+        <p>
+          제출 기한을 연장하면 다시 열린 문서함에서 <strong>모든 사용자</strong>가
+          서류를 제출할 수 있습니다.
+        </p>
+      }
+      onConfirm={handleReopenConfirm}
+      onCancel={handleReopenCancel}
+    />
 
     <Card variant="compact" className="mb-8">
       <CardHeader variant="compact">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import prisma from '@/lib/db';
 import { hasDesignatedSubmitters } from '@/lib/utils/document-box';
+import { isDocumentBoxClosed, type DocumentBoxStatus } from '@/lib/types/document';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,9 +47,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. 만료 체크
-    if (new Date() > submitter.documentBox.endDate) {
-      return NextResponse.json({ error: '제출 기한이 만료되었습니다.' }, { status: 400 });
+    // 5. 제출 가능 상태 체크 (status 기반)
+    if (isDocumentBoxClosed(submitter.documentBox.status as DocumentBoxStatus)) {
+      return NextResponse.json({ error: '제출이 마감되었습니다.' }, { status: 400 });
     }
 
     // 6. 이미 제출 완료 체크
