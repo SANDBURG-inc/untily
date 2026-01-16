@@ -5,13 +5,12 @@
  *
  * 문서함의 자동 리마인드 기능을 설정하는 토글 스위치와
  * 리마인드 스케줄 설정 다이얼로그를 제공합니다.
- * 구글 캘린더 스타일의 리마인더 설정 UI를 사용합니다.
  *
  * @module components/dashboard/AutoReminderSettings
  */
 
 import { useState, useCallback, useId } from 'react';
-import { CheckCircle, Info, Check, Bell, Plus, X } from 'lucide-react';
+import { CheckCircle, Info, Check, Bell, Plus } from 'lucide-react';
 import {
     saveReminderSchedules,
     disableAutoReminderV2,
@@ -26,13 +25,6 @@ import {
     DialogDescription,
     DialogFooter,
 } from '@/components/ui/dialog';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import {
     ReminderChannel,
@@ -41,10 +33,8 @@ import {
     type ReminderTimeUnitType,
     DEFAULT_REMINDER_SCHEDULE,
     MAX_REMINDER_COUNT,
-    SEND_TIME_OPTIONS,
-    TIME_UNIT_OPTIONS,
-    TIME_VALUE_RANGE,
 } from '@/lib/types/reminder';
+import { ReminderScheduleRow } from './ReminderScheduleDialog';
 
 // ============================================================================
 // Props Interface
@@ -68,21 +58,17 @@ interface AutoReminderSettingsProps {
 // Sub Components
 // ============================================================================
 
-/**
- * 리마인드 채널 선택 옵션
- */
 interface ChannelOptionProps {
-    /** 채널명 */
     label: string;
-    /** 선택 가능 여부 */
     enabled: boolean;
-    /** 선택됨 여부 */
     selected: boolean;
 }
 
+/**
+ * 채널 선택 옵션
+ */
 function ChannelOption({ label, enabled, selected }: ChannelOptionProps) {
-    const baseStyles =
-        'flex items-center gap-3 p-3 border rounded-lg transition-colors';
+    const baseStyles = 'flex items-center gap-3 p-3 border rounded-lg transition-colors';
 
     if (!enabled) {
         return (
@@ -120,111 +106,6 @@ function ChannelOption({ label, enabled, selected }: ChannelOptionProps) {
     );
 }
 
-/**
- * 리마인더 스케줄 행 (구글 캘린더 스타일)
- */
-interface ReminderScheduleRowProps {
-    schedule: ReminderScheduleState;
-    onChange: (schedule: ReminderScheduleState) => void;
-    onDelete: () => void;
-    canDelete: boolean;
-}
-
-function ReminderScheduleRow({
-    schedule,
-    onChange,
-    onDelete,
-    canDelete,
-}: ReminderScheduleRowProps) {
-    const timeRange = TIME_VALUE_RANGE[schedule.timeUnit as keyof typeof TIME_VALUE_RANGE];
-    const timeValues = Array.from(
-        { length: timeRange.max - timeRange.min + 1 },
-        (_, i) => timeRange.min + i
-    );
-
-    return (
-        <div className="flex items-center gap-2 py-2">
-            {/* 마감 라벨 */}
-            <span className="text-sm text-gray-600 shrink-0">마감</span>
-
-            {/* 숫자 선택 */}
-            <Select
-                value={String(schedule.timeValue)}
-                onValueChange={(value) =>
-                    onChange({ ...schedule, timeValue: Number(value) })
-                }
-            >
-                <SelectTrigger className="w-16 h-9">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    {timeValues.map((v) => (
-                        <SelectItem key={v} value={String(v)}>
-                            {v}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-
-            {/* 단위 선택 */}
-            <Select
-                value={schedule.timeUnit}
-                onValueChange={(value: ReminderTimeUnitType) => {
-                    const newRange = TIME_VALUE_RANGE[value];
-                    const newValue = Math.min(
-                        Math.max(schedule.timeValue, newRange.min),
-                        newRange.max
-                    );
-                    onChange({ ...schedule, timeUnit: value, timeValue: newValue });
-                }}
-            >
-                <SelectTrigger className="w-16 h-9">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    {TIME_UNIT_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-
-            {/* 전 라벨 */}
-            <span className="text-sm text-gray-600 shrink-0">전</span>
-
-            {/* 시간 선택 */}
-            <Select
-                value={schedule.sendTime}
-                onValueChange={(value) => onChange({ ...schedule, sendTime: value })}
-            >
-                <SelectTrigger className="w-24 h-9">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                    {SEND_TIME_OPTIONS.map((time) => (
-                        <SelectItem key={time} value={time}>
-                            {time}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-
-            {/* 삭제 버튼 */}
-            {canDelete && (
-                <button
-                    type="button"
-                    onClick={onDelete}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors ml-auto"
-                    aria-label="리마인더 삭제"
-                >
-                    <X className="w-4 h-4" />
-                </button>
-            )}
-        </div>
-    );
-}
-
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -255,16 +136,11 @@ export function AutoReminderSettings({
     const [isPending, setIsPending] = useState(false);
     const [schedules, setSchedules] = useState<ReminderScheduleState[]>(getInitialSchedules);
 
-    /**
-     * 토글 스위치 변경 핸들러
-     * - 활성화 → 비활성화: 바로 처리
-     * - 비활성화 → 활성화: 설정 모달 열기
-     */
+    // 토글 핸들러
     const handleToggle = async () => {
         if (isPending) return;
 
         if (isEnabled) {
-            // 비활성화 처리
             setIsPending(true);
             const result = await disableAutoReminderV2(documentBoxId);
             setIsPending(false);
@@ -274,14 +150,11 @@ export function AutoReminderSettings({
                 setSchedules([{ id: `new-${uniqueId}-0`, ...DEFAULT_REMINDER_SCHEDULE }]);
             }
         } else {
-            // 활성화 - 설정 모달 열기
             setIsModalOpen(true);
         }
     };
 
-    /**
-     * 스케줄 추가
-     */
+    // 스케줄 추가
     const handleAddSchedule = useCallback(() => {
         if (schedules.length >= MAX_REMINDER_COUNT) return;
 
@@ -296,9 +169,7 @@ export function AutoReminderSettings({
         ]);
     }, [schedules.length, uniqueId]);
 
-    /**
-     * 스케줄 수정
-     */
+    // 스케줄 수정
     const handleUpdateSchedule = useCallback(
         (index: number, updated: ReminderScheduleState) => {
             setSchedules((prev) => prev.map((s, i) => (i === index ? updated : s)));
@@ -306,16 +177,12 @@ export function AutoReminderSettings({
         []
     );
 
-    /**
-     * 스케줄 삭제
-     */
+    // 스케줄 삭제
     const handleDeleteSchedule = useCallback((index: number) => {
         setSchedules((prev) => prev.filter((_, i) => i !== index));
     }, []);
 
-    /**
-     * 저장
-     */
+    // 저장
     const handleSave = async () => {
         if (schedules.length === 0) return;
 
@@ -337,12 +204,9 @@ export function AutoReminderSettings({
         }
     };
 
-    /**
-     * 모달 닫기
-     */
+    // 모달 닫기
     const closeModal = () => {
         setIsModalOpen(false);
-        // 모달 닫을 때 초기 상태로 복원
         setSchedules(getInitialSchedules());
     };
 
@@ -363,19 +227,13 @@ export function AutoReminderSettings({
                     ) : (
                         <Info className="w-5 h-5 text-gray-400" />
                     )}
-                    <span
-                        className={cn(
-                            'text-sm',
-                            isEnabled ? 'text-gray-700' : 'text-gray-500'
-                        )}
-                    >
+                    <span className={cn('text-sm', isEnabled ? 'text-gray-700' : 'text-gray-500')}>
                         {isEnabled
                             ? '자동 리마인드가 활성화되어 있습니다.'
                             : '자동 리마인드를 활성화해보세요.'}
                     </span>
                 </div>
 
-                {/* 토글 스위치 */}
                 <Switch
                     checked={isEnabled}
                     onCheckedChange={handleToggle}
@@ -416,7 +274,6 @@ export function AutoReminderSettings({
                             ))}
                         </div>
 
-                        {/* 리마인더 추가 버튼 */}
                         {schedules.length < MAX_REMINDER_COUNT && (
                             <button
                                 type="button"
@@ -433,21 +290,9 @@ export function AutoReminderSettings({
                     <div className="border-t pt-4">
                         <h4 className="text-sm font-medium text-gray-900 mb-3">채널 선택</h4>
                         <div className="space-y-2">
-                            <ChannelOption
-                                label="이메일로 발송할게요"
-                                enabled={true}
-                                selected={true}
-                            />
-                            <ChannelOption
-                                label="문자로 발송할게요"
-                                enabled={false}
-                                selected={false}
-                            />
-                            <ChannelOption
-                                label="알림톡으로 발송할게요"
-                                enabled={false}
-                                selected={false}
-                            />
+                            <ChannelOption label="이메일로 발송할게요" enabled={true} selected={true} />
+                            <ChannelOption label="문자로 발송할게요" enabled={false} selected={false} />
+                            <ChannelOption label="알림톡으로 발송할게요" enabled={false} selected={false} />
                         </div>
                     </div>
 
