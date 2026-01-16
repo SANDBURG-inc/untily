@@ -34,6 +34,7 @@ export function EmailEditor({
         extensions: getEmailEditorExtensions(placeholder),
         content,
         editable: !readOnly,
+        immediatelyRender: false,
         onUpdate: ({ editor }) => {
             onChange(editor.getHTML());
         },
