@@ -173,11 +173,9 @@ export function SubmissionSettingsCard({
     const isDeadlineExtended =
         deadline && initialDeadline && deadline.getTime() > initialDeadline.getTime();
 
-    // 과거 날짜인지 확인 (오늘 자정 기준)
-    const isPastDate = useCallback((date: Date) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return date.getTime() < today.getTime();
+    // 과거 시간인지 확인 (현재 시간 기준)
+    const isPastDateTime = useCallback((date: Date) => {
+        return date.getTime() < Date.now();
     }, []);
 
     // OPEN 상태인지 확인 (Cron이 CLOSED_EXPIRED로 전환하는 대상)
@@ -206,7 +204,7 @@ export function SubmissionSettingsCard({
             const newDeadline = combineDateTime(date, selectedTime);
 
             // OPEN 상태에서만 과거 날짜 경고
-            if (isPastDate(newDeadline) && isOpenStatus) {
+            if (isPastDateTime(newDeadline) && isOpenStatus) {
                 setPendingPastDate(newDeadline);
                 setShowPastDateDialog(true);
                 return;
@@ -219,13 +217,13 @@ export function SubmissionSettingsCard({
                 isClosedStatus &&
                 initialDeadline &&
                 newDeadline.getTime() > initialDeadline.getTime() &&
-                !isPastDate(newDeadline) &&
+                !isPastDateTime(newDeadline) &&
                 !reopenConfirmed
             ) {
                 setShowReopenDialog(true);
             }
         },
-        [onDeadlineChange, combineDateTime, selectedTime, isClosedStatus, isOpenStatus, initialDeadline, reopenConfirmed, isPastDate]
+        [onDeadlineChange, combineDateTime, selectedTime, isClosedStatus, isOpenStatus, initialDeadline, reopenConfirmed, isPastDateTime]
     );
 
     // 시간 변경 시 (기존 날짜 유지)
@@ -236,7 +234,7 @@ export function SubmissionSettingsCard({
             const newDeadline = combineDateTime(deadline, time);
 
             // OPEN 상태에서만 과거 날짜 경고
-            if (isPastDate(newDeadline) && isOpenStatus) {
+            if (isPastDateTime(newDeadline) && isOpenStatus) {
                 setPendingPastDate(newDeadline);
                 setShowPastDateDialog(true);
                 return;
@@ -249,13 +247,13 @@ export function SubmissionSettingsCard({
                 isClosedStatus &&
                 initialDeadline &&
                 newDeadline.getTime() > initialDeadline.getTime() &&
-                !isPastDate(newDeadline) &&
+                !isPastDateTime(newDeadline) &&
                 !reopenConfirmed
             ) {
                 setShowReopenDialog(true);
             }
         },
-        [deadline, onDeadlineChange, combineDateTime, isClosedStatus, isOpenStatus, initialDeadline, reopenConfirmed, isPastDate]
+        [deadline, onDeadlineChange, combineDateTime, isClosedStatus, isOpenStatus, initialDeadline, reopenConfirmed, isPastDateTime]
     );
 
     // 과거 날짜 확인 처리
@@ -369,7 +367,7 @@ export function SubmissionSettingsCard({
                         {/* 제출 마감일 선택 (날짜 + 시간) */}
                         <div>
                             <label className="block text-sm font-medium text-gray-900 mb-2">
-                                제출 마감일<span className="text-red-500">*</span>
+                                마감 일시<span className="text-red-500">*</span>
                             </label>
                             <div className="flex items-center gap-3">
                                 <DatePicker
