@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Plus, X, FileText, ChevronDown, Paperclip, Loader2 } from 'lucide-react';
 import type { DocumentRequirement, TemplateFile } from '@/lib/types/document';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IconButton } from '@/components/shared/IconButton';
 import { SectionHeader } from '@/components/shared/SectionHeader';
@@ -119,165 +118,159 @@ export function DocumentRequirementsCard({
   };
 
   return (
-    <Card variant="compact" className="mb-6">
-      <CardHeader variant="compact">
-        <CardTitle>
-          <SectionHeader icon={FileText} title="수집 서류 등록" size="md" />
-        </CardTitle>
-      </CardHeader>
+    <>
+      <SectionHeader icon={FileText} title="수집 서류 등록" size="md" />
+      <div className="mt-4 space-y-0">
+        {requirements.map((requirement, index) => (
+          <div
+            key={requirement.id}
+            className={`relative py-4 ${index !== requirements.length - 1 ? 'border-b border-gray-200' : ''}`}
+          >
+            {/* 삭제 버튼 (서류가 2개 이상일 때만 표시) */}
+            {requirements.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeRequirement(requirement.id)}
+                className="absolute top-4 right-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
 
-      <CardContent variant="compact">
-        <div className="space-y-4">
-          {requirements.map((requirement) => (
-            <div
-              key={requirement.id}
-              className="relative border border-gray-200 rounded-lg p-4"
-            >
-              {/* 삭제 버튼 (서류가 2개 이상일 때만 표시) */}
-              {requirements.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeRequirement(requirement.id)}
-                  className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {/* 서류명 입력 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    서류명<span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={requirement.name}
-                    onChange={(e) =>
-                      updateRequirement(requirement.id, 'name', e.target.value)
-                    }
-                    placeholder="예: 주민등록등본"
-                    className="w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400"
-                    required
-                  />
-                </div>
-
-                {/* 서류 유형 선택 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    서류 유형<span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={requirement.type}
-                      onChange={(e) =>
-                        updateRequirement(requirement.id, 'type', e.target.value)
-                      }
-                      className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white appearance-none pr-10 text-gray-700"
-                      required
-                    >
-                      <option value="필수">필수</option>
-                      <option value="옵션">옵션</option>
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-
-              {/* 서류 설명 입력 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pr-8">
+              {/* 서류명 입력 */}
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
-                  설명
+                  서류명<span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  value={requirement.description}
+                <input
+                  type="text"
+                  value={requirement.name}
                   onChange={(e) =>
-                    updateRequirement(requirement.id, 'description', e.target.value)
+                    updateRequirement(requirement.id, 'name', e.target.value)
                   }
-                  placeholder="예: 3개월 이내 발급"
-                  rows={2}
-                  className="w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 resize-none"
+                  placeholder="예: 주민등록등본"
+                  className="w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400"
+                  required
                 />
               </div>
 
-              {/* 복수 파일 허용 체크박스 */}
-              <div className="flex items-center gap-2 mt-3">
-                <Checkbox
-                  id={`multiple-${requirement.id}`}
-                  checked={requirement.allowMultiple ?? false}
-                  onCheckedChange={(checked) =>
-                    updateRequirement(requirement.id, 'allowMultiple', checked as boolean)
-                  }
-                />
-                <label
-                  htmlFor={`multiple-${requirement.id}`}
-                  className="text-sm text-gray-700 cursor-pointer select-none"
-                >
-                  받을 파일이 여러 개예요
+              {/* 서류 유형 선택 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  서류 유형<span className="text-red-500">*</span>
                 </label>
-              </div>
-
-              {/* 양식 파일 영역 - 배경 없이 심플하게 */}
-              <div className="mt-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                    <Paperclip className="w-3.5 h-3.5" />
-                    <span>양식 파일</span>
-                  </div>
-                  {/* 양식 첨부 버튼 - 왼쪽에 배치 */}
-                  <button
-                    type="button"
-                    onClick={() => openFileDialog(requirement.id)}
-                    className="text-xs text-gray-500 font-semibold hover:text-gray-700 px-2 py-1 hover:bg-gray-100 rounded transition-colors"
+                <div className="relative">
+                  <select
+                    value={requirement.type}
+                    onChange={(e) =>
+                      updateRequirement(requirement.id, 'type', e.target.value)
+                    }
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white appearance-none pr-10 text-gray-700"
+                    required
                   >
-                    + 첨부
-                  </button>
-                  {uploadingTemplateIds.includes(requirement.id) && (
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      <span>업로드 중...</span>
-                    </div>
-                  )}
+                    <option value="필수">필수</option>
+                    <option value="옵션">옵션</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
-
-                {/* 파일 목록 - 아래에 순차적으로 */}
-                {requirement.templates && requirement.templates.length > 0 && (
-                  <div className="space-y-1 pl-5">
-                    {requirement.templates.map((template: TemplateFile, index: number) => (
-                      <div
-                        key={`${template.s3Key}-${index}`}
-                        className="flex items-center gap-2 group"
-                      >
-                        {onTemplatePreview ? (
-                          <button
-                            type="button"
-                            onClick={() => onTemplatePreview(requirement.id, template)}
-                            className="text-sm text-gray-500 hover:text-gray-700 hover:underline truncate text-left"
-                          >
-                            {template.filename}
-                          </button>
-                        ) : (
-                          <span className="text-sm text-gray-500 truncate">
-                            {template.filename}
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleTemplateRemove(requirement.id, index)}
-                          className="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          삭제
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
               </div>
             </div>
-          ))}
 
-          {/* 서류 추가 버튼 */}
+            {/* 서류 설명 입력 */}
+            <div className="pr-8">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                설명
+              </label>
+              <textarea
+                value={requirement.description}
+                onChange={(e) =>
+                  updateRequirement(requirement.id, 'description', e.target.value)
+                }
+                placeholder="예: 3개월 이내 발급"
+                rows={2}
+                className="w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 resize-none"
+              />
+            </div>
+
+            {/* 복수 파일 허용 체크박스 */}
+            <div className="flex items-center gap-2 mt-3">
+              <Checkbox
+                id={`multiple-${requirement.id}`}
+                checked={requirement.allowMultiple ?? false}
+                onCheckedChange={(checked) =>
+                  updateRequirement(requirement.id, 'allowMultiple', checked as boolean)
+                }
+              />
+              <label
+                htmlFor={`multiple-${requirement.id}`}
+                className="text-sm text-gray-700 cursor-pointer select-none"
+              >
+                받을 파일이 여러 개예요
+              </label>
+            </div>
+
+            {/* 양식 파일 영역 - 배경 없이 심플하게 */}
+            <div className="mt-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <Paperclip className="w-3.5 h-3.5" />
+                  <span>양식 파일</span>
+                </div>
+                {/* 양식 첨부 버튼 - 왼쪽에 배치 */}
+                <button
+                  type="button"
+                  onClick={() => openFileDialog(requirement.id)}
+                  className="text-xs text-gray-500 font-semibold hover:text-gray-700 px-2 py-1 hover:bg-gray-100 rounded transition-colors"
+                >
+                  + 첨부
+                </button>
+                {uploadingTemplateIds.includes(requirement.id) && (
+                  <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>업로드 중...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 파일 목록 - 아래에 순차적으로 */}
+              {requirement.templates && requirement.templates.length > 0 && (
+                <div className="space-y-1 pl-5">
+                  {requirement.templates.map((template: TemplateFile, templateIndex: number) => (
+                    <div
+                      key={`${template.s3Key}-${templateIndex}`}
+                      className="flex items-center gap-2 group"
+                    >
+                      {onTemplatePreview ? (
+                        <button
+                          type="button"
+                          onClick={() => onTemplatePreview(requirement.id, template)}
+                          className="text-sm text-gray-500 hover:text-gray-700 hover:underline truncate text-left"
+                        >
+                          {template.filename}
+                        </button>
+                      ) : (
+                        <span className="text-sm text-gray-500 truncate">
+                          {template.filename}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleTemplateRemove(requirement.id, templateIndex)}
+                        className="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {/* 서류 추가 버튼 */}
+        <div className="pt-4">
           <IconButton
             type="button"
             variant="secondary"
@@ -288,7 +281,7 @@ export function DocumentRequirementsCard({
             서류 추가
           </IconButton>
         </div>
-      </CardContent>
+      </div>
 
       {/* 파일 업로드 다이얼로그 (멀티 파일 지원) */}
       <FileUploadDialog
@@ -298,6 +291,6 @@ export function DocumentRequirementsCard({
         multiple
         onFilesSelect={handleFilesSelect}
       />
-    </Card>
+    </>
   );
 }

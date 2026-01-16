@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/card';
 import { LogoUploadDialog } from './LogoUploadDialog';
 import {
   useDocumentBoxForm,
@@ -11,7 +12,7 @@ import {
 } from '@/lib/hooks/document-box';
 import type { TemplateFile } from '@/lib/types/document';
 
-// 분리된 카드 컴포넌트들
+// 분리된 섹션 컴포넌트들
 import { BasicInfoCard } from './document-registration/BasicInfoCard';
 import { SubmitterRegistrationCard } from './document-registration/SubmitterRegistrationCard';
 import { DocumentRequirementsCard } from './document-registration/DocumentRequirementsCard';
@@ -109,17 +110,6 @@ export default function DocumentRegistrationForm({
           </div>
         )}
 
-        {/* 기본 정보 입력 카드 */}
-        <BasicInfoCard
-          documentName={form.documentName}
-          onDocumentNameChange={form.setDocumentName}
-          description={form.description}
-          onDescriptionChange={form.setDescription}
-          logoUrl={form.effectiveLogoUrl}
-          onLogoRemove={form.handleLogoRemove}
-          onLogoDialogOpen={() => form.setLogoDialogOpen(true)}
-        />
-
         {/* 로고 업로드 다이얼로그 */}
         <LogoUploadDialog
           open={form.logoDialogOpen}
@@ -137,38 +127,66 @@ export default function DocumentRegistrationForm({
           }
         />
 
-        {/* 서류 제출자 등록 카드 */}
-        <SubmitterRegistrationCard
-          submittersEnabled={form.submittersEnabled}
-          onSubmittersEnabledChange={form.handleSubmittersEnabledChange}
-          submitters={form.submitters}
-          onSubmittersChange={form.setSubmitters}
-          isEditMode={form.isEditMode}
-        />
+        {/* 통합 Card - 모든 섹션을 하나의 Card로 묶음 */}
+        <Card variant="compact" className="mb-8">
+          {/* 기본 정보 섹션 */}
+          <div className="px-6 pt-6 pb-6">
+            <BasicInfoCard
+              documentName={form.documentName}
+              onDocumentNameChange={form.setDocumentName}
+              description={form.description}
+              onDescriptionChange={form.setDescription}
+              logoUrl={form.effectiveLogoUrl}
+              onLogoRemove={form.handleLogoRemove}
+              onLogoDialogOpen={() => form.setLogoDialogOpen(true)}
+            />
+          </div>
 
-        {/* 수집 서류 등록 카드 */}
-        <DocumentRequirementsCard
-          requirements={form.requirements}
-          onRequirementsChange={form.setRequirements}
-          onTemplateFileSelect={form.handleTemplateFileSelect}
-          onTemplateFileRemove={form.handleTemplateFileRemove}
-          uploadingTemplateIds={form.uploadingTemplateIds}
-          onTemplatePreview={form.isEditMode ? handleTemplatePreview : undefined}
-        />
+          <div className="mx-6 border-t border-gray-200 rounded-full" />
 
-        {/* 제출 옵션 설정 카드 */}
-        <SubmissionSettingsCard
-          deadline={form.deadline}
-          onDeadlineChange={form.setDeadline}
-          reminderEnabled={form.reminderEnabled}
-          onReminderEnabledChange={form.setReminderEnabled}
-          emailReminder={form.emailReminder}
-          onEmailReminderChange={form.setEmailReminder}
-          submittersEnabled={form.submittersEnabled}
-          documentBoxStatus={form.documentBoxStatus}
-          initialDeadline={form.initialDeadline}
-          onReopenConfirmed={form.setReopenConfirmed}
-        />
+          {/* 서류 제출자 섹션 */}
+          <div className="px-6 py-6">
+            <SubmitterRegistrationCard
+              submittersEnabled={form.submittersEnabled}
+              onSubmittersEnabledChange={form.handleSubmittersEnabledChange}
+              submitters={form.submitters}
+              onSubmittersChange={form.setSubmitters}
+              isEditMode={form.isEditMode}
+            />
+          </div>
+
+          <div className="mx-6 border-t border-gray-200 rounded-full" />
+
+          {/* 수집 서류 섹션 */}
+          <div className="px-6 py-6">
+            <DocumentRequirementsCard
+              requirements={form.requirements}
+              onRequirementsChange={form.setRequirements}
+              onTemplateFileSelect={form.handleTemplateFileSelect}
+              onTemplateFileRemove={form.handleTemplateFileRemove}
+              uploadingTemplateIds={form.uploadingTemplateIds}
+              onTemplatePreview={form.isEditMode ? handleTemplatePreview : undefined}
+            />
+          </div>
+
+          <div className="mx-6 border-t border-gray-200 rounded-full" />
+
+          {/* 제출 옵션 섹션 */}
+          <div className="px-6 pt-6 pb-6">
+            <SubmissionSettingsCard
+              deadline={form.deadline}
+              onDeadlineChange={form.setDeadline}
+              reminderEnabled={form.reminderEnabled}
+              onReminderEnabledChange={form.setReminderEnabled}
+              emailReminder={form.emailReminder}
+              onEmailReminderChange={form.setEmailReminder}
+              submittersEnabled={form.submittersEnabled}
+              documentBoxStatus={form.documentBoxStatus}
+              initialDeadline={form.initialDeadline}
+              onReopenConfirmed={form.setReopenConfirmed}
+            />
+          </div>
+        </Card>
 
         {/* 하단 액션 버튼 */}
         <div className="flex gap-3">

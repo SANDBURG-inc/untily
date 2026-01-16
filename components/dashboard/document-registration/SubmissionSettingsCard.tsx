@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo, useId } from 'react';
 import { Settings, Check } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { DatePicker } from '@/components/ui/date-picker';
 import { TimeSelect } from '@/components/ui/time-select';
@@ -355,112 +354,103 @@ export function SubmissionSettingsCard({
                 onSave={handleScheduleSave}
             />
 
-            <Card variant="compact" className="mb-8">
-                <CardHeader variant="compact">
-                    <CardTitle>
-                        <SectionHeader icon={Settings} title="제출 옵션 설정" size="md" />
-                    </CardTitle>
-                </CardHeader>
+            <SectionHeader icon={Settings} title="제출 옵션 설정" size="md" />
+            <div className="mt-4 space-y-6">
+                {/* 제출 마감일 선택 (날짜 + 시간) */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                        마감 일시<span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                        <DatePicker
+                            date={deadline}
+                            onDateChange={handleDateChange}
+                            placeholder="날짜 선택"
+                        />
+                        <TimeSelect
+                            value={selectedTime}
+                            onValueChange={handleTimeChange}
+                            disabled={!deadline}
+                        />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1.5">
+                        선택한 시간부터 문서함이 닫힙니다
+                    </p>
+                </div>
 
-                <CardContent variant="compact">
-                    <div className="space-y-6">
-                        {/* 제출 마감일 선택 (날짜 + 시간) */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-900 mb-2">
-                                마감 일시<span className="text-red-500">*</span>
-                            </label>
-                            <div className="flex items-center gap-3">
-                                <DatePicker
-                                    date={deadline}
-                                    onDateChange={handleDateChange}
-                                    placeholder="날짜 선택"
-                                />
-                                <TimeSelect
-                                    value={selectedTime}
-                                    onValueChange={handleTimeChange}
-                                    disabled={!deadline}
-                                />
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1.5">
-                                선택한 시간부터 문서함이 닫힙니다
+                {/* 리마인드 설정 영역 */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                                리마인드 자동 발송 설정
+                            </h3>
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                                미제출자에게 자동으로 알림을 발송합니다.
                             </p>
                         </div>
 
-                        {/* 리마인드 설정 영역 */}
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex-1">
-                                    <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                                        리마인드 자동 발송 설정
-                                    </h3>
-                                    <p className="text-xs text-gray-600 leading-relaxed">
-                                        미제출자에게 자동으로 알림을 발송합니다.
-                                    </p>
-                                </div>
-
-                                {/* 리마인드 토글 */}
-                                <div className="relative group">
-                                    <Switch
-                                        checked={reminderEnabled}
-                                        onCheckedChange={onReminderEnabledChange}
-                                        disabled={!submittersEnabled}
-                                        className="ml-4"
-                                    />
-                                    {!submittersEnabled && (
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                                            서류 제출자가 없는 경우, 리마인드 기능이 비활성화 됩니다
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* 리마인드 활성화 시 상세 설정 */}
-                            {reminderEnabled && (
-                                <div className="space-y-4 pt-2">
-                                    {/* 채널 선택 */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                                        <ChannelOption
-                                            label="이메일로 발송"
-                                            enabled={true}
-                                            selected={emailReminder}
-                                            onSelect={handleEmailToggle}
-                                        />
-                                        <ChannelOption
-                                            label="문자로 발송"
-                                            enabled={false}
-                                            selected={false}
-                                        />
-                                        <ChannelOption
-                                            label="알림톡으로 발송"
-                                            enabled={false}
-                                            selected={false}
-                                        />
-                                    </div>
-
-                                    {/* 스케줄 요약 및 설정 버튼 */}
-                                    <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                                        <div className="text-[13px] text-gray-700">
-                                            <span className="text-gray-500">발송 시점:</span>{' '}
-                                            <span className="font-medium">
-                                                {formatScheduleSummary(schedules)}
-                                            </span>
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            variant="soft"
-                                            size="sm"
-                                            onClick={() => setShowScheduleDialog(true)}
-                                        >
-                                            설정
-                                        </Button>
-                                    </div>
+                        {/* 리마인드 토글 */}
+                        <div className="relative group">
+                            <Switch
+                                checked={reminderEnabled}
+                                onCheckedChange={onReminderEnabledChange}
+                                disabled={!submittersEnabled}
+                                className="ml-4"
+                            />
+                            {!submittersEnabled && (
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                    서류 제출자가 없는 경우, 리마인드 기능이 비활성화 됩니다
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
                                 </div>
                             )}
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+
+                    {/* 리마인드 활성화 시 상세 설정 */}
+                    {reminderEnabled && (
+                        <div className="space-y-4 pt-2">
+                            {/* 채널 선택 */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <ChannelOption
+                                    label="이메일로 발송"
+                                    enabled={true}
+                                    selected={emailReminder}
+                                    onSelect={handleEmailToggle}
+                                />
+                                <ChannelOption
+                                    label="문자로 발송"
+                                    enabled={false}
+                                    selected={false}
+                                />
+                                <ChannelOption
+                                    label="알림톡으로 발송"
+                                    enabled={false}
+                                    selected={false}
+                                />
+                            </div>
+
+                            {/* 스케줄 요약 및 설정 버튼 */}
+                            <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                                <div className="text-[13px] text-gray-700">
+                                    <span className="text-gray-500">발송 시점:</span>{' '}
+                                    <span className="font-medium">
+                                        {formatScheduleSummary(schedules)}
+                                    </span>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="soft"
+                                    size="sm"
+                                    onClick={() => setShowScheduleDialog(true)}
+                                >
+                                    설정
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
         </>
     );
 }
