@@ -68,9 +68,15 @@ model DocumentBox {
   // - CLOSED: 제출 불가 (소유자 탈퇴, 수동 닫기)
   status DocumentBoxStatus @default(OPEN)
 
+  // 폼 필드 표시 위치 설정
+  // - true: 수집 서류 위에 표시 (개인정보 동의 먼저)
+  // - false: 수집 서류 아래에 표시 (기본값)
+  formFieldsAboveDocuments Boolean @default(false)
+
   logos                  Logo[]
   submitters             Submitter[]
   requiredDocuments      RequiredDocument[]
+  formFieldGroups        FormFieldGroup[]
   documentBoxRemindTypes DocumentBoxRemindType[]
   reminderLogs           ReminderLog[]
   reminderSchedules      ReminderSchedule[]
@@ -113,6 +119,7 @@ model Submitter {
   submittedAt DateTime? // 제출 완료 시간
 
   submittedDocuments SubmittedDocument[]
+  formFieldResponses FormFieldResponse[]
   reminderRecipients ReminderRecipient[]
 
   @@index([userId])
@@ -213,6 +220,84 @@ model ReminderSchedule {
 enum SubmitterStatus {
   PENDING
   SUBMITTED
+}
+
+// ============================================================================
+// 폼 필드 (정보 입력 항목)
+// ============================================================================
+
+enum FormFieldType {
+  TEXT      // 단일 행 텍스트
+  TEXTAREA  // 여러 행 텍스트
+  EMAIL     // 이메일 (validation 포함)
+  TEL       // 전화번호 (validation 포함)
+  DATE      // 날짜 선택
+  CHECKBOX  // 체크박스 (단일)
+  RADIO     // 라디오 버튼 (선택지)
+}
+
+// 폼 필드 그룹 (관리자가 생성)
+// 예: "개인정보 동의", "추가 인적사항" 등
+model FormFieldGroup {
+  formFieldGroupId String  @id @default(cuid())
+  groupTitle       String  // 그룹 제목
+  groupDescription String? // 그룹 설명
+  isRequired       Boolean @default(true) // 그룹 필수 여부
+  order            Int     @default(0) // 표시 순서
+
+  documentBoxId String
+  documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
+
+  formFields FormField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentBoxId])
+}
+
+// 폼 필드 정의 (개별 입력 항목)
+model FormField {
+  formFieldId String        @id @default(cuid())
+  fieldLabel  String        // 필드 레이블 (예: "생년월일")
+  fieldType   FormFieldType // 필드 타입
+  placeholder String?       // 플레이스홀더 텍스트
+  isRequired  Boolean       @default(true) // 필수 여부
+  order       Int           @default(0) // 필드 순서
+
+  // radio/checkbox 선택지 (JSON 배열)
+  // 형식: ["동의함", "동의하지 않음"]
+  options Json? @default("[]")
+
+  // 유효성 검사 규칙 (JSON, 확장용)
+  // 형식: {minLength: 1, maxLength: 100}
+  validation Json?
+
+  formFieldGroupId String
+  formFieldGroup   FormFieldGroup @relation(fields: [formFieldGroupId], references: [formFieldGroupId], onDelete: Cascade)
+
+  responses FormFieldResponse[]
+
+  @@index([formFieldGroupId])
+}
+
+// 폼 응답 (제출자가 입력)
+model FormFieldResponse {
+  formFieldResponseId String @id @default(cuid())
+  value               String // 응답 값 (string으로 통일)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  formFieldId String
+  formField   FormField @relation(fields: [formFieldId], references: [formFieldId], onDelete: Cascade)
+
+  submitterId String
+  submitter   Submitter @relation(fields: [submitterId], references: [submitterId], onDelete: Cascade)
+
+  @@unique([formFieldId, submitterId]) // 제출자당 필드별 1개 응답
+  @@index([submitterId])
+  @@index([formFieldId])
 }
 
 model ReminderLog {
