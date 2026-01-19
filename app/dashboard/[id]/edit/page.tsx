@@ -47,6 +47,24 @@ export default async function EditDocumentBoxPage({
         smsReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'SMS'),
         kakaoReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'PUSH'),
         status: documentBox.status,
+        // 폼 필드 그룹 데이터 (정보 입력 항목)
+        formFieldsAboveDocuments: documentBox.formFieldsAboveDocuments,
+        formFieldGroups: documentBox.formFieldGroups.map((group) => ({
+            id: group.formFieldGroupId,
+            groupTitle: group.groupTitle,
+            groupDescription: group.groupDescription || '',
+            isRequired: group.isRequired,
+            order: group.order,
+            fields: group.formFields.map((field) => ({
+                id: field.formFieldId,
+                fieldLabel: field.fieldLabel,
+                fieldType: field.fieldType,
+                placeholder: field.placeholder || '',
+                isRequired: field.isRequired,
+                order: field.order,
+                options: (field.options as string[]) || [],
+            })),
+        })),
     };
 
     return (

@@ -3,6 +3,7 @@
  */
 
 import type { Submitter, DocumentRequirement, TemplateFile, DocumentBoxStatus } from '@/lib/types/document';
+import type { FormFieldGroupData } from '@/lib/types/form-field';
 
 // ===== 초기 데이터 =====
 
@@ -16,6 +17,10 @@ export interface DocumentBoxInitialData {
   submittersEnabled: boolean;
   submitters: Submitter[];
   requirements: DocumentRequirement[];
+  /** 폼 필드 그룹 목록 */
+  formFieldGroups: FormFieldGroupData[];
+  /** 폼 필드 표시 위치 (true: 수집 서류 위, false: 아래) */
+  formFieldsAboveDocuments: boolean;
   deadline: string;
   reminderEnabled: boolean;
   emailReminder: boolean;
@@ -95,6 +100,21 @@ export interface UseRequirementsReturn {
   removeTemplateFromRequirement: (requirementId: string, index: number) => void;
 }
 
+// ===== useFormFieldGroups =====
+
+export interface UseFormFieldGroupsOptions {
+  initialData?: Pick<DocumentBoxInitialData, 'formFieldGroups' | 'formFieldsAboveDocuments'>;
+}
+
+export interface UseFormFieldGroupsReturn {
+  // 상태
+  formFieldGroups: FormFieldGroupData[];
+  formFieldsAboveDocuments: boolean;
+  // 액션
+  setFormFieldGroups: (groups: FormFieldGroupData[]) => void;
+  setFormFieldsAboveDocuments: (above: boolean) => void;
+}
+
 // ===== useSubmissionSettings =====
 
 export interface UseSubmissionSettingsOptions {
@@ -130,6 +150,8 @@ export interface SubmitFormParams {
   submittersEnabled: boolean;
   submitters: Submitter[];
   requirements: DocumentRequirement[];
+  formFieldGroups: FormFieldGroupData[];
+  formFieldsAboveDocuments: boolean;
   deadline: Date | undefined;
   reminderEnabled: boolean;
   emailReminder: boolean;
@@ -178,6 +200,7 @@ export interface UseDocumentBoxFormReturn
     Omit<UseTemplateFilesReturn, 'handleTemplateFileSelect' | 'handleTemplateFileRemove' | 'uploadTemplateFiles' | 'clearTemplateFiles'>,
     Omit<UseSubmittersReturn, 'handleSubmittersEnabledChange'>,
     Omit<UseRequirementsReturn, 'addTemplateToRequirement' | 'removeTemplateFromRequirement'>,
+    UseFormFieldGroupsReturn,
     UseSubmissionSettingsReturn,
     Omit<UseFormSubmissionReturn, 'submitForm'> {
   // 오버라이드된 핸들러

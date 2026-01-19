@@ -15,6 +15,7 @@ import type { TemplateFile } from '@/lib/types/document';
 // 분리된 섹션 컴포넌트들
 import { BasicInfoCard } from './document-registration/BasicInfoCard';
 import { SubmitterRegistrationCard } from './document-registration/SubmitterRegistrationCard';
+import { FormFieldGroupsCard } from './document-registration/FormFieldGroupsCard';
 import { DocumentRequirementsCard } from './document-registration/DocumentRequirementsCard';
 import { SubmissionSettingsCard } from './document-registration/SubmissionSettingsCard';
 import {
@@ -152,6 +153,18 @@ export default function DocumentRegistrationForm({
               submitters={form.submitters}
               onSubmittersChange={form.setSubmitters}
               isEditMode={form.isEditMode}
+            />
+          </div>
+
+          <div className="mx-6 border-t border-gray-200 rounded-full" />
+
+          {/* 정보 입력 항목 섹션 */}
+          <div className="px-6 py-6">
+            <FormFieldGroupsCard
+              formFieldGroups={form.formFieldGroups}
+              onFormFieldGroupsChange={form.setFormFieldGroups}
+              formFieldsAboveDocuments={form.formFieldsAboveDocuments}
+              onFormFieldsAboveDocumentsChange={form.setFormFieldsAboveDocuments}
             />
           </div>
 

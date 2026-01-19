@@ -9,6 +9,7 @@ import { useBasicInfo } from './useBasicInfo';
 import { useTemplateFiles } from './useTemplateFiles';
 import { useSubmitters } from './useSubmitters';
 import { useRequirements } from './useRequirements';
+import { useFormFieldGroups } from './useFormFieldGroups';
 import { useSubmissionSettings } from './useSubmissionSettings';
 import { useFormSubmission } from './useFormSubmission';
 
@@ -40,6 +41,7 @@ export function useDocumentBoxForm(
   const templateFilesHook = useTemplateFiles();
   const submittersHook = useSubmitters({ initialData });
   const requirementsHook = useRequirements({ initialData });
+  const formFieldGroupsHook = useFormFieldGroups({ initialData });
   const submissionSettings = useSubmissionSettings({ initialData });
   const formSubmission = useFormSubmission();
 
@@ -139,6 +141,8 @@ export function useDocumentBoxForm(
         submittersEnabled: submittersHook.submittersEnabled,
         submitters: submittersHook.submitters,
         requirements: requirementsHook.requirements,
+        formFieldGroups: formFieldGroupsHook.formFieldGroups,
+        formFieldsAboveDocuments: formFieldGroupsHook.formFieldsAboveDocuments,
         deadline: submissionSettings.deadline,
         reminderEnabled: submissionSettings.reminderEnabled,
         emailReminder: submissionSettings.emailReminder,
@@ -166,6 +170,7 @@ export function useDocumentBoxForm(
       basicInfo,
       submittersHook,
       requirementsHook,
+      formFieldGroupsHook,
       submissionSettings,
       formSubmission,
       reopenConfirmed,
@@ -226,6 +231,12 @@ export function useDocumentBoxForm(
     // 서류 요구사항
     requirements: requirementsHook.requirements,
     setRequirements: requirementsHook.setRequirements,
+
+    // 폼 필드 그룹
+    formFieldGroups: formFieldGroupsHook.formFieldGroups,
+    formFieldsAboveDocuments: formFieldGroupsHook.formFieldsAboveDocuments,
+    setFormFieldGroups: formFieldGroupsHook.setFormFieldGroups,
+    setFormFieldsAboveDocuments: formFieldGroupsHook.setFormFieldsAboveDocuments,
 
     // 제출 설정
     deadline: submissionSettings.deadline,

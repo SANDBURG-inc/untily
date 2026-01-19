@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse, TemplateFile } from '@/lib/types/document';
+import type { FormFieldGroupData } from '@/lib/types/form-field';
 import { deleteMultipleFromS3 } from '@/lib/s3/delete';
 import { createTemplateZip, deleteTemplateZip, hasTemplatesChanged } from '@/lib/s3/zip';
 import { S3_BUCKET, S3_REGION } from '@/lib/s3/client';
@@ -60,7 +61,12 @@ export async function PUT(
             );
         }
 
-        const body: CreateDocumentBoxRequest & { force?: boolean; changeStatusToOpen?: boolean } = await request.json();
+        const body: CreateDocumentBoxRequest & {
+            formFieldGroups?: FormFieldGroupData[];
+            formFieldsAboveDocuments?: boolean;
+            force?: boolean;
+            changeStatusToOpen?: boolean;
+        } = await request.json();
         const {
             documentName,
             description,
@@ -68,6 +74,8 @@ export async function PUT(
             submittersEnabled,
             submitters,
             requirements,
+            formFieldGroups,
+            formFieldsAboveDocuments,
             deadline,
             reminderEnabled,
             emailReminder,
@@ -110,6 +118,7 @@ export async function PUT(
                     boxTitle: documentName,
                     boxDescription: description || null,
                     endDate,
+                    formFieldsAboveDocuments: formFieldsAboveDocuments ?? false,
                     // 기한 연장으로 다시 열기 확인 시 상태를 OPEN으로 변경
                     ...(changeStatusToOpen && { status: 'OPEN' }),
                 },
@@ -418,6 +427,42 @@ export async function PUT(
                     await tx.documentBoxRemindType.createMany({
                         data: remindTypes,
                     });
+                }
+            }
+
+            // Form field groups 처리: 기존 그룹 삭제 후 새로 생성
+            // FormFieldResponse는 FormField에 cascade 연결되어 자동 삭제됨
+            await tx.formFieldGroup.deleteMany({
+                where: { documentBoxId: id },
+            });
+
+            // 새 폼 필드 그룹 생성
+            if (formFieldGroups && formFieldGroups.length > 0) {
+                for (const group of formFieldGroups) {
+                    const createdGroup = await tx.formFieldGroup.create({
+                        data: {
+                            groupTitle: group.groupTitle,
+                            groupDescription: group.groupDescription || null,
+                            isRequired: group.isRequired,
+                            order: group.order,
+                            documentBoxId: box.documentBoxId,
+                        },
+                    });
+
+                    // 그룹 내 폼 필드 생성
+                    if (group.fields && group.fields.length > 0) {
+                        await tx.formField.createMany({
+                            data: group.fields.map((field) => ({
+                                fieldLabel: field.fieldLabel,
+                                fieldType: field.fieldType,
+                                placeholder: field.placeholder || null,
+                                isRequired: field.isRequired,
+                                order: field.order,
+                                options: JSON.parse(JSON.stringify(field.options || [])),
+                                formFieldGroupId: createdGroup.formFieldGroupId,
+                            })),
+                        });
+                    }
                 }
             }
 
