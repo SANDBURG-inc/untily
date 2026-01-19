@@ -36,7 +36,7 @@ import "server-only";
 
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import prisma from '@/lib/db';
-import type { DocumentBox, RequiredDocument, Submitter, SubmitterStatus, SubmittedDocument } from '@/lib/generated/prisma/client';
+import type { DocumentBox, RequiredDocument, Submitter, SubmitterStatus, SubmittedDocument, FormFieldGroup, FormField, FormFieldResponse } from '@/lib/generated/prisma/client';
 import type { AuthenticatedUser } from '@/lib/auth';
 import { getLogoForDocumentBox } from '@/lib/queries/logo';
 import { hasReceivedReminderAfterDeadline } from '@/lib/queries/reminder';
@@ -62,13 +62,15 @@ export type SubmitterAuthResult =
   | { status: 'expired'; documentBox: DocumentBox };
 
 /**
- * DocumentBox, RequiredDocument, SubmittedDocument를 포함한 Submitter 타입
+ * DocumentBox, RequiredDocument, SubmittedDocument, FormFieldGroups를 포함한 Submitter 타입
  */
 export type SubmitterWithDocumentBox = Submitter & {
   documentBox: DocumentBox & {
     requiredDocuments: RequiredDocument[];
+    formFieldGroups: (FormFieldGroup & { formFields: FormField[] })[];
   };
   submittedDocuments: SubmittedDocument[];
+  formFieldResponses: FormFieldResponse[];
 };
 
 /**
@@ -91,16 +93,23 @@ export async function validateSubmitterAuth(
   documentBoxId: string,
   submitterId: string
 ): Promise<SubmitterAuthResult> {
-  // 1. 문서함 조회 (제출자, 필수서류, 제출서류 포함)
+  // 1. 문서함 조회 (제출자, 필수서류, 제출서류, 폼필드그룹, 폼응답 포함)
   const documentBox = await prisma.documentBox.findUnique({
     where: { documentBoxId },
     include: {
       submitters: {
         include: {
           submittedDocuments: true,
+          formFieldResponses: true,
         },
       },
       requiredDocuments: true,
+      formFieldGroups: {
+        include: {
+          formFields: true,
+        },
+        orderBy: { order: 'asc' },
+      },
     },
   });
 
@@ -144,8 +153,10 @@ export async function validateSubmitterAuth(
     documentBox: {
       ...documentBox,
       requiredDocuments: documentBox.requiredDocuments,
+      formFieldGroups: documentBox.formFieldGroups,
     },
     submittedDocuments: submitter.submittedDocuments,
+    formFieldResponses: submitter.formFieldResponses,
   };
 
   // 4. 로고 URL 조회

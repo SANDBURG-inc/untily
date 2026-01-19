@@ -33,6 +33,31 @@ export default async function UploadPage({ params }: UploadPageProps) {
     allowMultipleFiles: doc.allowMultipleFiles,
   }));
 
+  // 폼 필드 그룹 변환 (Prisma → FormFieldGroupData)
+  const formFieldGroups = submitter.documentBox.formFieldGroups.map((group) => ({
+    id: group.formFieldGroupId,
+    groupTitle: group.groupTitle,
+    groupDescription: group.groupDescription || undefined,
+    isRequired: group.isRequired,
+    order: group.order,
+    fields: group.formFields.map((field) => ({
+      id: field.formFieldId,
+      fieldLabel: field.fieldLabel,
+      fieldType: field.fieldType,
+      placeholder: field.placeholder || undefined,
+      isRequired: field.isRequired,
+      order: field.order,
+      options: (field.options as string[]) || [],
+      validation: field.validation as { minLength?: number; maxLength?: number; pattern?: string; patternMessage?: string } | undefined,
+    })),
+  }));
+
+  // 기존 폼 응답 변환
+  const initialFormResponses = submitter.formFieldResponses.map((response) => ({
+    formFieldId: response.formFieldId,
+    value: response.value,
+  }));
+
   return (
     <UploadForm
       documentBox={{
@@ -51,6 +76,9 @@ export default async function UploadPage({ params }: UploadPageProps) {
       }}
       documentBoxId={documentBoxId}
       submitterId={submitterId}
+      formFieldGroups={formFieldGroups}
+      formFieldsAboveDocuments={submitter.documentBox.formFieldsAboveDocuments}
+      initialFormResponses={initialFormResponses}
     />
   );
 }

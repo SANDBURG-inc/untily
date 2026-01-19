@@ -8,7 +8,10 @@ import { SubmitActionFooter } from '@/app/submit/_components';
 import InfoCard from './InfoCard';
 import SubmitterInfoCard from '@/app/submit/[documentBoxId]/checkout/_components/SubmitterInfoCard';
 import EditableFileListCard from '@/app/submit/[documentBoxId]/checkout/_components/EditableFileListCard';
+import FormResponseCard from '@/app/submit/[documentBoxId]/checkout/_components/FormResponseCard';
 import type { UploadedDocument } from '@/components/submit/upload/DocumentUploadItem';
+import type { FormFieldGroupData, FormFieldResponseData } from '@/lib/types/form-field';
+import { getIncompleteFormFields } from '@/lib/types/form-field';
 
 interface RequiredDocument {
   requiredDocumentId: string;
@@ -38,12 +41,18 @@ interface CheckoutViewProps {
     submittedDocuments: SubmittedDocument[];
   };
   documentBoxId: string;
+  /** 폼 필드 그룹 목록 */
+  formFieldGroups?: FormFieldGroupData[];
+  /** 폼 응답 목록 */
+  formResponses?: FormFieldResponseData[];
 }
 
 export default function CheckoutView({
   documentBox,
   submitter: initialSubmitter,
   documentBoxId,
+  formFieldGroups = [],
+  formResponses = [],
 }: CheckoutViewProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,7 +80,14 @@ export default function CheckoutView({
     const uploads = uploadedFilesMap.get(doc.requiredDocumentId);
     return !uploads || uploads.length === 0;
   });
-  const canSubmit = missingRequiredDocs.length === 0;
+  const allDocsUploaded = missingRequiredDocs.length === 0;
+
+  // 필수 폼 필드 검증
+  const incompleteFormFields = getIncompleteFormFields(formFieldGroups, formResponses);
+  const allFormsCompleted = incompleteFormFields.length === 0;
+
+  // 최종 제출 가능 여부
+  const canSubmit = allDocsUploaded && allFormsCompleted;
 
   const handleSave = () => {
     router.push(`/submit/${documentBoxId}/${initialSubmitter.submitterId}`);
@@ -93,8 +109,16 @@ export default function CheckoutView({
   }, []);
 
   const handleSubmit = async () => {
-    if (!canSubmit) {
+    // 서류 검증
+    if (!allDocsUploaded) {
       setError('필수 서류를 모두 업로드해주세요.');
+      return;
+    }
+
+    // 폼 필드 검증
+    if (!allFormsCompleted) {
+      const firstIncomplete = incompleteFormFields[0];
+      setError(`필수 입력 항목을 모두 작성해주세요: ${firstIncomplete.groupTitle} - ${firstIncomplete.fieldLabel}`);
       return;
     }
 
@@ -178,6 +202,16 @@ export default function CheckoutView({
           editable={false}
           className="mb-4"
         />
+
+        {/* 입력 정보 (폼 응답) */}
+        {formFieldGroups.length > 0 && (
+          <FormResponseCard
+            title="입력 정보"
+            formFieldGroups={formFieldGroups}
+            formResponses={formResponses}
+            className="mb-4"
+          />
+        )}
 
         {/* 업로드한 파일 */}
         <EditableFileListCard

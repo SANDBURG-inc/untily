@@ -73,7 +73,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. 제출 완료 처리
+    // 8. 필수 폼 필드 응답 확인
+    const formFieldGroups = await prisma.formFieldGroup.findMany({
+      where: {
+        documentBoxId: submitter.documentBox.documentBoxId,
+        isRequired: true,
+      },
+      include: {
+        formFields: {
+          where: { isRequired: true },
+        },
+      },
+    });
+
+    const formResponses = await prisma.formFieldResponse.findMany({
+      where: { submitterId },
+    });
+
+    const responseMap = new Map(formResponses.map((r) => [r.formFieldId, r.value]));
+
+    for (const group of formFieldGroups) {
+      for (const field of group.formFields) {
+        const response = responseMap.get(field.formFieldId);
+
+        // 응답이 없거나 빈 값인 경우
+        if (!response || response.trim() === '') {
+          return NextResponse.json(
+            { error: `필수 항목 "${field.fieldLabel}"을(를) 입력해주세요.` },
+            { status: 400 }
+          );
+        }
+
+        // CHECKBOX 필수 동의 검증
+        if (field.fieldType === 'CHECKBOX' && response !== 'true') {
+          return NextResponse.json(
+            { error: `"${field.fieldLabel}" 동의가 필요합니다.` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // 9. 제출 완료 처리
     await prisma.submitter.update({
       where: { submitterId },
       data: {

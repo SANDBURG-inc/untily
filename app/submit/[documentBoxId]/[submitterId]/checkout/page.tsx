@@ -25,6 +25,31 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
     redirect(`/submit/${documentBoxId}/${submitterId}/upload`);
   }
 
+  // 폼 필드 그룹 변환 (Prisma → FormFieldGroupData)
+  const formFieldGroups = submitter.documentBox.formFieldGroups.map((group) => ({
+    id: group.formFieldGroupId,
+    groupTitle: group.groupTitle,
+    groupDescription: group.groupDescription || undefined,
+    isRequired: group.isRequired,
+    order: group.order,
+    fields: group.formFields.map((field) => ({
+      id: field.formFieldId,
+      fieldLabel: field.fieldLabel,
+      fieldType: field.fieldType,
+      placeholder: field.placeholder || undefined,
+      isRequired: field.isRequired,
+      order: field.order,
+      options: (field.options as string[]) || [],
+      validation: field.validation as { minLength?: number; maxLength?: number; pattern?: string; patternMessage?: string } | undefined,
+    })),
+  }));
+
+  // 폼 응답 변환
+  const formResponses = submitter.formFieldResponses.map((response) => ({
+    formFieldId: response.formFieldId,
+    value: response.value,
+  }));
+
   // 인증 완료 → 체크아웃 뷰 표시
   return (
     <CheckoutView
@@ -51,6 +76,8 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
         })),
       }}
       documentBoxId={documentBoxId}
+      formFieldGroups={formFieldGroups}
+      formResponses={formResponses}
     />
   );
 }
