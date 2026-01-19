@@ -193,6 +193,13 @@ export function TemplateSaveDialog({
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
+                            onKeyDown={(e) => {
+                                // 엔터 키로 저장 (IME 조합 중이 아닐 때만)
+                                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                                    e.preventDefault();
+                                    handleSave();
+                                }
+                            }}
                             placeholder={
                                 saveMode === 'update'
                                     ? existingTemplateName

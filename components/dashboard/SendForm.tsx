@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { DocumentBoxStatus } from "@/lib/types/document";
 import { DocumentBoxStatusChangeDialog } from "@/components/shared/DocumentBoxStatusChangeDialog";
-import { EmailPreviewEditable } from "@/components/email-editor/EmailPreviewEditable";
+import { EmailPreviewEditable, type EmailPreviewEditableRef } from "@/components/email-editor/EmailPreviewEditable";
 
 interface Submitter {
     submitterId: string;
@@ -54,6 +54,9 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxD
         footerHtml: '',
     });
 
+    // 이메일 미리보기 편집 상태 ref
+    const emailPreviewRef = useRef<EmailPreviewEditableRef>(null);
+
     const handleTemplateChange = (greetingHtml: string, footerHtml: string) => {
         templateRef.current = { greetingHtml, footerHtml };
     };
@@ -90,6 +93,16 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxD
         if (selectedIds.length === 0) {
             alert("수신자를 한 명 이상 선택해주세요.");
             return;
+        }
+
+        // 편집 모드일 때 저장 여부 확인
+        if (emailPreviewRef.current?.isEditing) {
+            const confirmSend = confirm("템플릿 변경내용이 저장되지 않았습니다. 저장하지 않고 보내시겠습니까?");
+            if (!confirmSend) {
+                // 취소 시 편집 버튼 영역으로 스크롤
+                emailPreviewRef.current.scrollToEditButtons();
+                return;
+            }
         }
 
         // OPEN 상태가 아니면 확인 Dialog 표시
@@ -195,6 +208,7 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxD
 
             {/* Email Preview - Editable */}
             <EmailPreviewEditable
+                ref={emailPreviewRef}
                 documentBoxId={documentBoxId}
                 documentBoxTitle={documentBoxTitle}
                 documentBoxDescription={documentBoxDescription}

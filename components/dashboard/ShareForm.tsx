@@ -73,11 +73,11 @@ export function ShareForm({
 
             const plainText = `[리마인드] ${documentBoxTitle} 서류 제출\n\n${documentBoxDescription || '아래 문서 제출을 요청드립니다.'}\n\n마감일: ${new Date(endDate).toISOString().split('T')[0]}\n\n제출 링크: ${shareLink}`;
 
-            // Create blobs for both HTML and plain text
+            // HTML과 텍스트 형식의 Blob 생성
             const htmlBlob = new Blob([emailHtml], { type: 'text/html' });
             const textBlob = new Blob([plainText], { type: 'text/plain' });
 
-            // Use the Clipboard API to write both formats
+            // Clipboard API로 두 형식 모두 복사
             await navigator.clipboard.write([
                 new ClipboardItem({
                     ['text/html']: htmlBlob,
@@ -107,7 +107,7 @@ export function ShareForm({
             }
         } catch (err) {
             console.error('Failed to copy email:', err);
-            // Fallback to plain text if ClipboardItem is not supported
+            // ClipboardItem 미지원 시 텍스트만 복사 (폴백)
             try {
                 const plainText = `[리마인드] ${documentBoxTitle} 서류 제출\n\n${documentBoxDescription || '아래 문서 제출을 요청드립니다.'}\n\n마감일: ${new Date(endDate).toISOString().split('T')[0]}\n\n제출 링크: ${shareLink}`;
                 await navigator.clipboard.writeText(plainText);
@@ -127,7 +127,7 @@ export function ShareForm({
                 align="center"
             />
 
-            {/* Email Preview Section - Editable */}
+            {/* 이메일 미리보기 (편집 가능) */}
             <ShareEmailPreviewEditable
                 documentBoxId={documentBoxId}
                 documentBoxTitle={documentBoxTitle}
@@ -142,7 +142,7 @@ export function ShareForm({
                 copiedLink={copiedLink}
             />
 
-            {/* Requested Documents Section */}
+            {/* 요청 서류 섹션 */}
             <div className="mb-8">
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <span className="text-lg">📄</span> 요청 서류(총 {requiredDocuments.length}개)
@@ -162,7 +162,7 @@ export function ShareForm({
                 </div>
             </div>
 
-            {/* Bottom Actions */}
+            {/* 하단 버튼 */}
             <div className="flex items-center gap-3">
                 <button
                     onClick={() => router.back()}

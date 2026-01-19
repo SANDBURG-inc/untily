@@ -1,13 +1,33 @@
 'use client';
 
 /**
- * 편집 가능한 이메일 미리보기 컴포넌트
+ * ============================================================================
+ * SendForm용 편집 가능한 이메일 미리보기 컴포넌트
+ * ============================================================================
  *
- * SendForm에서 사용되며, 인사말/아랫말 편집 기능을 제공합니다.
- * 수정 아이콘을 클릭하면 편집 모드로 전환됩니다.
+ * @description
+ * SendForm(문서 제출 요청 발송 페이지)에서 사용되는 이메일 미리보기입니다.
+ * 인사말/아랫말 편집 기능과 템플릿 선택 기능을 제공합니다.
+ *
+ * @features
+ * - 이메일 미리보기 표시
+ * - 인사말/아랫말 편집 (EmailEditor 사용)
+ * - 템플릿 선택/저장 (EmailTemplateSelector 사용)
+ * - 마지막 사용 템플릿 자동 로드
+ *
+ * @relatedFiles
+ * - EmailEditor.tsx - 실제 편집에 사용되는 TipTap 에디터
+ * - EmailEditorToolbar.tsx - 에디터 툴바
+ * - EmailTemplateSelector.tsx - 템플릿 선택/저장 UI
+ * - ShareEmailPreviewEditable.tsx - ShareForm용 미리보기 (유사한 구조)
+ * - PlaceholderTag.tsx - 변수 하이라이트 표시
+ *
+ * @knownIssues
+ * - 편집 모드가 아닐 때 스타일이 표시되지 않는 문제
+ *   → email-preview-content 클래스와 CSS로 해결
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useImperativeHandle, forwardRef } from 'react';
 import { SquarePen, X, Check } from 'lucide-react';
 import { EmailEditor } from './EmailEditor';
 import { EmailTemplateSelector } from './EmailTemplateSelector';
@@ -52,7 +72,15 @@ interface EmailPreviewEditableProps {
     onTemplateChange: (greetingHtml: string, footerHtml: string) => void;
 }
 
-export function EmailPreviewEditable({
+/** ref를 통해 노출되는 메서드 */
+export interface EmailPreviewEditableRef {
+    /** 현재 편집 중인지 여부 */
+    isEditing: boolean;
+    /** 편집 버튼 영역으로 스크롤 및 포커스 */
+    scrollToEditButtons: () => void;
+}
+
+export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPreviewEditableProps>(function EmailPreviewEditable({
     documentBoxId,
     documentBoxTitle,
     documentBoxDescription,
@@ -61,9 +89,21 @@ export function EmailPreviewEditable({
     submissionLink,
     type,
     onTemplateChange,
-}: EmailPreviewEditableProps) {
+}, ref) {
     // 상태 관리
     const [isEditing, setIsEditing] = useState(false);
+    const editButtonsRef = useRef<HTMLDivElement>(null);
+
+    // ref를 통해 외부에서 접근 가능한 메서드 노출
+    useImperativeHandle(ref, () => ({
+        isEditing,
+        scrollToEditButtons: () => {
+            editButtonsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // 취소/완료 버튼 중 첫 번째 버튼에 포커스
+            const firstButton = editButtonsRef.current?.querySelector('button');
+            setTimeout(() => firstButton?.focus(), 300);
+        },
+    }), [isEditing]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
     const [greetingHtml, setGreetingHtml] = useState(DEFAULT_GREETING_HTML);
     const [footerHtml, setFooterHtml] = useState(DEFAULT_FOOTER_HTML);
@@ -180,7 +220,7 @@ export function EmailPreviewEditable({
                             수정
                         </button>
                     ) : (
-                        <div className="flex items-center gap-1">
+                        <div ref={editButtonsRef} className="flex items-center gap-1">
                             <button
                                 type="button"
                                 onClick={cancelEdit}
@@ -215,27 +255,16 @@ export function EmailPreviewEditable({
                 {/* 본문 */}
                 <div className="p-6 bg-white">
                     {/* 인사말 (편집 가능) */}
-                    <div
-                        className={
-                            isEditing
-                                ? 'border-2 border-blue-300 rounded-lg p-3 mb-4 bg-blue-50/30'
-                                : 'mb-4'
-                        }
-                    >
+                    <div className="mb-4">
                         {isEditing ? (
-                            <div>
-                                <div className="text-xs font-medium text-blue-600 mb-2">
-                                    인사말 (편집 가능)
-                                </div>
-                                <EmailEditor
-                                    content={greetingHtml}
-                                    onChange={setGreetingHtml}
-                                    placeholder="인사말을 입력하세요..."
-                                />
-                            </div>
+                            <EmailEditor
+                                content={greetingHtml}
+                                onChange={setGreetingHtml}
+                                placeholder="인사말을 입력하세요..."
+                            />
                         ) : (
                             <div
-                                className="text-sm text-gray-700"
+                                className="text-sm text-gray-700 email-preview-content"
                                 dangerouslySetInnerHTML={{
                                     __html: highlightPlaceholders(greetingHtml),
                                 }}
@@ -250,35 +279,85 @@ export function EmailPreviewEditable({
                     />
 
                     {/* 아랫말 (편집 가능) */}
-                    <div
-                        className={
-                            isEditing
-                                ? 'border-2 border-blue-300 rounded-lg p-3 mt-4 bg-blue-50/30'
-                                : 'mt-4'
-                        }
-                    >
+                    <div className="mt-4">
                         {isEditing ? (
-                            <div>
-                                <div className="text-xs font-medium text-blue-600 mb-2">
-                                    아랫말 (편집 가능)
-                                </div>
-                                <EmailEditor
-                                    content={footerHtml}
-                                    onChange={setFooterHtml}
-                                    placeholder="아랫말을 입력하세요..."
-                                />
-                            </div>
+                            <EmailEditor
+                                content={footerHtml}
+                                onChange={setFooterHtml}
+                                placeholder="아랫말을 입력하세요..."
+                            />
                         ) : (
                             <div
-                                className="text-xs text-gray-500"
+                                className="text-xs text-gray-500 email-preview-content"
                                 dangerouslySetInnerHTML={{
-                                    __html: footerHtml,
+                                    __html: highlightPlaceholders(footerHtml),
                                 }}
                             />
                         )}
                     </div>
                 </div>
             </div>
+
+            {/*
+             * ================================================================
+             * 미리보기용 CSS 스타일
+             * ================================================================
+             *
+             * @problem
+             * 편집 모드가 아닐 때(dangerouslySetInnerHTML로 렌더링)
+             * 불렛/숫자/링크/하이라이트가 표시되지 않음.
+             *
+             * @solution
+             * email-preview-content 클래스에 필요한 스타일 정의.
+             * EmailEditor.tsx의 .email-editor .ProseMirror 스타일과 동일하게 유지.
+             *
+             * @relatedFiles
+             * - EmailEditor.tsx의 <style jsx global> 섹션
+             * - ShareEmailPreviewEditable.tsx의 동일한 스타일
+             * - lib/tiptap/html-utils.ts의 sanitizeHtmlForEmail()
+             */}
+            <style jsx global>{`
+                /* 불렛 리스트 */
+                .email-preview-content ul {
+                    list-style-type: disc;
+                    padding-left: 1.5rem;
+                    margin: 0 0 8px 0;
+                }
+                /* 순서 리스트 */
+                .email-preview-content ol {
+                    list-style-type: decimal;
+                    padding-left: 1.5rem;
+                    margin: 0 0 8px 0;
+                }
+                .email-preview-content li {
+                    margin-bottom: 4px;
+                }
+                .email-preview-content li p {
+                    margin: 0;
+                }
+                /* 링크 */
+                .email-preview-content a {
+                    color: #2563eb;
+                    text-decoration: underline;
+                }
+                .email-preview-content a:hover {
+                    color: #1d4ed8;
+                }
+                /* 형광펜 (하이라이트) */
+                .email-preview-content mark {
+                    background-color: #fef08a;
+                    padding: 0.125rem 0.25rem;
+                    border-radius: 0.125rem;
+                }
+                /* 인용 */
+                .email-preview-content blockquote {
+                    border-left: 3px solid #d1d5db;
+                    padding-left: 1rem;
+                    margin: 0 0 8px 0;
+                    color: #6b7280;
+                    font-style: italic;
+                }
+            `}</style>
         </div>
     );
-}
+});

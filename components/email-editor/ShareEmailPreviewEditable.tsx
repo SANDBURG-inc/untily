@@ -1,9 +1,32 @@
 'use client';
 
 /**
+ * ============================================================================
  * ShareForm용 편집 가능한 이메일 미리보기 컴포넌트
+ * ============================================================================
  *
- * 현재 ShareForm의 UI 스타일을 유지하면서 인사말/아랫말 편집 기능을 제공합니다.
+ * @description
+ * ShareForm(문서함 공유 페이지)에서 사용되는 이메일 미리보기입니다.
+ * 인사말/아랫말 편집 기능, 템플릿 선택, 메일/링크 복사 기능을 제공합니다.
+ *
+ * @features
+ * - 이메일 미리보기 표시 (ShareForm 스타일)
+ * - 인사말/아랫말 편집 (EmailEditor 사용)
+ * - 템플릿 선택/저장 (EmailTemplateSelector 사용)
+ * - 메일 복사 버튼
+ * - 링크 복사 버튼
+ * - 마지막 사용 템플릿 자동 로드
+ *
+ * @relatedFiles
+ * - EmailEditor.tsx - 실제 편집에 사용되는 TipTap 에디터
+ * - EmailEditorToolbar.tsx - 에디터 툴바
+ * - EmailTemplateSelector.tsx - 템플릿 선택/저장 UI
+ * - EmailPreviewEditable.tsx - SendForm용 미리보기 (유사한 구조)
+ * - PlaceholderTag.tsx - 변수 하이라이트 표시
+ *
+ * @knownIssues
+ * - 편집 모드가 아닐 때 스타일이 표시되지 않는 문제
+ *   → email-preview-content 클래스와 CSS로 해결
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -221,27 +244,16 @@ export function ShareEmailPreviewEditable({
 
                 <div className="space-y-4 max-w-2xl">
                     {/* 인사말 (편집 가능) */}
-                    <div
-                        className={
-                            isEditing
-                                ? 'border-2 border-blue-300 rounded-lg p-3 bg-blue-50/30'
-                                : ''
-                        }
-                    >
+                    <div>
                         {isEditing ? (
-                            <div>
-                                <div className="text-xs font-medium text-blue-600 mb-2">
-                                    인사말 (편집 가능)
-                                </div>
-                                <EmailEditor
-                                    content={greetingHtml}
-                                    onChange={setGreetingHtml}
-                                    placeholder="인사말을 입력하세요..."
-                                />
-                            </div>
+                            <EmailEditor
+                                content={greetingHtml}
+                                onChange={setGreetingHtml}
+                                placeholder="인사말을 입력하세요..."
+                            />
                         ) : (
                             <div
-                                className="text-sm text-slate-700"
+                                className="text-sm text-slate-700 email-preview-content"
                                 dangerouslySetInnerHTML={{
                                     __html: highlightPlaceholders(greetingHtml),
                                 }}
@@ -280,29 +292,18 @@ export function ShareEmailPreviewEditable({
                     </div>
 
                     {/* 아랫말 (편집 가능) */}
-                    <div
-                        className={
-                            isEditing
-                                ? 'border-2 border-blue-300 rounded-lg p-3 bg-blue-50/30'
-                                : ''
-                        }
-                    >
+                    <div>
                         {isEditing ? (
-                            <div>
-                                <div className="text-xs font-medium text-blue-600 mb-2">
-                                    아랫말 (편집 가능)
-                                </div>
-                                <EmailEditor
-                                    content={footerHtml}
-                                    onChange={setFooterHtml}
-                                    placeholder="아랫말을 입력하세요..."
-                                />
-                            </div>
+                            <EmailEditor
+                                content={footerHtml}
+                                onChange={setFooterHtml}
+                                placeholder="아랫말을 입력하세요..."
+                            />
                         ) : (
                             <div
-                                className="text-xs text-slate-500"
+                                className="text-xs text-slate-500 email-preview-content"
                                 dangerouslySetInnerHTML={{
-                                    __html: footerHtml,
+                                    __html: highlightPlaceholders(footerHtml),
                                 }}
                             />
                         )}
@@ -328,6 +329,67 @@ export function ShareEmailPreviewEditable({
                     </div>
                 </div>
             </div>
+
+            {/*
+             * ================================================================
+             * 미리보기용 CSS 스타일
+             * ================================================================
+             *
+             * @problem
+             * 편집 모드가 아닐 때(dangerouslySetInnerHTML로 렌더링)
+             * 불렛/숫자/링크/하이라이트가 표시되지 않음.
+             *
+             * @solution
+             * email-preview-content 클래스에 필요한 스타일 정의.
+             * EmailEditor.tsx의 .email-editor .ProseMirror 스타일과 동일하게 유지.
+             *
+             * @relatedFiles
+             * - EmailEditor.tsx의 <style jsx global> 섹션
+             * - EmailPreviewEditable.tsx의 동일한 스타일
+             * - lib/tiptap/html-utils.ts의 sanitizeHtmlForEmail()
+             */}
+            <style jsx global>{`
+                /* 불렛 리스트 */
+                .email-preview-content ul {
+                    list-style-type: disc;
+                    padding-left: 1.5rem;
+                    margin: 0 0 8px 0;
+                }
+                /* 순서 리스트 */
+                .email-preview-content ol {
+                    list-style-type: decimal;
+                    padding-left: 1.5rem;
+                    margin: 0 0 8px 0;
+                }
+                .email-preview-content li {
+                    margin-bottom: 4px;
+                }
+                .email-preview-content li p {
+                    margin: 0;
+                }
+                /* 링크 */
+                .email-preview-content a {
+                    color: #2563eb;
+                    text-decoration: underline;
+                }
+                .email-preview-content a:hover {
+                    color: #1d4ed8;
+                }
+                /* 형광펜 (하이라이트) */
+                .email-preview-content mark {
+                    background-color: #fef08a;
+                    padding: 0.125rem 0.25rem;
+                    border-radius: 0.125rem;
+                }
+                /* 인용 */
+                .email-preview-content blockquote {
+                    border-left: 3px solid #d1d5db;
+                    padding-left: 1rem;
+                    margin: 0 0 8px 0;
+                    color: #6b7280;
+                    font-style: italic;
+                }
+            `}</style>
         </div>
     );
 }

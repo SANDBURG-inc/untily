@@ -3,7 +3,7 @@
 /**
  * 플레이스홀더 태그 컴포넌트
  *
- * {제출자} 같은 플레이스홀더를 시각적으로 강조해서 표시합니다.
+ * {제출자_이름} 같은 플레이스홀더를 시각적으로 강조해서 표시합니다.
  */
 
 import { User } from 'lucide-react';
@@ -31,11 +31,11 @@ export function PlaceholderTag({ name, small = false }: PlaceholderTagProps) {
 /**
  * HTML 문자열에서 플레이스홀더를 시각적으로 강조된 형태로 변환
  *
- * 예: "안녕하세요 {제출자}님" → "안녕하세요 <span class='placeholder'>제출자</span>님"
+ * 예: "안녕하세요 {제출자_이름}님" → "안녕하세요 <span class='placeholder'>제출자_이름</span>님"
  */
 export function highlightPlaceholders(html: string): string {
     return html.replace(
-        /\{(제출자)\}/g,
+        /\{(제출자_이름)\}/g,
         '<span class="inline-flex items-center gap-1 bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 text-xs font-medium align-middle">$1</span>'
     );
 }

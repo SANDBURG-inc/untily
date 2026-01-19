@@ -5,16 +5,18 @@
  * 인사말/아랫말은 커스텀 가능하고, 문서함 정보는 자동 생성됩니다.
  */
 
+import { sanitizeHtmlForEmail } from '@/lib/tiptap/html-utils';
+
 // ============================================================================
 // 기본 템플릿 상수
 // ============================================================================
 
 /**
  * 기본 인사말 HTML
- * {제출자} 플레이스홀더는 발송 시 실제 이름으로 치환됩니다.
+ * {제출자_이름} 플레이스홀더는 발송 시 실제 이름으로 치환됩니다.
  */
 export const DEFAULT_GREETING_HTML =
-    '안녕하세요 {제출자}님,<br/>아래 문서 제출을 요청드립니다. 마감일까지 제출 부탁드립니다.';
+    '안녕하세요 {제출자_이름}님,<br/>아래 문서 제출을 요청드립니다. 마감일까지 제출 부탁드립니다.';
 
 /**
  * 기본 아랫말 HTML
@@ -62,7 +64,7 @@ export interface DocumentInfoParams {
  * 플레이스홀더를 실제 값으로 치환
  *
  * @example
- * replacePlaceholders("안녕하세요 {제출자}님", "홍길동")
+ * replacePlaceholders("안녕하세요 {제출자_이름}님", "홍길동")
  * // => "안녕하세요 홍길동님"
  */
 export function replacePlaceholders(
@@ -71,8 +73,17 @@ export function replacePlaceholders(
 ): string {
     let result = html;
 
-    // {제출자} -> 이름으로 치환 (이름이 없으면 빈 문자열)
+    // {제출자_이름} -> 이름으로 치환 (이름이 없으면 빈 문자열)
+    result = result.replace(/\{제출자_이름\}/g, submitterName || '');
+
+    // {제출자} -> 이름으로 치환 (하위 호환성)
     result = result.replace(/\{제출자\}/g, submitterName || '');
+
+    // {제출자님} -> 이름님으로 치환 (이름이 없으면 빈 문자열)
+    result = result.replace(
+        /\{제출자님\}/g,
+        submitterName ? `${submitterName}님` : ''
+    );
 
     return result;
 }
@@ -157,14 +168,18 @@ export function generateReminderEmailHtml({
     customGreetingHtml,
     customFooterHtml,
 }: EmailTemplateParams): string {
-    // 인사말 결정 (커스텀 또는 기본값)
-    const greetingHtml = replacePlaceholders(
-        customGreetingHtml || DEFAULT_GREETING_HTML,
-        submitterName
+    // 인사말 결정 (커스텀 또는 기본값) + 인라인 스타일 변환
+    const greetingHtml = sanitizeHtmlForEmail(
+        replacePlaceholders(
+            customGreetingHtml || DEFAULT_GREETING_HTML,
+            submitterName
+        )
     );
 
-    // 아랫말 결정 (커스텀 또는 기본값)
-    const footerHtml = customFooterHtml || DEFAULT_FOOTER_HTML;
+    // 아랫말 결정 (커스텀 또는 기본값) + 인라인 스타일 변환
+    const footerHtml = sanitizeHtmlForEmail(
+        customFooterHtml || DEFAULT_FOOTER_HTML
+    );
 
     // 문서함 정보 (자동 생성)
     const documentInfoHtml = generateDocumentInfoHtml({
@@ -183,11 +198,11 @@ export function generateReminderEmailHtml({
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #333;">
     <div style="max-width: 600px; margin: 0 auto;">
-        <p style="font-size: 14px; color: #1f2937;">${greetingHtml}</p>
+        <div style="font-size: 14px; color: #1f2937;">${greetingHtml}</div>
 
         ${documentInfoHtml}
 
-        <p style="font-size: 12px; color: #6b7280; margin-top: 16px;">${footerHtml}</p>
+        <div style="font-size: 12px; color: #6b7280; margin-top: 16px;">${footerHtml}</div>
     </div>
 </body>
 </html>
@@ -202,7 +217,7 @@ export function generateReminderEmailHtml({
  * 미리보기용 인사말 HTML 생성
  *
  * 플레이스홀더를 치환하지 않고 그대로 표시합니다.
- * 예: "안녕하세요 {제출자}님,"
+ * 예: "안녕하세요 {제출자_이름}님,"
  */
 export function getGreetingHtmlForPreview(customGreetingHtml?: string): string {
     return customGreetingHtml || DEFAULT_GREETING_HTML;
