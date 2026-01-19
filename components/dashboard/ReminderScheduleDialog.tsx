@@ -37,6 +37,7 @@ import {
     TIME_UNIT_OPTIONS,
     TIME_VALUE_RANGE,
 } from '@/lib/types/reminder';
+import { AutoReminderTemplateSelector } from '@/components/email-editor/AutoReminderTemplateSelector';
 
 // ============================================================================
 // Props Interface
@@ -50,7 +51,9 @@ interface ReminderScheduleDialogProps {
     /** 현재 스케줄 목록 */
     schedules: ReminderScheduleState[];
     /** 저장 핸들러 */
-    onSave: (schedules: ReminderScheduleState[]) => void;
+    onSave: (schedules: ReminderScheduleState[], autoTemplateId: string | null) => void;
+    /** 자동 리마인더 템플릿 ID */
+    autoTemplateId?: string | null;
 }
 
 // ============================================================================
@@ -160,6 +163,7 @@ export function ReminderScheduleDialog({
     onOpenChange,
     schedules: initialSchedules,
     onSave,
+    autoTemplateId: initialAutoTemplateId = null,
 }: ReminderScheduleDialogProps) {
     const uniqueId = useId();
 
@@ -168,6 +172,11 @@ export function ReminderScheduleDialog({
         initialSchedules.length > 0
             ? initialSchedules
             : [{ id: `new-${uniqueId}-0`, ...DEFAULT_REMINDER_SCHEDULE }]
+    );
+
+    // 템플릿 ID 상태
+    const [localAutoTemplateId, setLocalAutoTemplateId] = useState<string | null>(
+        initialAutoTemplateId
     );
 
     // Dialog가 열릴 때마다 초기값으로 리셋
@@ -179,10 +188,11 @@ export function ReminderScheduleDialog({
                         ? initialSchedules
                         : [{ id: `new-${uniqueId}-0`, ...DEFAULT_REMINDER_SCHEDULE }]
                 );
+                setLocalAutoTemplateId(initialAutoTemplateId);
             }
             onOpenChange(newOpen);
         },
-        [initialSchedules, onOpenChange, uniqueId]
+        [initialSchedules, initialAutoTemplateId, onOpenChange, uniqueId]
     );
 
     // 스케줄 추가
@@ -216,9 +226,9 @@ export function ReminderScheduleDialog({
     // 저장
     const handleSave = useCallback(() => {
         if (localSchedules.length === 0) return;
-        onSave(localSchedules);
+        onSave(localSchedules, localAutoTemplateId);
         onOpenChange(false);
-    }, [localSchedules, onSave, onOpenChange]);
+    }, [localSchedules, localAutoTemplateId, onSave, onOpenChange]);
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -239,6 +249,15 @@ export function ReminderScheduleDialog({
                     onUpdateSchedule={handleUpdateSchedule}
                     onDeleteSchedule={handleDeleteSchedule}
                 />
+
+                {/* 템플릿 선택 */}
+                <div className="border-t pt-4">
+                    <AutoReminderTemplateSelector
+                        type="SEND"
+                        selectedId={localAutoTemplateId}
+                        onSelect={setLocalAutoTemplateId}
+                    />
+                </div>
 
                 <DialogFooter className="flex gap-2 sm:flex-row">
                     <Button

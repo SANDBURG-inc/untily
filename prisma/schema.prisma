@@ -74,6 +74,7 @@ model DocumentBox {
   documentBoxRemindTypes DocumentBoxRemindType[]
   reminderLogs           ReminderLog[]
   reminderSchedules      ReminderSchedule[]
+  templateConfigs        DocumentBoxTemplateConfig[]
 
   @@index([userId])
 }
@@ -237,4 +238,48 @@ model ReminderRecipient {
 
   @@index([reminderLogId])
   @@index([submitterId])
+}
+
+// ============================================================================
+// 이메일 템플릿 관리
+// ============================================================================
+
+// 템플릿 타입 (SEND: 지정 제출자 발송, SHARE: 링크 공유용)
+enum TemplateType {
+  SEND
+  SHARE
+}
+
+// 전역 이메일 템플릿
+model RemindTemplate {
+  id           String       @id @default(cuid())
+  name         String // 템플릿 이름
+  type         TemplateType // SEND or SHARE
+  greetingHtml String       @db.Text // 인사말 HTML
+  footerHtml   String       @db.Text // 아랫말 HTML
+  userId       String // 소유자
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([userId, type])
+}
+
+// 문서함별 템플릿 설정 (마지막 사용 템플릿 + 자동 리마인더용 템플릿)
+model DocumentBoxTemplateConfig {
+  id            String       @id @default(cuid())
+  documentBoxId String
+  documentBox   DocumentBox  @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
+  type          TemplateType
+
+  // 마지막 사용 템플릿 (수동 발송/공유 시)
+  lastTemplateId   String?
+  lastGreetingHtml String? @db.Text
+  lastFooterHtml   String? @db.Text
+
+  // 자동 리마인더용 템플릿 (cron에서 사용)
+  autoTemplateId String?
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([documentBoxId, type])
 }

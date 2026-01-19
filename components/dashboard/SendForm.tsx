@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { sendManualReminder, sendReminderAfterDeadline } from "@/app/dashboard/[id]/actions";
-import { generateReminderEmailHtml } from '@/lib/email-templates';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { DocumentBoxStatus } from "@/lib/types/document";
 import { DocumentBoxStatusChangeDialog } from "@/components/shared/DocumentBoxStatusChangeDialog";
+import { EmailPreviewEditable, type EmailPreviewEditableRef } from "@/components/email-editor/EmailPreviewEditable";
 
 interface Submitter {
     submitterId: string;
@@ -26,6 +26,7 @@ interface RequiredDocument {
 interface Props {
     documentBoxId: string;
     documentBoxTitle: string;
+    documentBoxDescription?: string | null;
     endDate: Date;
     /** 문서함 상태 */
     documentBoxStatus: DocumentBoxStatus;
@@ -33,7 +34,7 @@ interface Props {
     requiredDocuments: RequiredDocument[];
 }
 
-export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, documentBoxStatus, submitters, requiredDocuments }: Props) {
+export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxDescription, endDate, documentBoxStatus, submitters, requiredDocuments }: Props) {
     const router = useRouter();
 
     // Initial state: Select only unsubmitted users
@@ -46,6 +47,19 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, doc
 
     // 마감 후 발송 확인 Dialog 상태
     const [showAfterDeadlineDialog, setShowAfterDeadlineDialog] = useState(false);
+
+    // 이메일 템플릿 상태
+    const templateRef = useRef<{ greetingHtml: string; footerHtml: string }>({
+        greetingHtml: '',
+        footerHtml: '',
+    });
+
+    // 이메일 미리보기 편집 상태 ref
+    const emailPreviewRef = useRef<EmailPreviewEditableRef>(null);
+
+    const handleTemplateChange = (greetingHtml: string, footerHtml: string) => {
+        templateRef.current = { greetingHtml, footerHtml };
+    };
 
     // 열린 상태가 아닌지 확인 (OPEN, OPEN_RESUME, OPEN_SOMEONE는 열린 상태)
     // OPEN_RESUME: 모든 사용자가 제출 가능한 상태이므로 Dialog 불필요
@@ -81,6 +95,16 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, doc
             return;
         }
 
+        // 편집 모드일 때 저장 여부 확인
+        if (emailPreviewRef.current?.isEditing) {
+            const confirmSend = confirm("템플릿 변경내용이 저장되지 않았습니다. 저장하지 않고 보내시겠습니까?");
+            if (!confirmSend) {
+                // 취소 시 편집 버튼 영역으로 스크롤
+                emailPreviewRef.current.scrollToEditButtons();
+                return;
+            }
+        }
+
         // OPEN 상태가 아니면 확인 Dialog 표시
         if (isNotOpenStatus) {
             setShowAfterDeadlineDialog(true);
@@ -91,7 +115,13 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, doc
         if (!confirm(`${selectedIds.length}명에게 리마인드 이메일을 발송하시겠습니까?`)) return;
 
         setIsPending(true);
-        const result = await sendManualReminder(documentBoxId, selectedIds);
+        const { greetingHtml, footerHtml } = templateRef.current;
+        const result = await sendManualReminder(
+            documentBoxId,
+            selectedIds,
+            greetingHtml || undefined,
+            footerHtml || undefined
+        );
         setIsPending(false);
 
         if (result.success) {
@@ -107,7 +137,13 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, doc
         setShowAfterDeadlineDialog(false);
         setIsPending(true);
 
-        const result = await sendReminderAfterDeadline(documentBoxId, selectedIds);
+        const { greetingHtml, footerHtml } = templateRef.current;
+        const result = await sendReminderAfterDeadline(
+            documentBoxId,
+            selectedIds,
+            greetingHtml || undefined,
+            footerHtml || undefined
+        );
         setIsPending(false);
 
         if (result.success) {
@@ -170,37 +206,22 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, doc
                 </div>
             </div>
 
-            {/* Email Preview */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <span className="text-lg">✉️</span> 이메일 미리보기
-                </h3>
-
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 p-4 border-b border-gray-200">
-                        <div className="text-sm text-gray-500 mb-1">제목</div>
-                        <div className="text-base font-bold text-gray-900">[문서 제출 요청] {documentBoxTitle} 서류 제출</div>
-                    </div>
-                    {/* Render HTML Preview in a safe container, or just styled div to look like email client */}
-                    <div className="p-6 bg-white overflow-x-auto">
-                        <div
-                            dangerouslySetInnerHTML={{
-                                __html: generateReminderEmailHtml({
-                                    documentBoxTitle,
-                                    documentBoxDescription: "필수 서류를 제출해주세요.", // Or pass actual description if available
-                                    endDate,
-                                    requiredDocuments: requiredDocuments.map(d => ({
-                                        name: d.name,
-                                        description: d.description,
-                                        isRequired: d.isRequired
-                                    })),
-                                    submissionLink: "(제출자별 링크가 생성됩니다)"
-                                })
-                            }}
-                        />
-                    </div>
-                </div>
-            </div>
+            {/* Email Preview - Editable */}
+            <EmailPreviewEditable
+                ref={emailPreviewRef}
+                documentBoxId={documentBoxId}
+                documentBoxTitle={documentBoxTitle}
+                documentBoxDescription={documentBoxDescription}
+                endDate={endDate}
+                requiredDocuments={requiredDocuments.map(d => ({
+                    name: d.name,
+                    description: d.description,
+                    isRequired: d.isRequired
+                }))}
+                submissionLink="(제출자별 링크가 생성됩니다)"
+                type="SEND"
+                onTemplateChange={handleTemplateChange}
+            />
 
             {/* Required Documents List */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">

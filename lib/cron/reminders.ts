@@ -203,6 +203,33 @@ async function sendReminderEmails(
         `[Auto-Reminder] Box "${box.boxTitle}" has ${incompleteSubmitters.length} incomplete submitters (source: ${source})`
     );
 
+    // 자동 리마인더 템플릿 조회
+    let customGreetingHtml: string | undefined;
+    let customFooterHtml: string | undefined;
+
+    const templateConfig = await prisma.documentBoxTemplateConfig.findUnique({
+        where: {
+            documentBoxId_type: {
+                documentBoxId: box.documentBoxId,
+                type: 'SEND',
+            },
+        },
+    });
+
+    if (templateConfig?.autoTemplateId) {
+        const template = await prisma.remindTemplate.findUnique({
+            where: { id: templateConfig.autoTemplateId },
+        });
+
+        if (template) {
+            customGreetingHtml = template.greetingHtml;
+            customFooterHtml = template.footerHtml;
+            console.log(
+                `[Auto-Reminder] Using template "${template.name}" for box "${box.boxTitle}"`
+            );
+        }
+    }
+
     const resend = new Resend(process.env.RESEND_API_KEY || process.env.SMTP_PASS);
     const daysLeft = calculateDaysLeft(box.endDate);
 
@@ -220,6 +247,8 @@ async function sendReminderEmails(
                 isRequired: doc.isRequired,
             })),
             submissionLink,
+            customGreetingHtml,
+            customFooterHtml,
         });
 
         return {
