@@ -67,7 +67,7 @@ export function TimeSelect({
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger
         className={cn(
-          "w-fit min-w-[90px] justify-start gap-2",
+          "min-w-[100px]",
           size === "sm" ? "h-8 text-sm" : "h-9 text-sm",
           className
         )}
@@ -77,7 +77,11 @@ export function TimeSelect({
           {value && formatToAmPm(value)}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent className="max-h-[240px]">
+      <SelectContent
+        position="popper"
+        className="[&_[data-slot=select-scroll-up-button]]:hidden [&_[data-slot=select-scroll-down-button]]:hidden"
+        viewportClassName="!max-h-[180px]"
+      >
         {SEND_TIME_OPTIONS.map((time) => (
           <SelectItem key={time} value={time}>
             {formatToAmPm(time)}

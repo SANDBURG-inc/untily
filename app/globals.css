@@ -192,3 +192,48 @@ button,
 ::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1;
 }
+
+/* 스크롤바 항상 표시 */
+.scrollbar-visible {
+  overflow-y: scroll !important;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.scrollbar-visible::-webkit-scrollbar {
+  -webkit-appearance: none !important;
+  width: 6px !important;
+  display: block !important;
+}
+
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background: #d1d5db !important;
+  border-radius: 9999px;
+  min-height: 30px;
+}
+
+/* Radix Select Viewport 스크롤바 표시 (기본값은 숨김) */
+[data-slot="select-viewport"] {
+  scrollbar-width: thin !important;
+  scrollbar-color: #d1d5db transparent !important;
+}
+
+[data-slot="select-viewport"]::-webkit-scrollbar {
+  -webkit-appearance: none !important;
+  display: block !important;
+  width: 6px !important;
+}
+
+[data-slot="select-viewport"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-slot="select-viewport"]::-webkit-scrollbar-thumb {
+  background: #d1d5db !important;
+  border-radius: 9999px;
+  min-height: 30px;
+}

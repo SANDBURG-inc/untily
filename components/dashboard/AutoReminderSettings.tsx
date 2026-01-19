@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback, useId } from 'react';
-import { CheckCircle, Info, Check, Bell, Plus } from 'lucide-react';
+import { CheckCircle, Info, Check, Bell } from 'lucide-react';
 import {
     saveReminderSchedules,
     disableAutoReminderV2,
@@ -36,6 +36,7 @@ import {
 } from '@/lib/types/reminder';
 import { ReminderScheduleRow } from './ReminderScheduleDialog';
 import { AutoReminderTemplateSelector } from '@/components/email-editor/AutoReminderTemplateSelector';
+import { ReminderScheduleEditor } from './ReminderScheduleEditor';
 
 // ============================================================================
 // Props Interface
@@ -280,36 +281,12 @@ export function AutoReminderSettings({
                         </DialogDescription>
                     </DialogHeader>
 
-                    {/* Beta 안내 배너 */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-600">
-                        Beta 기간동안 무료로 제공됩니다.
-                    </div>
-
-                    {/* 리마인더 스케줄 목록 */}
-                    <div className="py-2">
-                        <div className="space-y-1">
-                            {schedules.map((schedule, index) => (
-                                <ReminderScheduleRow
-                                    key={schedule.id}
-                                    schedule={schedule}
-                                    onChange={(updated) => handleUpdateSchedule(index, updated)}
-                                    onDelete={() => handleDeleteSchedule(index)}
-                                    canDelete={schedules.length > 1}
-                                />
-                            ))}
-                        </div>
-
-                        {schedules.length < MAX_REMINDER_COUNT && (
-                            <button
-                                type="button"
-                                onClick={handleAddSchedule}
-                                className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 py-2 mt-1"
-                            >
-                                <Plus className="w-4 h-4" />
-                                리마인더 추가
-                            </button>
-                        )}
-                    </div>
+                    <ReminderScheduleEditor
+                        schedules={schedules}
+                        onAddSchedule={handleAddSchedule}
+                        onUpdateSchedule={handleUpdateSchedule}
+                        onDeleteSchedule={handleDeleteSchedule}
+                    />
 
                     {/* 채널 선택 */}
                     <div className="border-t pt-4">

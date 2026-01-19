@@ -48,11 +48,11 @@ export default function CheckoutView({
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [submitterInfo, setSubmitterInfo] = useState({
+  const submitterInfo = {
     name: initialSubmitter.name,
     email: initialSubmitter.email,
     phone: initialSubmitter.phone,
-  });
+  };
 
   // 업로드된 파일을 requiredDocument 기준으로 매핑 (복수 파일 지원)
   const [uploadedFilesMap, setUploadedFilesMap] = useState(() => {
@@ -75,24 +75,6 @@ export default function CheckoutView({
 
   const handleSave = () => {
     router.push(`/submit/${documentBoxId}/${initialSubmitter.submitterId}`);
-  };
-
-  const handleSubmitterInfoSave = async (data: { name: string; email: string; phone: string }) => {
-    const response = await fetch('/api/submit/update-info', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        submitterId: initialSubmitter.submitterId,
-        ...data,
-      }),
-    });
-
-    if (!response.ok) {
-      const result = await response.json();
-      throw new Error(result.error || '정보 저장에 실패했습니다.');
-    }
-
-    setSubmitterInfo(data);
   };
 
   const handleFilesChange = useCallback((uploads: Map<string, UploadedDocument[]>) => {
@@ -193,7 +175,7 @@ export default function CheckoutView({
         <SubmitterInfoCard
           title="제출자 정보"
           submitter={submitterInfo}
-          onSave={handleSubmitterInfoSave}
+          editable={false}
           className="mb-4"
         />
 
