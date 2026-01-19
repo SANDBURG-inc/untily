@@ -87,11 +87,19 @@ export type PublicSubmitAuthResult =
 export async function validatePublicSubmitAuth(
   documentBoxId: string
 ): Promise<PublicSubmitAuthResult> {
-  // 1. 문서함 조회 (필수서류 포함)
+  // 1. 문서함 조회 (필수서류, 폼 필드 포함)
   const documentBox = await prisma.documentBox.findUnique({
     where: { documentBoxId },
     include: {
       requiredDocuments: true,
+      formFieldGroups: {
+        orderBy: { order: 'asc' },
+        include: {
+          formFields: {
+            orderBy: { order: 'asc' },
+          },
+        },
+      },
     },
   });
 
@@ -142,6 +150,7 @@ export async function validatePublicSubmitAuth(
     },
     include: {
       submittedDocuments: true,
+      formFieldResponses: true,
     },
   });
 
@@ -158,6 +167,7 @@ export async function validatePublicSubmitAuth(
       },
       include: {
         submittedDocuments: true,
+        formFieldResponses: true,
       },
     });
   }

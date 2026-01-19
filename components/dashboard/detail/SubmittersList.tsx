@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Users, Download, FileArchive, ClockAlert } from 'lucide-react';
+import { Users, Download, FileArchive, FileText, ClockAlert } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import {
     Tooltip,
@@ -69,6 +69,7 @@ export function SubmittersList({
     const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [isDownloadingFiles, setIsDownloadingFiles] = useState(false);
+    const [isDownloadingResponses, setIsDownloadingResponses] = useState(false);
 
     // Sheet 상태
     const [sheetOpen, setSheetOpen] = useState(false);
@@ -266,6 +267,36 @@ export function SubmittersList({
         }
     };
 
+    // 폼 응답 CSV 다운로드
+    const handleFormResponseDownload = async () => {
+        setIsDownloadingResponses(true);
+        try {
+            const response = await fetch(`/api/document-box/${documentBoxId}/responses/export`);
+
+            if (!response.ok) {
+                const error = await response.json();
+                alert(error.error || '폼 응답 다운로드에 실패했습니다.');
+                return;
+            }
+
+            // Blob으로 변환 후 다운로드
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `${documentBoxTitle}_폼응답.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Form response download error:', error);
+            alert('폼 응답 다운로드 중 오류가 발생했습니다.');
+        } finally {
+            setIsDownloadingResponses(false);
+        }
+    };
+
     return (
         <Card variant="compact" className="mb-6">
             <CardHeader variant="compact">
@@ -281,6 +312,15 @@ export function SubmittersList({
                         onClick={handleDownload}
                     >
                         제출현황
+                    </IconButton>
+                    <IconButton
+                        variant="secondary"
+                        size="sm"
+                        icon={<FileText className="w-4 h-4" />}
+                        onClick={handleFormResponseDownload}
+                        disabled={isDownloadingResponses}
+                    >
+                        {isDownloadingResponses ? '다운로드 중...' : '폼 응답'}
                     </IconButton>
                     {submitters.length > 0 && (
                         <Tooltip>
