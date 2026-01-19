@@ -9,8 +9,10 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { SubmittedFileList } from './SubmittedFileList';
+import { FormResponseList } from './FormResponseList';
 import { FileViewer } from '@/components/shared/FileViewer';
 import type { SubmitterWithFiles } from '@/lib/queries/document-box';
+import type { SubmitterFormResponsesData } from '@/lib/types/form-field';
 
 interface SubmitterDetailSheetProps {
     open: boolean;
@@ -28,6 +30,7 @@ export function SubmitterDetailSheet({
     documentBoxTitle,
 }: SubmitterDetailSheetProps) {
     const [submitter, setSubmitter] = useState<SubmitterWithFiles | null>(null);
+    const [formResponses, setFormResponses] = useState<SubmitterFormResponsesData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -44,28 +47,39 @@ export function SubmitterDetailSheet({
     // 전체 다운로드 상태
     const [isDownloadingAll, setIsDownloadingAll] = useState(false);
 
-    // 제출자 정보 로드
+    // 제출자 정보 로드 (파일 + 폼 응답 병렬 조회)
     useEffect(() => {
         if (!open || !submitterId) {
             setSubmitter(null);
+            setFormResponses(null);
             return;
         }
 
-        const fetchSubmitter = async () => {
+        const fetchData = async () => {
             setIsLoading(true);
             setError(null);
 
             try {
-                const res = await fetch(
-                    `/api/document-box/${documentBoxId}/submitter/${submitterId}/files`
-                );
+                // 파일과 폼 응답을 병렬로 조회
+                const [filesRes, responsesRes] = await Promise.all([
+                    fetch(`/api/document-box/${documentBoxId}/submitter/${submitterId}/files`),
+                    fetch(`/api/document-box/${documentBoxId}/submitter/${submitterId}/responses`),
+                ]);
 
-                if (!res.ok) {
+                if (!filesRes.ok) {
                     throw new Error('제출자 정보를 불러올 수 없습니다.');
                 }
 
-                const data = await res.json();
-                setSubmitter(data);
+                const filesData = await filesRes.json();
+                setSubmitter(filesData);
+
+                // 폼 응답은 없을 수 있음 (폼 필드가 없는 문서함)
+                if (responsesRes.ok) {
+                    const responsesData = await responsesRes.json();
+                    setFormResponses(responsesData);
+                } else {
+                    setFormResponses(null);
+                }
             } catch (err) {
                 setError(err instanceof Error ? err.message : '오류가 발생했습니다.');
             } finally {
@@ -73,7 +87,7 @@ export function SubmitterDetailSheet({
             }
         };
 
-        fetchSubmitter();
+        fetchData();
     }, [open, submitterId, documentBoxId]);
 
     // 미리보기 핸들러
@@ -212,6 +226,11 @@ export function SubmitterDetailSheet({
                                     <span>제출일: {formatDate(submitter.lastSubmittedAt)}</span>
                                 </div>
                             </div>
+
+                            {/* 폼 응답 - 파일 목록 위에 표시 */}
+                            {formResponses?.hasResponses && (
+                                <FormResponseList groups={formResponses.groups} />
+                            )}
 
                             {/* 제출 파일 목록 */}
                             <SubmittedFileList

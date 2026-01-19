@@ -131,6 +131,37 @@ export interface SaveFormResponseResponse {
 }
 
 // ============================================================================
+// 관리자 조회용 타입 (Phase 4)
+// ============================================================================
+
+/** 제출자의 단일 폼 응답 (조회용) */
+export interface FormResponseViewData {
+  formFieldId: string;
+  fieldLabel: string;
+  fieldType: FormFieldType;
+  isRequired: boolean;
+  value: string | null; // 미응답 시 null
+  options?: string[]; // RADIO 타입일 때 선택지 목록
+}
+
+/** 폼 필드 그룹 + 응답 (조회용) */
+export interface FormResponseGroupViewData {
+  formFieldGroupId: string;
+  groupTitle: string;
+  groupDescription?: string;
+  isRequired: boolean;
+  fields: FormResponseViewData[];
+}
+
+/** API 응답: GET /api/document-box/[id]/submitter/[submitterId]/responses */
+export interface SubmitterFormResponsesData {
+  submitterId: string;
+  submitterName: string;
+  groups: FormResponseGroupViewData[];
+  hasResponses: boolean; // 응답이 하나라도 있는지
+}
+
+// ============================================================================
 // 유틸리티 함수
 // ============================================================================
 
@@ -281,4 +312,19 @@ export function calculateFormCompletionRate(
 
   if (totalRequired === 0) return 100;
   return Math.round((completedRequired / totalRequired) * 100);
+}
+
+// ============================================================================
+// CSV 내보내기용 유틸리티
+// ============================================================================
+
+/**
+ * CHECKBOX 값을 한글로 포맷팅 (CSV 내보내기용)
+ * @param value 응답 값 ('true', 'false', '')
+ * @returns '동의함', '동의 안함', ''
+ */
+export function formatCheckboxValue(value: string): string {
+  if (value === 'true') return '동의함';
+  if (value === 'false') return '동의 안함';
+  return '';
 }
