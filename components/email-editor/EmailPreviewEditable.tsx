@@ -7,31 +7,30 @@
  *
  * @description
  * SendForm(문서 제출 요청 발송 페이지)에서 사용되는 이메일 미리보기입니다.
- * 인사말/아랫말 편집 기능과 템플릿 선택 기능을 제공합니다.
+ * 인사말/아랫말 편집 기능과 템플릿 선택/저장 기능을 제공합니다.
  *
  * @features
  * - 이메일 미리보기 표시
  * - 인사말/아랫말 편집 (EmailEditor 사용)
- * - 템플릿 선택/저장 (EmailTemplateSelector 사용)
- * - 마지막 사용 템플릿 자동 로드
+ * - 템플릿 선택 (EmailTemplateSelector 사용)
+ * - 완료 버튼 클릭 시 변경사항 있으면 TemplateSaveDialog 표시
+ * - 저장된 템플릿이 문서함별로 유지됨
+ * - 자동 리마인더도 저장된 템플릿 사용
  *
  * @relatedFiles
  * - EmailEditor.tsx - 실제 편집에 사용되는 TipTap 에디터
- * - EmailEditorToolbar.tsx - 에디터 툴바
- * - EmailTemplateSelector.tsx - 템플릿 선택/저장 UI
- * - ShareEmailPreviewEditable.tsx - ShareForm용 미리보기 (유사한 구조)
+ * - EmailTemplateSelector.tsx - 템플릿 선택 UI
+ * - TemplateSaveDialog.tsx - 템플릿 저장 다이얼로그
  * - PlaceholderTag.tsx - 변수 하이라이트 표시
- *
- * @knownIssues
- * - 편집 모드가 아닐 때 스타일이 표시되지 않는 문제
- *   → email-preview-content 클래스와 CSS로 해결
  */
 
 import { useState, useEffect, useCallback, useRef, useImperativeHandle, forwardRef } from 'react';
 import { SquarePen, X, Check } from 'lucide-react';
 import { EmailEditor } from './EmailEditor';
 import { EmailTemplateSelector } from './EmailTemplateSelector';
+import { TemplateSaveDialog } from './TemplateSaveDialog';
 import { highlightPlaceholders } from './PlaceholderTag';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     generateDocumentInfoHtml,
     DEFAULT_GREETING_HTML,
@@ -42,7 +41,7 @@ import {
 // 타입 정의
 // ============================================================================
 
-interface Template {
+export interface Template {
     id: string;
     name: string;
     greetingHtml: string;
@@ -50,6 +49,8 @@ interface Template {
 }
 
 interface EmailPreviewEditableProps {
+    /** 문서함 ID (템플릿 설정 저장용) */
+    documentBoxId: string;
     /** 문서함 제목 */
     documentBoxTitle: string;
     /** 문서함 설명 */
@@ -77,6 +78,7 @@ export interface EmailPreviewEditableRef {
 }
 
 export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPreviewEditableProps>(function EmailPreviewEditable({
+    documentBoxId,
     documentBoxTitle,
     documentBoxDescription,
     endDate,
@@ -86,6 +88,7 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
 }, ref) {
     // 상태 관리
     const [isEditing, setIsEditing] = useState(false);
+    const [isLoadingTemplate, setIsLoadingTemplate] = useState(true);
     const editButtonsRef = useRef<HTMLDivElement>(null);
 
     // ref를 통해 외부에서 접근 가능한 메서드 노출
@@ -93,18 +96,25 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
         isEditing,
         scrollToEditButtons: () => {
             editButtonsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // 취소/완료 버튼 중 첫 번째 버튼에 포커스
             const firstButton = editButtonsRef.current?.querySelector('button');
             setTimeout(() => firstButton?.focus(), 300);
         },
     }), [isEditing]);
+
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+    const [selectedTemplateName, setSelectedTemplateName] = useState<string | undefined>(undefined);
     const [greetingHtml, setGreetingHtml] = useState(DEFAULT_GREETING_HTML);
     const [footerHtml, setFooterHtml] = useState(DEFAULT_FOOTER_HTML);
     const [originalGreeting, setOriginalGreeting] = useState(DEFAULT_GREETING_HTML);
     const [originalFooter, setOriginalFooter] = useState(DEFAULT_FOOTER_HTML);
 
-    // 수정 여부 확인
+    // 템플릿 목록 상태 (병렬 로딩을 위해 부모에서 관리)
+    const [templates, setTemplates] = useState<Template[]>([]);
+
+    // 저장 다이얼로그 상태
+    const [showSaveDialog, setShowSaveDialog] = useState(false);
+
+    // 수정 여부 확인 (기본 템플릿과 비교)
     const hasChanges =
         greetingHtml !== DEFAULT_GREETING_HTML ||
         footerHtml !== DEFAULT_FOOTER_HTML;
@@ -118,42 +128,62 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
         submissionLink,
     });
 
-    // 마지막 사용 템플릿 로드
-    const loadLastUsedTemplate = useCallback(async () => {
+    // 문서함의 마지막 사용 템플릿과 템플릿 목록을 병렬 로드
+    const loadTemplateData = useCallback(async () => {
+        setIsLoadingTemplate(true);
         try {
-            const res = await fetch('/api/remind-template/config');
-            const data = await res.json();
+            // 두 API를 병렬로 호출
+            const [configRes, templatesRes] = await Promise.all([
+                fetch(`/api/remind-template/config?documentBoxId=${documentBoxId}`),
+                fetch('/api/remind-template'),
+            ]);
 
-            if (data.success && data.lastTemplate) {
-                const { lastGreetingHtml, lastFooterHtml, lastTemplateId } = data.lastTemplate;
+            const [configData, templatesData] = await Promise.all([
+                configRes.json(),
+                templatesRes.json(),
+            ]);
+
+            // 템플릿 목록 설정
+            if (templatesData.success && templatesData.templates) {
+                setTemplates(templatesData.templates);
+            }
+
+            // 마지막 사용 템플릿 설정
+            if (configData.success && configData.lastTemplate) {
+                const { lastGreetingHtml, lastFooterHtml, lastTemplateId, lastTemplateName } = configData.lastTemplate;
                 if (lastGreetingHtml && lastFooterHtml) {
                     setGreetingHtml(lastGreetingHtml);
                     setFooterHtml(lastFooterHtml);
                     setOriginalGreeting(lastGreetingHtml);
                     setOriginalFooter(lastFooterHtml);
                     setSelectedTemplateId(lastTemplateId);
+                    setSelectedTemplateName(lastTemplateName || undefined);
                     onTemplateChange(lastGreetingHtml, lastFooterHtml);
                 }
             }
         } catch (error) {
-            console.error('Failed to load last used template:', error);
+            console.error('Failed to load template data:', error);
+        } finally {
+            setIsLoadingTemplate(false);
         }
-    }, [onTemplateChange]);
+    }, [documentBoxId, onTemplateChange]);
 
     useEffect(() => {
-        loadLastUsedTemplate();
-    }, [loadLastUsedTemplate]);
+        loadTemplateData();
+    }, [loadTemplateData]);
 
     // 템플릿 선택 핸들러
     const handleTemplateSelect = (template: Template | null) => {
         if (template) {
             setSelectedTemplateId(template.id);
+            setSelectedTemplateName(template.name);
             setGreetingHtml(template.greetingHtml);
             setFooterHtml(template.footerHtml);
             onTemplateChange(template.greetingHtml, template.footerHtml);
         } else {
             // 기본 템플릿 선택
             setSelectedTemplateId(null);
+            setSelectedTemplateName(undefined);
             setGreetingHtml(DEFAULT_GREETING_HTML);
             setFooterHtml(DEFAULT_FOOTER_HTML);
             onTemplateChange(DEFAULT_GREETING_HTML, DEFAULT_FOOTER_HTML);
@@ -174,11 +204,111 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
         setIsEditing(false);
     };
 
-    // 편집 완료
+    // 편집 완료 - 변경사항 있으면 저장 다이얼로그, 없으면 바로 완료
     const completeEdit = () => {
         onTemplateChange(greetingHtml, footerHtml);
-        setIsEditing(false);
+
+        // 변경사항이 있으면 저장 다이얼로그 표시
+        if (greetingHtml !== originalGreeting || footerHtml !== originalFooter) {
+            setShowSaveDialog(true);
+        } else {
+            setIsEditing(false);
+        }
     };
+
+    // 템플릿 저장 완료 핸들러
+    const handleTemplateSaved = async (savedTemplate: Template) => {
+        setSelectedTemplateId(savedTemplate.id);
+        setSelectedTemplateName(savedTemplate.name);
+        setShowSaveDialog(false);
+        setIsEditing(false);
+
+        // 템플릿 목록 업데이트 (새 템플릿이면 추가, 기존이면 교체)
+        setTemplates((prev) => {
+            const exists = prev.some((t) => t.id === savedTemplate.id);
+            if (exists) {
+                return prev.map((t) => (t.id === savedTemplate.id ? savedTemplate : t));
+            }
+            return [...prev, savedTemplate];
+        });
+
+        // 문서함 템플릿 설정 저장 (마지막 사용 템플릿으로 설정)
+        try {
+            await fetch('/api/remind-template/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    documentBoxId,
+                    lastTemplateId: savedTemplate.id,
+                    lastGreetingHtml: savedTemplate.greetingHtml,
+                    lastFooterHtml: savedTemplate.footerHtml,
+                }),
+            });
+        } catch (error) {
+            console.error('Failed to save template config:', error);
+        }
+    };
+
+    // 저장 없이 완료 (다이얼로그에서 취소)
+    const handleSaveDialogClose = (open: boolean) => {
+        setShowSaveDialog(open);
+        if (!open) {
+            // 다이얼로그 닫히면 편집 모드도 종료
+            setIsEditing(false);
+        }
+    };
+
+    // 로딩 중 Skeleton UI
+    if (isLoadingTemplate) {
+        return (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
+                {/* 헤더 Skeleton */}
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                        <Skeleton className="w-6 h-6 rounded" />
+                        <Skeleton className="w-28 h-5" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Skeleton className="w-20 h-8 rounded-lg" />
+                        <Skeleton className="w-16 h-8 rounded-lg" />
+                    </div>
+                </div>
+                <Skeleton className="w-64 h-4 mb-4" />
+
+                {/* 이메일 미리보기 Skeleton */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    {/* 제목 Skeleton */}
+                    <div className="bg-gray-50 p-4 border-b border-gray-200">
+                        <Skeleton className="w-10 h-4 mb-2" />
+                        <Skeleton className="w-48 h-5" />
+                    </div>
+
+                    {/* 본문 Skeleton */}
+                    <div className="p-6 bg-white space-y-4">
+                        {/* 인사말 */}
+                        <div className="space-y-2">
+                            <Skeleton className="w-full h-4" />
+                            <Skeleton className="w-3/4 h-4" />
+                        </div>
+
+                        {/* 문서함 정보 */}
+                        <div className="space-y-3 py-4">
+                            <Skeleton className="w-32 h-5" />
+                            <Skeleton className="w-full h-4" />
+                            <Skeleton className="w-2/3 h-4" />
+                            <Skeleton className="w-24 h-8 rounded mt-2" />
+                        </div>
+
+                        {/* 아랫말 */}
+                        <div className="space-y-2">
+                            <Skeleton className="w-full h-3" />
+                            <Skeleton className="w-1/2 h-3" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
@@ -192,10 +322,10 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
                     {!isEditing && (
                         <EmailTemplateSelector
                             selectedId={selectedTemplateId}
-                            currentGreetingHtml={greetingHtml}
-                            currentFooterHtml={footerHtml}
+                            selectedName={selectedTemplateName}
                             onSelect={handleTemplateSelect}
-                            hasChanges={hasChanges}
+                            templates={templates}
+                            onTemplatesChange={setTemplates}
                         />
                     )}
 
@@ -233,7 +363,7 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
                 </div>
             </div>
             <p className="text-xs text-gray-500 mb-4">
-                마지막으로 편집한 템플릿이 모든 문서함에 자동으로 적용됩니다.
+                저장된 템플릿은 이 문서함의 자동 리마인더에도 적용됩니다.
             </p>
 
             {/* 이메일 미리보기 */}
@@ -292,23 +422,21 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
                 </div>
             </div>
 
+            {/* 템플릿 저장 다이얼로그 */}
+            <TemplateSaveDialog
+                open={showSaveDialog}
+                onOpenChange={handleSaveDialogClose}
+                greetingHtml={greetingHtml}
+                footerHtml={footerHtml}
+                existingTemplateId={selectedTemplateId !== 'default' ? selectedTemplateId : null}
+                existingTemplateName={selectedTemplateName}
+                onSaved={handleTemplateSaved}
+            />
+
             {/*
              * ================================================================
              * 미리보기용 CSS 스타일
              * ================================================================
-             *
-             * @problem
-             * 편집 모드가 아닐 때(dangerouslySetInnerHTML로 렌더링)
-             * 불렛/숫자/링크/하이라이트가 표시되지 않음.
-             *
-             * @solution
-             * email-preview-content 클래스에 필요한 스타일 정의.
-             * EmailEditor.tsx의 .email-editor .ProseMirror 스타일과 동일하게 유지.
-             *
-             * @relatedFiles
-             * - EmailEditor.tsx의 <style jsx global> 섹션
-             * - ShareEmailPreviewEditable.tsx의 동일한 스타일
-             * - lib/tiptap/html-utils.ts의 sanitizeHtmlForEmail()
              */}
             <style jsx global>{`
                 /* 불렛 리스트 */

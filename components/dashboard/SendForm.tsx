@@ -209,6 +209,7 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxD
             {/* Email Preview - Editable */}
             <EmailPreviewEditable
                 ref={emailPreviewRef}
+                documentBoxId={documentBoxId}
                 documentBoxTitle={documentBoxTitle}
                 documentBoxDescription={documentBoxDescription}
                 endDate={endDate}

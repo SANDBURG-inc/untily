@@ -95,6 +95,7 @@ export function ShareForm({
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                            documentBoxId,
                             lastGreetingHtml: customGreetingHtml || null,
                             lastFooterHtml: customFooterHtml || null,
                         }),
