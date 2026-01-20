@@ -123,6 +123,12 @@ export interface ReminderScheduleState {
     timeUnit: ReminderTimeUnitType;
     /** 발송 시간 (HH:mm) */
     sendTime: string;
+    /** 템플릿 ID (저장된 템플릿 참조, null이면 기본 템플릿) */
+    templateId?: string | null;
+    /** 인사말 HTML (스냅샷) */
+    greetingHtml?: string | null;
+    /** 아랫말 HTML (스냅샷) */
+    footerHtml?: string | null;
 }
 
 /**
@@ -134,6 +140,12 @@ export interface ReminderScheduleInput {
     timeUnit: ReminderTimeUnitType;
     sendTime: string;
     channel: ReminderChannelType;
+    /** 템플릿 ID (저장된 템플릿 참조, null이면 기본 템플릿) */
+    templateId?: string | null;
+    /** 인사말 HTML (스냅샷) */
+    greetingHtml?: string | null;
+    /** 아랫말 HTML (스냅샷) */
+    footerHtml?: string | null;
 }
 
 /**

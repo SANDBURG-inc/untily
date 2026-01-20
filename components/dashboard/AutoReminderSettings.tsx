@@ -34,8 +34,6 @@ import {
     DEFAULT_REMINDER_SCHEDULE,
     MAX_REMINDER_COUNT,
 } from '@/lib/types/reminder';
-import { ReminderScheduleRow } from './ReminderScheduleDialog';
-import { AutoReminderTemplateSelector } from '@/components/email-editor/AutoReminderTemplateSelector';
 import { ReminderScheduleEditor } from './ReminderScheduleEditor';
 
 // ============================================================================
@@ -140,7 +138,6 @@ export function AutoReminderSettings({
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPending, setIsPending] = useState(false);
     const [schedules, setSchedules] = useState<ReminderScheduleState[]>(getInitialSchedules);
-    const [autoTemplateId, setAutoTemplateId] = useState<string | null>(initialAutoTemplateId);
 
     // 토글 핸들러
     const handleToggle = async () => {
@@ -194,7 +191,7 @@ export function AutoReminderSettings({
 
         setIsPending(true);
 
-        // 1. 스케줄 저장
+        // 스케줄 저장 (각 스케줄별 템플릿 정보 포함)
         const result = await saveReminderSchedules(
             documentBoxId,
             schedules.map((s) => ({
@@ -202,12 +199,11 @@ export function AutoReminderSettings({
                 timeUnit: s.timeUnit as ReminderTimeUnitType,
                 sendTime: s.sendTime,
                 channel: ReminderChannel.EMAIL as ReminderChannelType,
+                templateId: s.templateId,
+                greetingHtml: s.greetingHtml,
+                footerHtml: s.footerHtml,
             }))
         );
-
-        // 2. 템플릿 설정은 이제 사용자별로 관리됨 (UserLastTemplate)
-        // 자동 리마인더는 마지막 사용 템플릿을 자동으로 사용
-        // autoTemplateId 별도 설정은 추후 기능
 
         setIsPending(false);
 
@@ -262,7 +258,7 @@ export function AutoReminderSettings({
                         <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
                             <Bell className="w-5 h-5" />
                             리마인드 설정
-                        </DialogTitle>
+                        </DialogTitle> 
                         <DialogDescription className="text-sm text-gray-600">
                             마감일 기준으로 미제출자에게 자동으로 알림을 발송합니다.
                         </DialogDescription>
@@ -283,17 +279,6 @@ export function AutoReminderSettings({
                             <ChannelOption label="문자로 발송할게요" enabled={false} selected={false} />
                             <ChannelOption label="알림톡으로 발송할게요" enabled={false} selected={false} />
                         </div>
-                    </div>
-
-                    {/* 템플릿 선택 */}
-                    <div className="border-t pt-4">
-                        <AutoReminderTemplateSelector
-                            selectedId={autoTemplateId}
-                            onSelect={setAutoTemplateId}
-                        />
-                        <p className="text-xs text-gray-500 mt-2">
-                            마지막으로 편집한 템플릿이 자동으로 적용됩니다.
-                        </p>
                     </div>
 
                     <DialogFooter className="flex gap-2 sm:flex-row">

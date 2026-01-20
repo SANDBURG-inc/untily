@@ -136,18 +136,18 @@ export async function sendManualReminder(
         }
 
         // 6. 마지막 사용 템플릿 저장 (커스텀 템플릿 사용 시)
-        // v0.2.0: userId 기반으로 변경 (UserLastTemplate)
+        // 문서함별 템플릿 설정으로 저장
         if (customGreetingHtml || customFooterHtml) {
-            await prisma.userLastTemplate.upsert({
+            await prisma.documentBoxTemplateConfig.upsert({
                 where: {
-                    userId: documentBox.userId,
+                    documentBoxId,
                 },
                 update: {
                     lastGreetingHtml: customGreetingHtml || null,
                     lastFooterHtml: customFooterHtml || null,
                 },
                 create: {
-                    userId: documentBox.userId,
+                    documentBoxId,
                     lastGreetingHtml: customGreetingHtml || null,
                     lastFooterHtml: customFooterHtml || null,
                 },
@@ -207,7 +207,7 @@ export async function saveReminderSchedules(
                 where: { documentBoxId },
             });
 
-            // 새 스케줄 생성
+            // 새 스케줄 생성 (템플릿 정보 포함)
             if (schedules.length > 0) {
                 await tx.reminderSchedule.createMany({
                     data: schedules.map((schedule, index) => ({
@@ -217,6 +217,10 @@ export async function saveReminderSchedules(
                         sendTime: schedule.sendTime,
                         channel: schedule.channel as RemindType,
                         order: index,
+                        // 템플릿 정보
+                        templateId: schedule.templateId || null,
+                        greetingHtml: schedule.greetingHtml || null,
+                        footerHtml: schedule.footerHtml || null,
                     })),
                 });
             }
@@ -380,18 +384,18 @@ export async function sendReminderAfterDeadline(
         }
 
         // 6. 마지막 사용 템플릿 저장 (커스텀 템플릿 사용 시)
-        // v0.2.0: userId 기반으로 변경 (UserLastTemplate)
+        // 문서함별 템플릿 설정으로 저장
         if (customGreetingHtml || customFooterHtml) {
-            await prisma.userLastTemplate.upsert({
+            await prisma.documentBoxTemplateConfig.upsert({
                 where: {
-                    userId: documentBox.userId,
+                    documentBoxId,
                 },
                 update: {
                     lastGreetingHtml: customGreetingHtml || null,
                     lastFooterHtml: customFooterHtml || null,
                 },
                 create: {
-                    userId: documentBox.userId,
+                    documentBoxId,
                     lastGreetingHtml: customGreetingHtml || null,
                     lastFooterHtml: customFooterHtml || null,
                 },

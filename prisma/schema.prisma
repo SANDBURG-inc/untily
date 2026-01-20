@@ -207,6 +207,11 @@ model ReminderSchedule {
   // 채널 설정
   channel RemindType @default(EMAIL)
 
+  // 템플릿 설정 (null이면 문서함 기본 템플릿 사용)
+  templateId   String?        // 저장된 RemindTemplate ID (참조용)
+  greetingHtml String? @db.Text // 인사말 HTML (스냅샷)
+  footerHtml   String? @db.Text // 아랫말 HTML (스냅샷)
+
   // 순서 (UI 표시 및 관리용)
   order Int @default(0)
 
@@ -329,20 +334,6 @@ model ReminderRecipient {
 // 이메일 템플릿 관리
 // ============================================================================
 
-// 사용자별 마지막 사용 템플릿
-// - 어느 문서함에서 편집하든 같은 템플릿이 로드됨
-// - 자동 리마인더에서도 이 템플릿을 사용
-model UserLastTemplate {
-  id               String   @id @default(cuid())
-  userId           String   @unique // 사용자당 1개
-  lastTemplateId   String? // 마지막으로 선택한 저장 템플릿 ID
-  lastGreetingHtml String?  @db.Text
-  lastFooterHtml   String?  @db.Text
-  updatedAt        DateTime @updatedAt
-
-  @@index([userId])
-}
-
 // 저장된 이메일 템플릿 (재사용 가능)
 // - SEND/SHARE 구분 없이 통일
 model RemindTemplate {
@@ -357,16 +348,18 @@ model RemindTemplate {
   @@index([userId])
 }
 
-// [Deprecated] 문서함별 템플릿 설정
-// - 추후 문서함별 자동 리마인더 템플릿 설정 기능용으로 유지
-// - 현재는 사용하지 않음 (UserLastTemplate로 대체)
+// 문서함별 템플릿 설정
+// - 문서함별로 마지막 사용 템플릿 유지
+// - 자동 리마인더도 이 템플릿을 사용
 model DocumentBoxTemplateConfig {
   id            String      @id @default(cuid())
   documentBoxId String      @unique // 문서함당 1개
   documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
 
-  // 자동 리마인더용 템플릿 (추후 기능)
-  autoTemplateId String?
+  // 마지막 사용 템플릿
+  lastTemplateId   String? // 마지막으로 선택한 저장 템플릿 ID
+  lastGreetingHtml String?  @db.Text // 인사말 HTML
+  lastFooterHtml   String?  @db.Text // 아랫말 HTML
 
   updatedAt DateTime @updatedAt
 }

@@ -9,8 +9,9 @@
  * @module components/dashboard/ReminderScheduleEditor
  */
 
+import { useState, useEffect, useCallback } from 'react';
 import { Plus } from 'lucide-react';
-import { ReminderScheduleRow } from './ReminderScheduleDialog';
+import { ReminderScheduleRow, type TemplateOption } from './ReminderScheduleDialog';
 import {
     type ReminderScheduleState,
     MAX_REMINDER_COUNT,
@@ -43,6 +44,7 @@ interface ReminderScheduleEditorProps {
  * 리마인더 스케줄 편집기
  *
  * Beta 배너, 스케줄 목록, 추가 버튼을 포함하는 공통 UI 컴포넌트입니다.
+ * 템플릿 목록을 내부에서 fetch하여 각 Row에 전달합니다.
  */
 export function ReminderScheduleEditor({
     schedules,
@@ -52,18 +54,41 @@ export function ReminderScheduleEditor({
     maxCount = MAX_REMINDER_COUNT,
     showBetaBanner = true,
 }: ReminderScheduleEditorProps) {
+    // 템플릿 목록 상태
+    const [templates, setTemplates] = useState<TemplateOption[]>([]);
+    const [templatesLoading, setTemplatesLoading] = useState(true);
+
+    // 템플릿 목록 조회
+    const fetchTemplates = useCallback(async () => {
+        try {
+            const res = await fetch('/api/remind-template');
+            const data = await res.json();
+            if (data.success && data.templates) {
+                setTemplates(data.templates);
+            }
+        } catch (error) {
+            console.error('Failed to fetch templates:', error);
+        } finally {
+            setTemplatesLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchTemplates();
+    }, [fetchTemplates]);
+
     return (
         <>
             {/* Beta 안내 배너 */}
             {showBetaBanner && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-600">
-                    Beta 기간동안 무료로 제공됩니다.
+                    맞춤 자동 알림 기능은 Beta 기간동안 무료로 제공됩니다.
                 </div>
             )}
 
             {/* 리마인더 스케줄 목록 */}
             <div className="py-2">
-                <div className="space-y-1">
+                <div className="space-y-1 divide-y divide-gray-100">
                     {schedules.map((schedule, index) => (
                         <ReminderScheduleRow
                             key={schedule.id}
@@ -71,6 +96,8 @@ export function ReminderScheduleEditor({
                             onChange={(updated) => onUpdateSchedule(index, updated)}
                             onDelete={() => onDeleteSchedule(index)}
                             canDelete={schedules.length > 1}
+                            templates={templates}
+                            templatesLoading={templatesLoading}
                         />
                     ))}
                 </div>

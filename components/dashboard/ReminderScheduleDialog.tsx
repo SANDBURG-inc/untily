@@ -37,7 +37,6 @@ import {
     TIME_UNIT_OPTIONS,
     TIME_VALUE_RANGE,
 } from '@/lib/types/reminder';
-import { AutoReminderTemplateSelector } from '@/components/email-editor/AutoReminderTemplateSelector';
 
 // ============================================================================
 // Props Interface
@@ -50,32 +49,44 @@ interface ReminderScheduleDialogProps {
     onOpenChange: (open: boolean) => void;
     /** 현재 스케줄 목록 */
     schedules: ReminderScheduleState[];
-    /** 저장 핸들러 */
-    onSave: (schedules: ReminderScheduleState[], autoTemplateId: string | null) => void;
-    /** 자동 리마인더 템플릿 ID */
-    autoTemplateId?: string | null;
+    /** 저장 핸들러 (각 스케줄에 템플릿 정보 포함) */
+    onSave: (schedules: ReminderScheduleState[]) => void;
 }
 
 // ============================================================================
 // Sub Components
 // ============================================================================
 
+/** 템플릿 정보 */
+export interface TemplateOption {
+    id: string;
+    name: string;
+    greetingHtml: string;
+    footerHtml: string;
+}
+
 export interface ReminderScheduleRowProps {
     schedule: ReminderScheduleState;
     onChange: (schedule: ReminderScheduleState) => void;
     onDelete: () => void;
     canDelete: boolean;
+    /** 템플릿 목록 (부모에서 전달) */
+    templates?: TemplateOption[];
+    /** 템플릿 로딩 중 여부 */
+    templatesLoading?: boolean;
 }
 
 /**
  * 리마인더 스케줄 행
- * 구글 캘린더 스타일의 "마감 n일|주 전 HH:mm" 형식
+ * 구글 캘린더 스타일의 "마감 n일|주 전 HH:mm" 형식 + 템플릿 선택
  */
 export function ReminderScheduleRow({
     schedule,
     onChange,
     onDelete,
     canDelete,
+    templates = [],
+    templatesLoading = false,
 }: ReminderScheduleRowProps) {
     const timeRange = TIME_VALUE_RANGE[schedule.timeUnit as keyof typeof TIME_VALUE_RANGE];
     const timeValues = Array.from(
@@ -83,8 +94,42 @@ export function ReminderScheduleRow({
         (_, i) => timeRange.min + i
     );
 
+    // 템플릿 선택 핸들러
+    const handleTemplateChange = (templateId: string) => {
+        if (templateId === 'default') {
+            // 기본 템플릿 선택 시 템플릿 관련 필드 초기화
+            onChange({
+                ...schedule,
+                templateId: null,
+                greetingHtml: null,
+                footerHtml: null,
+            });
+        } else {
+            // 저장된 템플릿 선택 시 해당 템플릿 내용을 스냅샷으로 저장
+            const template = templates.find((t) => t.id === templateId);
+            if (template) {
+                onChange({
+                    ...schedule,
+                    templateId: template.id,
+                    greetingHtml: template.greetingHtml,
+                    footerHtml: template.footerHtml,
+                });
+            }
+        }
+    };
+
+    // 템플릿 이름 8자 제한
+    const truncateName = (name: string, maxLength: number = 8) =>
+        name.length > maxLength ? `${name.slice(0, maxLength)}…` : name;
+
+    // 현재 선택된 템플릿 이름
+    const selectedTemplateName =
+        !schedule.templateId || schedule.templateId === 'default'
+            ? '기본'
+            : truncateName(templates.find((t) => t.id === schedule.templateId)?.name || '기본');
+
     return (
-        <div className="flex items-center gap-2 py-2">
+        <div className="flex items-center gap-1.5 py-2">
             <span className="text-sm text-gray-600 shrink-0">마감</span>
 
             {/* 숫자 선택 */}
@@ -94,7 +139,7 @@ export function ReminderScheduleRow({
                     onChange({ ...schedule, timeValue: Number(value) })
                 }
             >
-                <SelectTrigger className="w-16 h-9">
+                <SelectTrigger className="w-14 h-8">
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -118,7 +163,7 @@ export function ReminderScheduleRow({
                     onChange({ ...schedule, timeUnit: value, timeValue: newValue });
                 }}
             >
-                <SelectTrigger className="w-16 h-9">
+                <SelectTrigger className="w-14 h-8">
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -139,12 +184,32 @@ export function ReminderScheduleRow({
                 size="sm"
             />
 
+            {/* 템플릿 선택 */}
+            <Select
+                value={schedule.templateId || 'default'}
+                onValueChange={handleTemplateChange}
+            >
+                <SelectTrigger className="w-20 h-8 text-xs">
+                    <SelectValue>
+                        {templatesLoading ? '...' : selectedTemplateName}
+                    </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="default">기본</SelectItem>
+                    {templates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                            {truncateName(template.name)}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+
             {/* 삭제 버튼 */}
             {canDelete && (
                 <button
                     type="button"
                     onClick={onDelete}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors ml-auto"
+                    className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors ml-auto shrink-0"
                     aria-label="리마인더 삭제"
                 >
                     <X className="w-4 h-4" />
@@ -163,7 +228,6 @@ export function ReminderScheduleDialog({
     onOpenChange,
     schedules: initialSchedules,
     onSave,
-    autoTemplateId: initialAutoTemplateId = null,
 }: ReminderScheduleDialogProps) {
     const uniqueId = useId();
 
@@ -172,11 +236,6 @@ export function ReminderScheduleDialog({
         initialSchedules.length > 0
             ? initialSchedules
             : [{ id: `new-${uniqueId}-0`, ...DEFAULT_REMINDER_SCHEDULE }]
-    );
-
-    // 템플릿 ID 상태
-    const [localAutoTemplateId, setLocalAutoTemplateId] = useState<string | null>(
-        initialAutoTemplateId
     );
 
     // Dialog가 열릴 때마다 초기값으로 리셋
@@ -188,11 +247,10 @@ export function ReminderScheduleDialog({
                         ? initialSchedules
                         : [{ id: `new-${uniqueId}-0`, ...DEFAULT_REMINDER_SCHEDULE }]
                 );
-                setLocalAutoTemplateId(initialAutoTemplateId);
             }
             onOpenChange(newOpen);
         },
-        [initialSchedules, initialAutoTemplateId, onOpenChange, uniqueId]
+        [initialSchedules, onOpenChange, uniqueId]
     );
 
     // 스케줄 추가
@@ -226,9 +284,9 @@ export function ReminderScheduleDialog({
     // 저장
     const handleSave = useCallback(() => {
         if (localSchedules.length === 0) return;
-        onSave(localSchedules, localAutoTemplateId);
+        onSave(localSchedules);
         onOpenChange(false);
-    }, [localSchedules, localAutoTemplateId, onSave, onOpenChange]);
+    }, [localSchedules, onSave, onOpenChange]);
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -249,17 +307,6 @@ export function ReminderScheduleDialog({
                     onUpdateSchedule={handleUpdateSchedule}
                     onDeleteSchedule={handleDeleteSchedule}
                 />
-
-                {/* 템플릿 선택 */}
-                <div className="border-t pt-4">
-                    <AutoReminderTemplateSelector
-                        selectedId={localAutoTemplateId}
-                        onSelect={setLocalAutoTemplateId}
-                    />
-                    <p className="text-xs text-gray-500 mt-2">
-                        마지막으로 편집한 템플릿이 자동으로 적용됩니다.
-                    </p>
-                </div>
 
                 <DialogFooter className="flex gap-2 sm:flex-row">
                     <Button

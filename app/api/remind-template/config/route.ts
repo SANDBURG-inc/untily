@@ -1,12 +1,12 @@
 /**
- * 사용자별 마지막 사용 템플릿 API
+ * 문서함별 템플릿 설정 API
  *
- * GET: 사용자의 마지막 사용 템플릿 조회
- * POST: 마지막 사용 템플릿 저장/업데이트
+ * GET: 문서함의 마지막 사용 템플릿 조회
+ * POST: 문서함의 마지막 사용 템플릿 저장/업데이트
  *
- * @note v0.2.0에서 documentBoxId 기반 → userId 기반으로 변경됨
- * - 어느 문서함에서 편집하든 같은 템플릿이 로드됨
- * - SEND/SHARE 구분 없이 통일됨
+ * @note 문서함별로 마지막 사용 템플릿 유지
+ * - 각 문서함에 진입하면 해당 문서함에서 마지막 사용한 템플릿이 로드됨
+ * - 자동 리마인더도 이 템플릿을 사용
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -21,6 +21,7 @@ interface LastTemplateResponse {
     success: boolean;
     lastTemplate?: {
         lastTemplateId: string | null;
+        lastTemplateName: string | null;
         lastGreetingHtml: string | null;
         lastFooterHtml: string | null;
     };
@@ -28,16 +29,17 @@ interface LastTemplateResponse {
 }
 
 interface SaveLastTemplateRequest {
+    documentBoxId: string;
     lastTemplateId?: string | null;
     lastGreetingHtml?: string | null;
     lastFooterHtml?: string | null;
 }
 
 // ============================================================================
-// GET: 사용자의 마지막 사용 템플릿 조회
+// GET: 문서함의 마지막 사용 템플릿 조회
 // ============================================================================
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
         const { user } = await neonAuth();
         if (!user) {
@@ -47,10 +49,35 @@ export async function GET() {
             );
         }
 
-        // 사용자의 마지막 사용 템플릿 조회
-        const lastTemplate = await prisma.userLastTemplate.findUnique({
+        const { searchParams } = new URL(request.url);
+        const documentBoxId = searchParams.get('documentBoxId');
+
+        if (!documentBoxId) {
+            return NextResponse.json<LastTemplateResponse>(
+                { success: false, error: 'documentBoxId is required' },
+                { status: 400 }
+            );
+        }
+
+        // 문서함 소유권 확인
+        const documentBox = await prisma.documentBox.findFirst({
             where: {
+                documentBoxId,
                 userId: user.id,
+            },
+        });
+
+        if (!documentBox) {
+            return NextResponse.json<LastTemplateResponse>(
+                { success: false, error: 'Document box not found' },
+                { status: 404 }
+            );
+        }
+
+        // 문서함의 마지막 사용 템플릿 조회
+        const templateConfig = await prisma.documentBoxTemplateConfig.findUnique({
+            where: {
+                documentBoxId,
             },
             select: {
                 lastTemplateId: true,
@@ -59,9 +86,24 @@ export async function GET() {
             },
         });
 
+        // 템플릿 이름 조회 (lastTemplateId가 있는 경우)
+        let lastTemplateName: string | null = null;
+        if (templateConfig?.lastTemplateId) {
+            const template = await prisma.remindTemplate.findUnique({
+                where: { id: templateConfig.lastTemplateId },
+                select: { name: true },
+            });
+            lastTemplateName = template?.name ?? null;
+        }
+
         return NextResponse.json<LastTemplateResponse>({
             success: true,
-            lastTemplate: lastTemplate ?? undefined,
+            lastTemplate: templateConfig
+                ? {
+                    ...templateConfig,
+                    lastTemplateName,
+                }
+                : undefined,
         });
     } catch (error) {
         console.error('Failed to fetch last template:', error);
@@ -73,7 +115,7 @@ export async function GET() {
 }
 
 // ============================================================================
-// POST: 마지막 사용 템플릿 저장/업데이트
+// POST: 문서함의 마지막 사용 템플릿 저장/업데이트
 // ============================================================================
 
 export async function POST(request: NextRequest) {
@@ -87,12 +129,34 @@ export async function POST(request: NextRequest) {
         }
 
         const body: SaveLastTemplateRequest = await request.json();
-        const { lastTemplateId, lastGreetingHtml, lastFooterHtml } = body;
+        const { documentBoxId, lastTemplateId, lastGreetingHtml, lastFooterHtml } = body;
+
+        if (!documentBoxId) {
+            return NextResponse.json<LastTemplateResponse>(
+                { success: false, error: 'documentBoxId is required' },
+                { status: 400 }
+            );
+        }
+
+        // 문서함 소유권 확인
+        const documentBox = await prisma.documentBox.findFirst({
+            where: {
+                documentBoxId,
+                userId: user.id,
+            },
+        });
+
+        if (!documentBox) {
+            return NextResponse.json<LastTemplateResponse>(
+                { success: false, error: 'Document box not found' },
+                { status: 404 }
+            );
+        }
 
         // upsert로 설정 저장/업데이트
-        const lastTemplate = await prisma.userLastTemplate.upsert({
+        const templateConfig = await prisma.documentBoxTemplateConfig.upsert({
             where: {
-                userId: user.id,
+                documentBoxId,
             },
             update: {
                 ...(lastTemplateId !== undefined && { lastTemplateId }),
@@ -100,7 +164,7 @@ export async function POST(request: NextRequest) {
                 ...(lastFooterHtml !== undefined && { lastFooterHtml }),
             },
             create: {
-                userId: user.id,
+                documentBoxId,
                 lastTemplateId: lastTemplateId ?? null,
                 lastGreetingHtml: lastGreetingHtml ?? null,
                 lastFooterHtml: lastFooterHtml ?? null,
@@ -114,7 +178,10 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json<LastTemplateResponse>({
             success: true,
-            lastTemplate,
+            lastTemplate: {
+                ...templateConfig,
+                lastTemplateName: null, // POST에서는 템플릿 이름 조회 생략
+            },
         });
     } catch (error) {
         console.error('Failed to save last template:', error);

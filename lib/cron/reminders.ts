@@ -116,8 +116,14 @@ export async function processReminders(): Promise<ProcessResult> {
             continue;
         }
 
+        // 스케줄별 템플릿 정보 전달
+        const scheduleTemplate = {
+            greetingHtml: schedule.greetingHtml ?? undefined,
+            footerHtml: schedule.footerHtml ?? undefined,
+        };
+
         // 미제출자 필터링 및 이메일 발송
-        const emailResult = await sendReminderEmails(box, schedule.id, 'schedule');
+        const emailResult = await sendReminderEmails(box, schedule.id, 'schedule', scheduleTemplate);
         if (emailResult) {
             totalEmailsSent += emailResult.emailsSent;
             results.push(emailResult.result);
@@ -179,11 +185,16 @@ function calculateDaysLeft(endDate: Date): number {
 
 /**
  * 리마인더 이메일 발송
+ * @param box 문서함 정보
+ * @param scheduleId 스케줄 ID (schedule 소스일 때)
+ * @param source 발송 소스 (schedule: 새 시스템, legacy: 기존 시스템)
+ * @param scheduleTemplate 스케줄별 템플릿 (있으면 우선 사용)
  */
 async function sendReminderEmails(
     box: DocumentBoxWithRelations,
     scheduleId: string | undefined,
-    source: 'schedule' | 'legacy'
+    source: 'schedule' | 'legacy',
+    scheduleTemplate?: { greetingHtml?: string; footerHtml?: string }
 ): Promise<{ emailsSent: number; result: ReminderResult } | null> {
     // 필수 서류 필터링
     const requiredDocs = box.requiredDocuments.filter((d) => d.isRequired);
@@ -204,23 +215,32 @@ async function sendReminderEmails(
         `[Auto-Reminder] Box "${box.boxTitle}" has ${incompleteSubmitters.length} incomplete submitters (source: ${source})`
     );
 
-    // 자동 리마인더 템플릿 조회
-    // v0.2.0: 문서함 소유자의 마지막 사용 템플릿을 사용
+    // 템플릿 결정: 스케줄별 템플릿 > 문서함 마지막 템플릿 > 기본
     let customGreetingHtml: string | undefined;
     let customFooterHtml: string | undefined;
 
-    const userLastTemplate = await prisma.userLastTemplate.findUnique({
-        where: {
-            userId: box.userId,
-        },
-    });
-
-    if (userLastTemplate?.lastGreetingHtml || userLastTemplate?.lastFooterHtml) {
-        customGreetingHtml = userLastTemplate.lastGreetingHtml ?? undefined;
-        customFooterHtml = userLastTemplate.lastFooterHtml ?? undefined;
+    // 1. 스케줄별 템플릿이 있으면 우선 사용
+    if (scheduleTemplate?.greetingHtml || scheduleTemplate?.footerHtml) {
+        customGreetingHtml = scheduleTemplate.greetingHtml;
+        customFooterHtml = scheduleTemplate.footerHtml;
         console.log(
-            `[Auto-Reminder] Using user's last template for box "${box.boxTitle}"`
+            `[Auto-Reminder] Using schedule-specific template for box "${box.boxTitle}"`
         );
+    } else {
+        // 2. 문서함별 마지막 사용 템플릿을 폴백으로 사용
+        const templateConfig = await prisma.documentBoxTemplateConfig.findUnique({
+            where: {
+                documentBoxId: box.documentBoxId,
+            },
+        });
+
+        if (templateConfig?.lastGreetingHtml || templateConfig?.lastFooterHtml) {
+            customGreetingHtml = templateConfig.lastGreetingHtml ?? undefined;
+            customFooterHtml = templateConfig.lastFooterHtml ?? undefined;
+            console.log(
+                `[Auto-Reminder] Using document box's last template for box "${box.boxTitle}"`
+            );
+        }
     }
 
     const resend = new Resend(process.env.RESEND_API_KEY || process.env.SMTP_PASS);
