@@ -88,7 +88,7 @@ export function ReminderScheduleEditor({
 
             {/* 리마인더 스케줄 목록 */}
             <div className="py-2">
-                <div className="space-y-1 divide-y divide-gray-100">
+                <div className="space-y-1">
                     {schedules.map((schedule, index) => (
                         <ReminderScheduleRow
                             key={schedule.id}

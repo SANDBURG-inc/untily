@@ -129,7 +129,7 @@ export function ReminderScheduleRow({
             : truncateName(templates.find((t) => t.id === schedule.templateId)?.name || '기본');
 
     return (
-        <div className="flex items-center gap-1.5 py-2">
+        <div className="flex items-center gap-1.5 py-1">
             <span className="text-sm text-gray-600 shrink-0">마감</span>
 
             {/* 숫자 선택 */}
