@@ -37,13 +37,34 @@ export default async function EditDocumentBoxPage({
                 name: r.documentTitle,
                 type: r.isRequired ? '필수' : '옵션',
                 description: r.documentDescription || '',
+                templates: (r.templates as { s3Key: string; filename: string }[]) || [],
+                allowMultiple: r.allowMultipleFiles ?? false,
             }))
-            : [{ id: '1', name: '', type: '필수', description: '' }],
+            : [{ id: '1', name: '', type: '필수', description: '', templates: [], allowMultiple: false }],
         deadline: documentBox.endDate.toISOString().split('T')[0],
         reminderEnabled: documentBox.documentBoxRemindTypes.length > 0,
         emailReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'EMAIL'),
         smsReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'SMS'),
         kakaoReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'PUSH'),
+        status: documentBox.status,
+        // 폼 필드 그룹 데이터 (정보 입력 항목)
+        formFieldsAboveDocuments: documentBox.formFieldsAboveDocuments,
+        formFieldGroups: documentBox.formFieldGroups.map((group) => ({
+            id: group.formFieldGroupId,
+            groupTitle: group.groupTitle,
+            groupDescription: group.groupDescription || '',
+            isRequired: group.isRequired,
+            order: group.order,
+            fields: group.formFields.map((field) => ({
+                id: field.formFieldId,
+                fieldLabel: field.fieldLabel,
+                fieldType: field.fieldType,
+                placeholder: field.placeholder || '',
+                isRequired: field.isRequired,
+                order: field.order,
+                options: (field.options as string[]) || [],
+            })),
+        })),
     };
 
     return (
@@ -56,3 +77,4 @@ export default async function EditDocumentBoxPage({
         </main>
     );
 }
+ 

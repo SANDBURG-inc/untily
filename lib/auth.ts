@@ -41,6 +41,7 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   name: string;
+  phone?: string | null;
   image?: string | null;
   emailVerified: boolean;
   createdAt: Date;

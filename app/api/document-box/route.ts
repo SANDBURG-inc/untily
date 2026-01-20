@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
-import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse } from '@/lib/types/document';
+import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse, TemplateFile } from '@/lib/types/document';
+import type { FormFieldGroupData } from '@/lib/types/form-field';
+import { createTemplateZip } from '@/lib/s3/zip';
 
 export async function POST(request: Request) {
     try {
@@ -14,7 +16,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const body: CreateDocumentBoxRequest = await request.json();
+        const body = await request.json();
         const {
             documentName,
             description,
@@ -22,12 +24,17 @@ export async function POST(request: Request) {
             submittersEnabled,
             submitters,
             requirements,
+            formFieldGroups,
+            formFieldsAboveDocuments,
             deadline,
             reminderEnabled,
             emailReminder,
             smsReminder,
             kakaoReminder,
-        } = body;
+        } = body as CreateDocumentBoxRequest & {
+            formFieldGroups?: FormFieldGroupData[];
+            formFieldsAboveDocuments?: boolean;
+        };
 
         // Validate required fields
         if (!documentName || !deadline) {
@@ -56,6 +63,7 @@ export async function POST(request: Request) {
                     endDate,
                     userId: user.id,
                     hasSubmitter: submittersEnabled,
+                    formFieldsAboveDocuments: formFieldsAboveDocuments ?? false,
                 },
             });
 
@@ -83,16 +91,48 @@ export async function POST(request: Request) {
                 });
             }
 
-            // Create required documents
+            // Create required documents (양식 파일 목록 포함)
             if (requirements.length > 0) {
                 await tx.requiredDocument.createMany({
                     data: requirements.map((req) => ({
                         documentTitle: req.name,
                         documentDescription: req.description || null,
                         isRequired: req.type === '필수',
+                        allowMultipleFiles: req.allowMultiple ?? false,
                         documentBoxId: box.documentBoxId,
+                        templates: JSON.parse(JSON.stringify(req.templates || [])),
                     })),
                 });
+            }
+
+            // Create form field groups (정보 입력 항목)
+            if (formFieldGroups && formFieldGroups.length > 0) {
+                for (const group of formFieldGroups) {
+                    const createdGroup = await tx.formFieldGroup.create({
+                        data: {
+                            groupTitle: group.groupTitle,
+                            groupDescription: group.groupDescription || null,
+                            isRequired: group.isRequired,
+                            order: group.order,
+                            documentBoxId: box.documentBoxId,
+                        },
+                    });
+
+                    // Create form fields for this group
+                    if (group.fields && group.fields.length > 0) {
+                        await tx.formField.createMany({
+                            data: group.fields.map((field) => ({
+                                fieldLabel: field.fieldLabel,
+                                fieldType: field.fieldType,
+                                placeholder: field.placeholder || null,
+                                isRequired: field.isRequired,
+                                order: field.order,
+                                options: JSON.parse(JSON.stringify(field.options || [])),
+                                formFieldGroupId: createdGroup.formFieldGroupId,
+                            })),
+                        });
+                    }
+                }
             }
 
             // Create reminder types if enabled
@@ -129,6 +169,36 @@ export async function POST(request: Request) {
 
             return box;
         });
+
+        // 트랜잭션 완료 후 ZIP 생성 (비동기, 실패해도 문서함 생성은 성공)
+        try {
+            const createdRequirements = await prisma.requiredDocument.findMany({
+                where: { documentBoxId: documentBox.documentBoxId },
+            });
+
+            for (const req of createdRequirements) {
+                const templates = (req.templates as TemplateFile[] | null) || [];
+
+                // 양식 2개 이상일 때만 ZIP 생성
+                if (templates.length >= 2) {
+                    const zipKey = await createTemplateZip({
+                        templates,
+                        documentBoxId: documentBox.documentBoxId,
+                        requiredDocumentId: req.requiredDocumentId,
+                    });
+
+                    if (zipKey) {
+                        await prisma.requiredDocument.update({
+                            where: { requiredDocumentId: req.requiredDocumentId },
+                            data: { templateZipKey: zipKey },
+                        });
+                    }
+                }
+            }
+        } catch (zipError) {
+            // ZIP 생성 실패는 로깅만 (문서함 생성은 성공)
+            console.error('Failed to create template ZIP:', zipError);
+        }
 
         return NextResponse.json<CreateDocumentBoxResponse>({
             success: true,

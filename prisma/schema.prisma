@@ -14,11 +14,11 @@ datasource db {
 }
 
 model Logo {
-  logoId        String   @id @default(cuid())
-  imageUrl      String
-  createdAt     DateTime @default(now())
-  userId        String
-  type          LogoType @default(DEFAULT)
+  logoId    String   @id @default(cuid())
+  imageUrl  String
+  createdAt DateTime @default(now())
+  userId    String
+  type      LogoType @default(DEFAULT)
 
   // 문서함 로고인 경우에만 사용 (type이 DOCUMENT_BOX일 때)
   documentBoxId String?
@@ -30,8 +30,22 @@ model Logo {
 }
 
 enum LogoType {
-  DEFAULT       // 사용자 기본 로고
-  DOCUMENT_BOX  // 문서함별 로고
+  DEFAULT // 사용자 기본 로고
+  DOCUMENT_BOX // 문서함별 로고
+}
+
+// 문서함 상태
+// - OPEN: 제출 가능 (기본값, 마감 전)
+// - CLOSED: 제출 불가 (소유자 탈퇴, 수동 닫기)
+// - OPEN_SOMEONE: 마감 후 제한적 오픈 (마감 후 리마인드 수신자만 제출 가능)
+// - CLOSED_EXPIRED: 마감 후 기본 상태 (완전 닫힘)
+// - OPEN_RESUME: 마감 후 관리자가 다시 연 상태 (자동으로 닫히지 않음)
+enum DocumentBoxStatus {
+  OPEN
+  CLOSED
+  OPEN_SOMEONE
+  CLOSED_EXPIRED
+  OPEN_RESUME
 }
 
 model DocumentBox {
@@ -49,11 +63,24 @@ model DocumentBox {
   // 관련 유틸: lib/utils/document-box.ts > hasDesignatedSubmitters()
   hasSubmitter Boolean?
 
+  // 문서함 상태
+  // - OPEN: 제출 가능 (기본값)
+  // - CLOSED: 제출 불가 (소유자 탈퇴, 수동 닫기)
+  status DocumentBoxStatus @default(OPEN)
+
+  // 폼 필드 표시 위치 설정
+  // - true: 수집 서류 위에 표시 (개인정보 동의 먼저)
+  // - false: 수집 서류 아래에 표시 (기본값)
+  formFieldsAboveDocuments Boolean @default(false)
+
   logos                  Logo[]
   submitters             Submitter[]
   requiredDocuments      RequiredDocument[]
+  formFieldGroups        FormFieldGroup[]
   documentBoxRemindTypes DocumentBoxRemindType[]
   reminderLogs           ReminderLog[]
+  reminderSchedules      ReminderSchedule[]
+  templateConfigs        DocumentBoxTemplateConfig[]
 
   @@index([userId])
 }
@@ -63,26 +90,36 @@ model RequiredDocument {
   documentTitle       String
   documentDescription String?
   isRequired          Boolean     @default(true)
+  allowMultipleFiles  Boolean     @default(false)
   documentBoxId       String
   documentBox         DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
+
+  // 양식 파일 목록 (JSON 배열)
+  // 형식: [{s3Key: string, filename: string}, ...]
+  templates Json? @default("[]")
+
+  // 양식 파일 ZIP (2개 이상일 때 미리 생성)
+  // S3 경로: templates/{documentBoxId}_zip/{requiredDocumentId}.zip
+  templateZipKey String?
 
   submittedDocuments SubmittedDocument[]
 }
 
 model Submitter {
-  submitterId   String          @id @default(cuid())
+  submitterId   String      @id @default(cuid())
   name          String
   email         String
   phone         String
   documentBoxId String
-  documentBox   DocumentBox     @relation(fields: [documentBoxId], references: [documentBoxId])
+  documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
 
   // 제출자 인증 관련 필드
-  userId        String?         // Stack Auth 사용자 ID (로그인 시 연결)
-  status        SubmitterStatus @default(PENDING)
-  submittedAt   DateTime?       // 제출 완료 시간
+  userId      String? // Stack Auth 사용자 ID (로그인 시 연결)
+  status      SubmitterStatus @default(PENDING)
+  submittedAt DateTime? // 제출 완료 시간
 
   submittedDocuments SubmittedDocument[]
+  formFieldResponses FormFieldResponse[]
   reminderRecipients ReminderRecipient[]
 
   @@index([userId])
@@ -90,24 +127,24 @@ model Submitter {
 }
 
 model SubmittedDocument {
-  submittedDocumentId String           @id @default(cuid())
+  submittedDocumentId String @id @default(cuid())
 
   // S3 관련 필드
-  s3Key               String
-  filename            String           // 관리자용 가공 파일명 (서류명_날짜_제출자명.확장자)
-  originalFilename    String           // 원본 파일명 (사용자가 업로드한 파일명)
-  size                Int
-  mimeType            String
+  s3Key            String
+  filename         String // 관리자용 가공 파일명 (서류명_날짜_제출자명.확장자)
+  originalFilename String // 원본 파일명 (사용자가 업로드한 파일명)
+  size             Int
+  mimeType         String
 
   // 기존 필드
-  fileUrl             String
-  createdAt           DateTime         @default(now())
+  fileUrl   String
+  createdAt DateTime @default(now())
 
   // 관계 필드
-  requiredDocumentId  String
-  requiredDocument    RequiredDocument @relation(fields: [requiredDocumentId], references: [requiredDocumentId])
-  submitterId         String
-  submitter           Submitter        @relation(fields: [submitterId], references: [submitterId])
+  requiredDocumentId String
+  requiredDocument   RequiredDocument @relation(fields: [requiredDocumentId], references: [requiredDocumentId])
+  submitterId        String
+  submitter          Submitter        @relation(fields: [submitterId], references: [submitterId])
 
   @@index([submitterId])
   @@index([requiredDocumentId])
@@ -127,9 +164,145 @@ enum RemindType {
   PUSH
 }
 
+// ============================================================================
+// 사용자 구독 관리
+// ============================================================================
+
+enum SubscriptionPlan {
+  FREE  // 무료
+  BETA  // 베타 기간 무료
+  BASIC // 기본 플랜
+  PRO   // 프로 플랜
+}
+
+model User {
+  userId           String           @id @default(cuid())
+  authUserId       String           @unique // Neon Auth user.id
+  subscriptionPlan SubscriptionPlan @default(BETA)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([authUserId])
+}
+
+// ============================================================================
+// 리마인더 스케줄
+// ============================================================================
+
+enum ReminderTimeUnit {
+  DAY  // n일 전
+  WEEK // n주 전
+}
+
+model ReminderSchedule {
+  id            String           @id @default(cuid())
+  documentBoxId String
+  documentBox   DocumentBox      @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
+
+  // 발송 시점 설정
+  timeValue Int              // 숫자 값 (1, 2, 3...)
+  timeUnit  ReminderTimeUnit // DAY 또는 WEEK
+  sendTime  String           // HH:mm 형식 (예: "09:00", "14:30")
+
+  // 채널 설정
+  channel RemindType @default(EMAIL)
+
+  // 템플릿 설정 (null이면 문서함 기본 템플릿 사용)
+  templateId   String?        // 저장된 RemindTemplate ID (참조용)
+  greetingHtml String? @db.Text // 인사말 HTML (스냅샷)
+  footerHtml   String? @db.Text // 아랫말 HTML (스냅샷)
+
+  // 순서 (UI 표시 및 관리용)
+  order Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentBoxId])
+  @@index([sendTime])
+}
+
 enum SubmitterStatus {
   PENDING
   SUBMITTED
+}
+
+// ============================================================================
+// 폼 필드 (정보 입력 항목)
+// ============================================================================
+
+enum FormFieldType {
+  TEXT      // 단일 행 텍스트
+  TEXTAREA  // 여러 행 텍스트
+  EMAIL     // 이메일 (validation 포함)
+  TEL       // 전화번호 (validation 포함)
+  DATE      // 날짜 선택
+  CHECKBOX  // 체크박스 (단일)
+  RADIO     // 라디오 버튼 (선택지)
+}
+
+// 폼 필드 그룹 (관리자가 생성)
+// 예: "개인정보 동의", "추가 인적사항" 등
+model FormFieldGroup {
+  formFieldGroupId String  @id @default(cuid())
+  groupTitle       String  // 그룹 제목
+  groupDescription String? // 그룹 설명
+  isRequired       Boolean @default(true) // 그룹 필수 여부
+  order            Int     @default(0) // 표시 순서
+
+  documentBoxId String
+  documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
+
+  formFields FormField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentBoxId])
+}
+
+// 폼 필드 정의 (개별 입력 항목)
+model FormField {
+  formFieldId String        @id @default(cuid())
+  fieldLabel  String        // 필드 레이블 (예: "생년월일")
+  fieldType   FormFieldType // 필드 타입
+  placeholder String?       // 플레이스홀더 텍스트
+  isRequired  Boolean       @default(true) // 필수 여부
+  order       Int           @default(0) // 필드 순서
+
+  // radio/checkbox 선택지 (JSON 배열)
+  // 형식: ["동의함", "동의하지 않음"]
+  options Json? @default("[]")
+
+  // 유효성 검사 규칙 (JSON, 확장용)
+  // 형식: {minLength: 1, maxLength: 100}
+  validation Json?
+
+  formFieldGroupId String
+  formFieldGroup   FormFieldGroup @relation(fields: [formFieldGroupId], references: [formFieldGroupId], onDelete: Cascade)
+
+  responses FormFieldResponse[]
+
+  @@index([formFieldGroupId])
+}
+
+// 폼 응답 (제출자가 입력)
+model FormFieldResponse {
+  formFieldResponseId String @id @default(cuid())
+  value               String // 응답 값 (string으로 통일)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  formFieldId String
+  formField   FormField @relation(fields: [formFieldId], references: [formFieldId], onDelete: Cascade)
+
+  submitterId String
+  submitter   Submitter @relation(fields: [submitterId], references: [submitterId], onDelete: Cascade)
+
+  @@unique([formFieldId, submitterId]) // 제출자당 필드별 1개 응답
+  @@index([submitterId])
+  @@index([formFieldId])
 }
 
 model ReminderLog {
@@ -139,7 +312,11 @@ model ReminderLog {
   sentAt        DateTime            @default(now())
   channel       RemindType
   isAuto        Boolean // true: 자동, false: 수동
-  recipients    ReminderRecipient[]
+
+  // 마감 후 발송 여부 (OPEN_SOMEONE 상태에서 제출 허용 판단에 사용)
+  sentAfterDeadline Boolean @default(false)
+
+  recipients ReminderRecipient[]
 }
 
 model ReminderRecipient {
@@ -151,4 +328,38 @@ model ReminderRecipient {
 
   @@index([reminderLogId])
   @@index([submitterId])
+}
+
+// ============================================================================
+// 이메일 템플릿 관리
+// ============================================================================
+
+// 저장된 이메일 템플릿 (재사용 가능)
+// - SEND/SHARE 구분 없이 통일
+model RemindTemplate {
+  id           String   @id @default(cuid())
+  name         String // 템플릿 이름
+  greetingHtml String   @db.Text // 인사말 HTML
+  footerHtml   String   @db.Text // 아랫말 HTML
+  userId       String // 소유자
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// 문서함별 템플릿 설정
+// - 문서함별로 마지막 사용 템플릿 유지
+// - 자동 리마인더도 이 템플릿을 사용
+model DocumentBoxTemplateConfig {
+  id            String      @id @default(cuid())
+  documentBoxId String      @unique // 문서함당 1개
+  documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
+
+  // 마지막 사용 템플릿
+  lastTemplateId   String? // 마지막으로 선택한 저장 템플릿 ID
+  lastGreetingHtml String?  @db.Text // 인사말 HTML
+  lastFooterHtml   String?  @db.Text // 아랫말 HTML
+
+  updatedAt DateTime @updatedAt
 }

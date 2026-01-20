@@ -1,8 +1,9 @@
 import { Edit, Send } from 'lucide-react';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { IconButton } from '@/components/shared/IconButton';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { StatusChangeDropdown } from '@/components/dashboard/StatusChangeDropdown';
 import {
     SubmissionStats,
     SubmittersList,
@@ -10,8 +11,11 @@ import {
     ReminderHistory,
 } from '@/components/dashboard/detail';
 import { ensureAuthenticated } from '@/lib/auth';
-import { getDocumentBoxWithSubmissionStatus } from '@/lib/queries/document-box';
-import { calculateSubmissionStats } from '@/lib/utils/document-box';
+import {
+    getDocumentBoxAccessInfo,
+    getDocumentBoxWithSubmissionStatus,
+} from '@/lib/queries/document-box';
+import { calculateSubmissionStats, hasDesignatedSubmitters } from '@/lib/utils/document-box';
 
 /**
  * 문서함 상세 페이지
@@ -28,6 +32,29 @@ export default async function DocumentBoxDetailPage({
     const user = await ensureAuthenticated();
     const { id } = await params;
 
+    // 1. 문서함 접근 권한 확인
+    const accessInfo = await getDocumentBoxAccessInfo(id, user.id, user.email || '');
+
+    // 문서함이 존재하지 않음 → 404
+    if (!accessInfo) {
+        notFound();
+    }
+
+    // 2. 소유자가 아니면 제출 페이지로 리다이렉트
+    if (!accessInfo.isOwner) {
+        if (!hasDesignatedSubmitters(accessInfo.hasSubmitter)) {
+            // 공개 제출 문서함 → /submit/[documentBoxId]
+            redirect(`/submit/${id}`);
+        } else if (accessInfo.submitterId) {
+            // 제출자 지정 문서함 + 등록된 제출자 → /submit/[documentBoxId]/[submitterId]
+            redirect(`/submit/${id}/${accessInfo.submitterId}`);
+        } else {
+            // 제출자 지정 문서함 + 미등록 → 404
+            notFound();
+        }
+    }
+
+    // 3. 소유자면 상세 정보 조회
     const documentBox = await getDocumentBoxWithSubmissionStatus(id, user.id);
 
     if (!documentBox) {
@@ -43,10 +70,17 @@ export default async function DocumentBoxDetailPage({
 
     return (
         <main className="container mx-auto px-4 py-8">
-            {/* 페이지 헤더: 문서함 제목 + 수정 버튼 */}
+            {/* 페이지 헤더: 문서함 제목 + 상태 + 수정 버튼 */}
             <PageHeader
                 title={documentBox.boxTitle}
                 description={documentBox.boxDescription || '제출할 서류를 확인하세요.'}
+                statusBadge={
+                    <StatusChangeDropdown
+                        documentBoxId={id}
+                        currentStatus={documentBox.status}
+                        size="lg"
+                    />
+                }
                 actions={
                     <>
                         <IconButton
@@ -86,6 +120,7 @@ export default async function DocumentBoxDetailPage({
                 documentBoxId={id}
                 documentBoxTitle={documentBox.boxTitle}
                 totalRequiredDocuments={documentBox.totalRequiredDocuments}
+                endDate={documentBox.endDate}
             />
             {/* 3. 수집 서류 목록 */}
             <RequiredDocumentsList documents={documentBox.requiredDocuments} />
@@ -94,8 +129,12 @@ export default async function DocumentBoxDetailPage({
             {stats.hasDesignatedSubmitters && (
                 <ReminderHistory
                     documentBoxId={id}
-                    autoReminderEnabled={documentBox.documentBoxRemindTypes.length > 0}
+                    autoReminderEnabled={
+                        documentBox.reminderSchedules.length > 0 ||
+                        documentBox.documentBoxRemindTypes.length > 0
+                    }
                     reminderLogs={documentBox.reminderLogs}
+                    reminderSchedules={documentBox.reminderSchedules}
                 />
             )}
         </main>

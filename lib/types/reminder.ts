@@ -25,6 +25,66 @@ export const ReminderChannel = {
     PUSH: 'PUSH',
 } as const;
 
+/**
+ * 리마인드 시간 단위
+ * - DAY: n일 전
+ * - WEEK: n주 전
+ */
+export const ReminderTimeUnit = {
+    DAY: 'DAY',
+    WEEK: 'WEEK',
+} as const;
+
+export type ReminderTimeUnitType = (typeof ReminderTimeUnit)[keyof typeof ReminderTimeUnit];
+
+/**
+ * 발송 시간 옵션 (30분 단위)
+ * 드롭다운에서 선택 가능한 모든 시간 목록
+ */
+export const SEND_TIME_OPTIONS = [
+    '00:00', '00:30', '01:00', '01:30', '02:00', '02:30',
+    '03:00', '03:30', '04:00', '04:30', '05:00', '05:30',
+    '06:00', '06:30', '07:00', '07:30', '08:00', '08:30',
+    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
+    '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
+    '21:00', '21:30', '22:00', '22:30', '23:00', '23:30',
+] as const;
+
+export type SendTimeOption = (typeof SEND_TIME_OPTIONS)[number];
+
+/**
+ * 시간 단위 드롭다운 옵션
+ */
+export const TIME_UNIT_OPTIONS = [
+    { value: 'DAY', label: '일' },
+    { value: 'WEEK', label: '주' },
+] as const;
+
+/**
+ * 시간 값 범위 (단위별)
+ * - DAY: 1-30일
+ * - WEEK: 1-4주
+ */
+export const TIME_VALUE_RANGE = {
+    DAY: { min: 1, max: 30 },
+    WEEK: { min: 1, max: 4 },
+} as const;
+
+/** 최대 리마인더 개수 */
+export const MAX_REMINDER_COUNT = 3;
+
+/**
+ * 기본 리마인더 스케줄 설정
+ * 새 리마인더 추가 시 기본값
+ */
+export const DEFAULT_REMINDER_SCHEDULE = {
+    timeValue: 3,
+    timeUnit: 'DAY' as ReminderTimeUnitType,
+    sendTime: '09:00' as SendTimeOption,
+};
+
 export type ReminderChannelType = (typeof ReminderChannel)[keyof typeof ReminderChannel];
 
 /**
@@ -48,6 +108,56 @@ export interface ReminderRecipient {
     submitter: {
         name: string;
     };
+}
+
+/**
+ * 리마인더 스케줄 UI 상태
+ * 컴포넌트에서 리마인더 설정을 관리할 때 사용
+ */
+export interface ReminderScheduleState {
+    /** 고유 ID (신규: nanoid, 기존: DB ID) */
+    id: string;
+    /** 시간 값 (1, 2, 3...) */
+    timeValue: number;
+    /** 시간 단위 (DAY, WEEK) */
+    timeUnit: ReminderTimeUnitType;
+    /** 발송 시간 (HH:mm) */
+    sendTime: string;
+    /** 템플릿 ID (저장된 템플릿 참조, null이면 기본 템플릿) */
+    templateId?: string | null;
+    /** 인사말 HTML (스냅샷) */
+    greetingHtml?: string | null;
+    /** 아랫말 HTML (스냅샷) */
+    footerHtml?: string | null;
+}
+
+/**
+ * 리마인더 스케줄 저장용 입력 타입
+ * Server Action에 전달할 때 사용
+ */
+export interface ReminderScheduleInput {
+    timeValue: number;
+    timeUnit: ReminderTimeUnitType;
+    sendTime: string;
+    channel: ReminderChannelType;
+    /** 템플릿 ID (저장된 템플릿 참조, null이면 기본 템플릿) */
+    templateId?: string | null;
+    /** 인사말 HTML (스냅샷) */
+    greetingHtml?: string | null;
+    /** 아랫말 HTML (스냅샷) */
+    footerHtml?: string | null;
+}
+
+/**
+ * DB에서 조회한 리마인더 스케줄
+ */
+export interface ReminderScheduleFromDB {
+    id: string;
+    timeValue: number;
+    timeUnit: ReminderTimeUnitType;
+    sendTime: string;
+    channel: ReminderChannelType;
+    order: number;
 }
 
 /**

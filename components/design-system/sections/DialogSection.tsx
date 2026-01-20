@@ -14,6 +14,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { LogoUploadDialog } from "@/components/dashboard/LogoUploadDialog"
+import FileUploadDialog from "@/components/submit/upload/FileUploadDialog"
 import { ChevronDown, ChevronUp } from "lucide-react"
 
 // 사용 컴포넌트 데모 데이터
@@ -23,6 +24,12 @@ const usedComponents = [
     path: "components/dashboard/LogoUploadDialog.tsx",
     description: "로고 이미지 업로드 (드래그앤드롭, 파일선택)",
     demoType: "logo" as const,
+  },
+  {
+    name: "FileUploadDialog",
+    path: "components/submit/upload/FileUploadDialog.tsx",
+    description: "파일 업로드 (단일/복수, 유효성 검사)",
+    demoType: "fileUpload" as const,
   },
   {
     name: "AutoReminderSettings",
@@ -36,6 +43,10 @@ export function DialogSection() {
   const [logoDialogOpen, setLogoDialogOpen] = useState(false)
   const [expandedDemo, setExpandedDemo] = useState<string | null>(null)
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false)
+  const [fileUploadDialogOpen, setFileUploadDialogOpen] = useState(false)
+  const [fileUploadMultiDialogOpen, setFileUploadMultiDialogOpen] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const toggleDemo = (name: string) => {
     setExpandedDemo(expandedDemo === name ? null : name)
@@ -191,6 +202,50 @@ export function DialogSection() {
                             console.log("Logo uploaded:", url)
                             setLogoDialogOpen(false)
                           }}
+                        />
+                      </div>
+                    )}
+                    {comp.demoType === "fileUpload" && (
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          파일을 업로드하는 다이얼로그입니다. 단일/복수 파일 모드를 지원하며, 파일 유효성 검사(크기, 확장자, ZIP 내용)를 수행합니다.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="primary" size="sm" onClick={() => setFileUploadDialogOpen(true)}>
+                            단일 파일 업로드
+                          </Button>
+                          <Button variant="secondary" size="sm" onClick={() => setFileUploadMultiDialogOpen(true)}>
+                            복수 파일 업로드
+                          </Button>
+                        </div>
+                        {selectedFile && (
+                          <p className="text-sm text-green-600">
+                            단일 모드 선택: {selectedFile.name}
+                          </p>
+                        )}
+                        {selectedFiles.length > 0 && (
+                          <p className="text-sm text-green-600">
+                            복수 모드 선택: {selectedFiles.map(f => f.name).join(", ")}
+                          </p>
+                        )}
+                        <FileUploadDialog
+                          open={fileUploadDialogOpen}
+                          onOpenChange={setFileUploadDialogOpen}
+                          onFileSelect={(file) => {
+                            setSelectedFile(file)
+                            console.log("Single file selected:", file.name)
+                          }}
+                          title="서류 업로드하기"
+                        />
+                        <FileUploadDialog
+                          open={fileUploadMultiDialogOpen}
+                          onOpenChange={setFileUploadMultiDialogOpen}
+                          multiple
+                          onFilesSelect={(files) => {
+                            setSelectedFiles(files)
+                            console.log("Multiple files selected:", files.map(f => f.name))
+                          }}
+                          title="서류 업로드하기 (복수)"
                         />
                       </div>
                     )}

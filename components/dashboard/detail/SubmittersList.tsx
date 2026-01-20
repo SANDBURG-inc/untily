@@ -1,8 +1,13 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Users, Download, FileArchive } from 'lucide-react';
+import { Users, Download, FileArchive, FileText, ClockAlert } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
     Select,
     SelectContent,
@@ -25,6 +30,7 @@ import {
     formatSubmissionDate,
 } from '@/lib/types/submitter';
 import { useIntersectionObserver } from '@/lib/hooks/useIntersectionObserver';
+import { SubmitterDetailSheet } from './SubmitterDetailSheet';
 
 /**
  * 제출자 목록 컴포넌트
@@ -39,21 +45,35 @@ interface SubmittersListProps {
     documentBoxTitle: string;
     /** 필수 서류 총 개수 */
     totalRequiredDocuments: number;
+    /** 문서함 마감일 (늦은 제출 표시용) */
+    endDate: Date;
 }
 
 const INITIAL_DISPLAY_COUNT = 20;
 const LOAD_MORE_COUNT = 20;
+
+// 마감일 이후 제출 여부 판단
+const isLateSubmission = (submittedAt: Date | null, deadline: Date): boolean => {
+    if (!submittedAt) return false;
+    return new Date(submittedAt) > new Date(deadline);
+};
 
 export function SubmittersList({
     submitters,
     documentBoxId,
     documentBoxTitle,
     totalRequiredDocuments,
+    endDate,
 }: SubmittersListProps) {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [isDownloadingFiles, setIsDownloadingFiles] = useState(false);
+    const [isDownloadingResponses, setIsDownloadingResponses] = useState(false);
+
+    // Sheet 상태
+    const [sheetOpen, setSheetOpen] = useState(false);
+    const [selectedSubmitterId, setSelectedSubmitterId] = useState<string | null>(null);
 
     // 필터링된 제출자 목록
     const filteredSubmitters = useMemo(() => {
@@ -105,6 +125,12 @@ export function SubmittersList({
         });
     }, []);
 
+    // 이름 클릭 시 Sheet 열기
+    const handleNameClick = useCallback((submitterId: string) => {
+        setSelectedSubmitterId(submitterId);
+        setSheetOpen(true);
+    }, []);
+
     const columns: Column<SubmitterWithStatus>[] = useMemo(() => [
         {
             key: 'checkbox',
@@ -125,7 +151,12 @@ export function SubmittersList({
             key: 'name',
             header: '이름',
             render: (submitter) => (
-                <span className="text-sm text-gray-900">{submitter.name}</span>
+                <button
+                    onClick={() => handleNameClick(submitter.submitterId)}
+                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium text-left"
+                >
+                    {submitter.name}
+                </button>
             ),
         },
         {
@@ -157,11 +188,17 @@ export function SubmittersList({
         {
             key: 'lastDate',
             header: '제출일',
-            render: (submitter) => (
-                <span className="text-sm text-gray-600">
-                    {formatSubmissionDate(submitter.lastSubmittedAt)}
-                </span>
-            ),
+            render: (submitter) => {
+                const isLate = isLateSubmission(submitter.lastSubmittedAt, endDate);
+                return (
+                    <span className="text-sm text-gray-600 flex items-center gap-1">
+                        {formatSubmissionDate(submitter.lastSubmittedAt)}
+                        {isLate && (
+                            <ClockAlert className="w-3.5 h-3.5 text-orange-500" />
+                        )}
+                    </span>
+                );
+            },
         },
         {
             key: 'progress',
@@ -177,7 +214,7 @@ export function SubmittersList({
             header: '',
             render: () => <span className="text-sm text-gray-400">...</span>,
         },
-    ], [allSelected, selectedIds, totalRequiredDocuments, handleSelectAll, handleSelectOne]);
+    ], [allSelected, selectedIds, totalRequiredDocuments, endDate, handleSelectAll, handleSelectOne, handleNameClick]);
 
     const handleDownload = () => {
         const headers = ['이름', '이메일', '휴대전화', '제출상태', '제출일', '진행상황'];
@@ -230,6 +267,36 @@ export function SubmittersList({
         }
     };
 
+    // 폼 응답 CSV 다운로드
+    const handleFormResponseDownload = async () => {
+        setIsDownloadingResponses(true);
+        try {
+            const response = await fetch(`/api/document-box/${documentBoxId}/responses/export`);
+
+            if (!response.ok) {
+                const error = await response.json();
+                alert(error.error || '폼 응답 다운로드에 실패했습니다.');
+                return;
+            }
+
+            // Blob으로 변환 후 다운로드
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `${documentBoxTitle}_폼응답.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Form response download error:', error);
+            alert('폼 응답 다운로드 중 오류가 발생했습니다.');
+        } finally {
+            setIsDownloadingResponses(false);
+        }
+    };
+
     return (
         <Card variant="compact" className="mb-6">
             <CardHeader variant="compact">
@@ -246,20 +313,37 @@ export function SubmittersList({
                     >
                         제출현황
                     </IconButton>
+                    <IconButton
+                        variant="secondary"
+                        size="sm"
+                        icon={<FileText className="w-4 h-4" />}
+                        onClick={handleFormResponseDownload}
+                        disabled={isDownloadingResponses}
+                    >
+                        {isDownloadingResponses ? '다운로드 중...' : '폼 응답'}
+                    </IconButton>
                     {submitters.length > 0 && (
-                        <IconButton
-                            variant="primary"
-                            size="sm"
-                            icon={<FileArchive className="w-4 h-4" />}
-                            onClick={handleFilesDownload}
-                            disabled={isDownloadingFiles}
-                        >
-                            {isDownloadingFiles
-                                ? '다운로드 중...'
-                                : selectedIds.size > 0
-                                    ? `다운로드 (${selectedIds.size}명)`
-                                    : '전체 다운로드'}
-                        </IconButton>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <IconButton
+                                    variant="primary"
+                                    size="sm"
+                                    icon={<FileArchive className="w-4 h-4" />}
+                                    onClick={handleFilesDownload}
+                                    disabled={isDownloadingFiles}
+                                >
+                                    {isDownloadingFiles
+                                        ? '다운로드 중...'
+                                        : selectedIds.size > 0
+                                            ? `다운로드 (${selectedIds.size}명)`
+                                            : '전체 다운로드'}
+                                </IconButton>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="max-w-xs text-left">
+                                <p>폴더/제출자별 폴더/파일들로 정리된 압축파일로 저장됩니다.</p>
+                                <p className="mt-1">문서명_제출일자_제출자명 으로 자동 변경되어 저장</p>
+                            </TooltipContent>
+                        </Tooltip>
                     )}
                 </CardAction>
             </CardHeader>
@@ -290,6 +374,15 @@ export function SubmittersList({
                     )}
                 </div>
             </CardContent>
+
+            {/* 제출자 상세 Sheet */}
+            <SubmitterDetailSheet
+                open={sheetOpen}
+                onOpenChange={setSheetOpen}
+                submitterId={selectedSubmitterId}
+                documentBoxId={documentBoxId}
+                documentBoxTitle={documentBoxTitle}
+            />
         </Card>
     );
 }

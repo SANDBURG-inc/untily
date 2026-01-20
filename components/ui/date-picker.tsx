@@ -47,7 +47,7 @@ interface DatePickerProps {
 export function DatePicker({
   date,
   onDateChange,
-  placeholder = "날짜를 선택하세요",
+  placeholder = "날짜 선택",
   disabled = false,
   className,
 }: DatePickerProps) {
@@ -58,13 +58,15 @@ export function DatePicker({
           variant="outline"
           disabled={disabled}
           className={cn(
-            "w-full justify-between text-left font-normal h-[42px]",
+            "w-fit justify-start text-left font-normal h-9 text-sm gap-2 p-2",
             !date && "text-muted-foreground",
             className
           )}
         >
-          <span>{date ? format(date, "yyyy년 MM월 dd일", { locale: ko }) : placeholder}</span>
           <CalendarIcon className="h-4 w-4 opacity-50" />
+          <span>
+            {date ? format(date, "M월 d일 (EEEE)", { locale: ko }) : placeholder}
+          </span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

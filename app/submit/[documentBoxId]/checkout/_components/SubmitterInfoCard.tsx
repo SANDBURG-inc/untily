@@ -17,7 +17,8 @@ interface SubmitterInfo {
 interface SubmitterInfoCardProps {
   title: string;
   submitter: SubmitterInfo;
-  onSave: (data: SubmitterInfo) => Promise<void>;
+  onSave?: (data: SubmitterInfo) => Promise<void>;
+  editable?: boolean;
   className?: string;
 }
 
@@ -30,6 +31,7 @@ export default function SubmitterInfoCard({
   title,
   submitter,
   onSave,
+  editable = true,
   className = '',
 }: SubmitterInfoCardProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -63,7 +65,7 @@ export default function SubmitterInfoCard({
   };
 
   const handleSave = async () => {
-    if (!validate()) return;
+    if (!validate() || !onSave) return;
 
     setIsSaving(true);
     try {
@@ -89,18 +91,20 @@ export default function SubmitterInfoCard({
       <CardContent>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-foreground">{title}</h3>
-          {!isEditing ? (
-            <IconButton
-              variant="outline"
-              size="sm"
-              icon={<SquarePen className="w-4 h-4" />}
-              onClick={handleEdit}
-              aria-label="정보 수정하기"
-            >
-              정보수정
-            </IconButton>
-          ) : (
-            <SaveButton onClick={handleSave} isLoading={isSaving} />
+          {editable && (
+            !isEditing ? (
+              <IconButton
+                variant="outline"
+                size="sm"
+                icon={<SquarePen className="w-4 h-4" />}
+                onClick={handleEdit}
+                aria-label="정보 수정하기"
+              >
+                정보수정
+              </IconButton>
+            ) : (
+              <SaveButton onClick={handleSave} isLoading={isSaving} />
+            )
           )}
         </div>
 

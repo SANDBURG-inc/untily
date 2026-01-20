@@ -24,6 +24,7 @@
  *     case 'success': return <UploadForm />;
  *     case 'not_authenticated': return <LoginPrompt />;
  *     case 'not_found': redirect('/submit/not-found');
+ *     case 'closed': redirect('/submit/closed');
  *     case 'expired': redirect('/submit/expired');
  *     case 'not_public': redirect('/submit/not-found');
  *   }
@@ -42,6 +43,7 @@ import type { AuthenticatedUser } from '@/lib/auth';
 import { hasDesignatedSubmitters } from '@/lib/utils/document-box';
 import { SubmitterWithDocumentBox, NeonAuthUser } from './submitter-auth';
 import { getLogoForDocumentBox } from '@/lib/queries/logo';
+import { isDocumentBoxOpen, isDocumentBoxClosed, isDocumentBoxLimitedOpen } from '@/lib/types/document';
 
 /**
  * 필수서류를 포함한 DocumentBox 타입
@@ -64,6 +66,7 @@ export type PublicSubmitAuthResult =
   | { status: 'success'; user: NeonAuthUser; submitter: SubmitterWithDocumentBox; logoUrl: string }
   | { status: 'not_authenticated'; documentBox: DocumentBoxWithLogo }
   | { status: 'not_found' }
+  | { status: 'closed'; documentBox: DocumentBox }
   | { status: 'expired'; documentBox: DocumentBox }
   | { status: 'not_public'; documentBox: DocumentBox };
 
@@ -72,10 +75,11 @@ export type PublicSubmitAuthResult =
  *
  * 검증 순서:
  * 1. 문서함 존재 여부 확인
- * 2. 공개 제출 문서함 여부 확인 (hasSubmitter=false)
- * 3. 문서함 만료 여부 확인
- * 4. Neon Auth 로그인 여부 확인
- * 5. 기존 Submitter 조회 또는 새로 생성
+ * 2. 문서함 상태 확인 (CLOSED인 경우 제출 불가)
+ * 3. 공개 제출 문서함 여부 확인 (hasSubmitter=false)
+ * 4. 문서함 만료 여부 확인
+ * 5. Neon Auth 로그인 여부 확인
+ * 6. 기존 Submitter 조회 또는 새로 생성
  *
  * @param documentBoxId 문서함 ID
  * @returns PublicSubmitAuthResult
@@ -83,11 +87,19 @@ export type PublicSubmitAuthResult =
 export async function validatePublicSubmitAuth(
   documentBoxId: string
 ): Promise<PublicSubmitAuthResult> {
-  // 1. 문서함 조회 (필수서류 포함)
+  // 1. 문서함 조회 (필수서류, 폼 필드 포함)
   const documentBox = await prisma.documentBox.findUnique({
     where: { documentBoxId },
     include: {
       requiredDocuments: true,
+      formFieldGroups: {
+        orderBy: { order: 'asc' },
+        include: {
+          formFields: {
+            orderBy: { order: 'asc' },
+          },
+        },
+      },
     },
   });
 
@@ -95,17 +107,25 @@ export async function validatePublicSubmitAuth(
     return { status: 'not_found' };
   }
 
-  // 2. 공개 제출 문서함 여부 확인
+  // 2. 문서함 상태 확인
+  // - CLOSED, CLOSED_EXPIRED: 완전히 닫힘
+  // - OPEN_SOMEONE: 공개 제출에서는 지원하지 않음 (지정 제출자 전용)
+  // - OPEN, OPEN_RESUME: 제출 가능
+  if (isDocumentBoxClosed(documentBox.status) || isDocumentBoxLimitedOpen(documentBox.status)) {
+    return { status: 'closed', documentBox };
+  }
+
+  // 3. 공개 제출 문서함 여부 확인
   if (hasDesignatedSubmitters(documentBox.hasSubmitter)) {
     return { status: 'not_public', documentBox };
   }
 
-  // 3. 만료 체크
-  if (new Date() > documentBox.endDate) {
+  // 4. 만료 체크 (OPEN 상태일 때만, OPEN_RESUME는 이미 만료 후 상태)
+  if (documentBox.status === 'OPEN' && new Date() > documentBox.endDate) {
     return { status: 'expired', documentBox };
   }
 
-  // 4. 로고 URL 조회
+  // 5. 로고 URL 조회
   const logoUrl = await getLogoForDocumentBox(documentBoxId);
 
   // 5. Neon Auth 로그인 확인
@@ -130,6 +150,7 @@ export async function validatePublicSubmitAuth(
     },
     include: {
       submittedDocuments: true,
+      formFieldResponses: true,
     },
   });
 
@@ -146,6 +167,7 @@ export async function validatePublicSubmitAuth(
       },
       include: {
         submittedDocuments: true,
+        formFieldResponses: true,
       },
     });
   }

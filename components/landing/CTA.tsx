@@ -38,7 +38,7 @@ export default function CTA() {
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-blue-100">
                             <div className="flex items-center gap-2">
                                 <CheckCircle2 className="w-5 h-5" />
-                                <span>카드등록없이 14일 무료 체험</span>
+                                <span>베타 기간 동안 무료 이용</span>
                             </div>
                         </div>
                     </div>

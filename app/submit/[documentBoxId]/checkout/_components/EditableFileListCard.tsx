@@ -20,6 +20,8 @@ interface FileItem {
   originalFilename: string | null;
   submittedDocumentId?: string;
   size?: number;
+  // 복수 파일 허용 여부
+  allowMultipleFiles?: boolean;
 }
 
 interface EditableFileListCardProps {
@@ -27,7 +29,7 @@ interface EditableFileListCardProps {
   files: FileItem[];
   documentBoxId: string;
   submitterId: string;
-  onFilesChange?: (uploads: Map<string, UploadedDocument>) => void;
+  onFilesChange?: (uploads: Map<string, UploadedDocument[]>) => void;
   onError?: (error: string) => void;
   className?: string;
 }
@@ -43,34 +45,32 @@ export default function EditableFileListCard({
 }: EditableFileListCardProps) {
   const [isEditing, setIsEditing] = useState(false);
 
-  // 파일 상태를 Map으로 관리
-  const initialUploads = new Map<string, UploadedDocument>();
+  // 파일 상태를 Map으로 관리 (복수 파일 지원)
+  const initialUploads = new Map<string, UploadedDocument[]>();
   files.forEach((file) => {
     if (file.filename && file.submittedDocumentId && file.originalFilename) {
-      initialUploads.set(file.requiredDocumentId, {
+      const existing = initialUploads.get(file.requiredDocumentId) || [];
+      existing.push({
         submittedDocumentId: file.submittedDocumentId,
         filename: file.filename,
         originalFilename: file.originalFilename,
         s3Key: '',
         size: file.size,
       });
+      initialUploads.set(file.requiredDocumentId, existing);
     }
   });
 
-  const [uploadedDocs, setUploadedDocs] = useState<Map<string, UploadedDocument>>(initialUploads);
+  const [uploadedDocs, setUploadedDocs] = useState<Map<string, UploadedDocument[]>>(initialUploads);
 
-  const handleUploadComplete = useCallback((requiredDocumentId: string, upload: UploadedDocument) => {
+  const handleUploadsChange = useCallback((requiredDocumentId: string, uploads: UploadedDocument[]) => {
     setUploadedDocs((prev) => {
       const newMap = new Map(prev);
-      newMap.set(requiredDocumentId, upload);
-      return newMap;
-    });
-  }, []);
-
-  const handleUploadRemove = useCallback((requiredDocumentId: string) => {
-    setUploadedDocs((prev) => {
-      const newMap = new Map(prev);
-      newMap.delete(requiredDocumentId);
+      if (uploads.length > 0) {
+        newMap.set(requiredDocumentId, uploads);
+      } else {
+        newMap.delete(requiredDocumentId);
+      }
       return newMap;
     });
   }, []);
@@ -104,7 +104,7 @@ export default function EditableFileListCard({
 
           <ul className="space-y-3" role="list">
             {files.map((file) => {
-              const uploaded = uploadedDocs.get(file.requiredDocumentId);
+              const uploads = uploadedDocs.get(file.requiredDocumentId) || [];
               return (
                 <li
                   key={file.requiredDocumentId}
@@ -115,10 +115,14 @@ export default function EditableFileListCard({
                       <p className="text-lg font-medium text-foreground mb-0.5">
                         {file.documentTitle}
                       </p>
-                      {uploaded?.originalFilename ? (
-                        <p className="text-base text-muted-foreground truncate">
-                          {uploaded.originalFilename}
-                        </p>
+                      {uploads.length > 0 ? (
+                        <div className="space-y-0.5">
+                          {uploads.map((upload) => (
+                            <p key={upload.submittedDocumentId} className="text-base text-muted-foreground truncate">
+                              {upload.originalFilename}
+                            </p>
+                          ))}
+                        </div>
                       ) : (
                         <p className="text-base text-muted-foreground/60 italic">
                           파일 없음
@@ -149,12 +153,13 @@ export default function EditableFileListCard({
 
         <div className="space-y-4">
           {files.map((file) => {
-            const existingUpload = uploadedDocs.get(file.requiredDocumentId);
+            const existingUploads = uploadedDocs.get(file.requiredDocumentId) || [];
             const requiredDocument: RequiredDocumentInfo = {
               requiredDocumentId: file.requiredDocumentId,
               documentTitle: file.documentTitle,
               documentDescription: file.documentDescription,
               isRequired: file.isRequired,
+              allowMultipleFiles: file.allowMultipleFiles,
             };
 
             return (
@@ -166,10 +171,9 @@ export default function EditableFileListCard({
                   requiredDocument={requiredDocument}
                   documentBoxId={documentBoxId}
                   submitterId={submitterId}
-                  existingUpload={existingUpload}
-                  onUploadComplete={(upload) => handleUploadComplete(file.requiredDocumentId, upload)}
+                  existingUploads={existingUploads}
+                  onUploadsChange={(uploads) => handleUploadsChange(file.requiredDocumentId, uploads)}
                   onUploadError={handleUploadError}
-                  onUploadRemove={() => handleUploadRemove(file.requiredDocumentId)}
                   showCard={false}
                 />
               </div>

@@ -1,6 +1,10 @@
 import { LabeledProgress } from "@/components/shared/LabeledProgress";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import {
+    type DocumentBoxStatus,
+    DOCUMENT_BOX_STATUS_SHORT_LABELS,
+} from "@/lib/types/document";
 
 interface DocumentCardProps {
     title: string;
@@ -13,6 +17,8 @@ interface DocumentCardProps {
     status: "In Progress" | "Expired Incomplete" | "Completed";
     hasLimitedSubmitters?: boolean;
     documentBoxId: string;
+    /** 문서함 상태 (OPEN, CLOSED, OPEN_SOMEONE, CLOSED_EXPIRED, OPEN_RESUME) */
+    documentBoxStatus?: DocumentBoxStatus;
 }
 
 export function DocumentCard({
@@ -26,7 +32,9 @@ export function DocumentCard({
     status,
     hasLimitedSubmitters = true,
     documentBoxId,
+    documentBoxStatus = 'OPEN',
 }: DocumentCardProps) {
+    // 진행 상태 (완료 여부) 정보
     const getStatusInfo = () => {
         switch (status) {
             case "In Progress":
@@ -40,14 +48,34 @@ export function DocumentCard({
         }
     };
 
+    // 문서함 상태별 Badge variant (조회 전용)
+    const getBoxStatusVariant = (boxStatus: DocumentBoxStatus) => {
+        switch (boxStatus) {
+            case 'OPEN':
+            case 'OPEN_RESUME':
+                return 'success' as const;
+            case 'OPEN_SOMEONE':
+                return 'warning' as const;
+            case 'CLOSED':
+            case 'CLOSED_EXPIRED':
+            default:
+                return 'secondary' as const;
+        }
+    };
+
     const statusInfo = getStatusInfo();
 
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col">
             <div className="mb-4">
-                <Badge variant={statusInfo.variant} className="mb-3">
-                    {statusInfo.label}
-                </Badge>
+                <div className="flex items-center gap-2 mb-3">
+                    <Badge variant={statusInfo.variant}>
+                        {statusInfo.label}
+                    </Badge>
+                    <Badge variant={getBoxStatusVariant(documentBoxStatus)}>
+                        {DOCUMENT_BOX_STATUS_SHORT_LABELS[documentBoxStatus]}
+                    </Badge>
+                </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-1">{title}</h3>
                 <p className="text-slate-500 text-sm">{description}</p>
             </div>

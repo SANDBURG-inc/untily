@@ -35,6 +35,13 @@ interface ReminderHistoryProps {
     autoReminderEnabled: boolean;
     /** 리마인드 로그 목록 */
     reminderLogs: ReminderLog[];
+    /** 리마인더 스케줄 목록 */
+    reminderSchedules?: {
+        id: string;
+        timeValue: number;
+        timeUnit: 'DAY' | 'WEEK';
+        sendTime: string;
+    }[];
 }
 
 // ============================================================================
@@ -45,6 +52,7 @@ export function ReminderHistory({
     documentBoxId,
     autoReminderEnabled,
     reminderLogs,
+    reminderSchedules = [],
 }: ReminderHistoryProps) {
     const INITIAL_DISPLAY_COUNT = 20;
     const LOAD_MORE_COUNT = 20;
@@ -128,6 +136,7 @@ export function ReminderHistory({
                 <AutoReminderSettings
                     documentBoxId={documentBoxId}
                     initialEnabled={autoReminderEnabled}
+                    initialSchedules={reminderSchedules}
                 />
 
                 {/* 리마인드 로그 테이블 */}
