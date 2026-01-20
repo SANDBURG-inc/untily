@@ -139,7 +139,7 @@ export function ReminderScheduleRow({
                     onChange({ ...schedule, timeValue: Number(value) })
                 }
             >
-                <SelectTrigger className="w-11 h-8" showChevron={false}>
+                <SelectTrigger className="w-12 h-8" showChevron={false}>
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -163,7 +163,7 @@ export function ReminderScheduleRow({
                     onChange({ ...schedule, timeUnit: value, timeValue: newValue });
                 }}
             >
-                <SelectTrigger className="w-10 h-8" showChevron={false}>
+                <SelectTrigger className="w-11 h-8" showChevron={false}>
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,16 +181,16 @@ export function ReminderScheduleRow({
             <TimeSelect
                 value={schedule.sendTime}
                 onValueChange={(value) => onChange({ ...schedule, sendTime: value })}
-                size="sm"
+                className="h-8"
                 showChevron={false}
             />
 
-            {/* 템플릿 선택 */}
+            {/* 템플릿 선택 - 시간 설정과 구분을 위한 간격 */}
             <Select
                 value={schedule.templateId || 'default'}
                 onValueChange={handleTemplateChange}
             >
-                <SelectTrigger className="w-[76px] h-8 text-xs" showChevron={false}>
+                <SelectTrigger className="w-[88px] h-8 text-xs ml-2" showChevron={false}>
                     <SelectValue>
                         {templatesLoading ? '...' : selectedTemplateName}
                     </SelectValue>
