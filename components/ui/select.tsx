@@ -27,10 +27,13 @@ function SelectValue({
 function SelectTrigger({
   className,
   size = "default",
+  showChevron = true,
   children,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default"
+  /** Chevron 아이콘 표시 여부 (기본값: true) */
+  showChevron?: boolean
 }) {
   return (
     <SelectPrimitive.Trigger
@@ -43,9 +46,11 @@ function SelectTrigger({
       {...props}
     >
       {children}
-      <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="size-4 opacity-50" />
-      </SelectPrimitive.Icon>
+      {showChevron && (
+        <SelectPrimitive.Icon asChild>
+          <ChevronDownIcon className="size-4 opacity-50" />
+        </SelectPrimitive.Icon>
+      )}
     </SelectPrimitive.Trigger>
   )
 }

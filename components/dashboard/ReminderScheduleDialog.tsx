@@ -118,8 +118,8 @@ export function ReminderScheduleRow({
         }
     };
 
-    // 템플릿 이름 8자 제한
-    const truncateName = (name: string, maxLength: number = 8) =>
+    // 템플릿 이름 7자 제한
+    const truncateName = (name: string, maxLength: number = 7) =>
         name.length > maxLength ? `${name.slice(0, maxLength)}…` : name;
 
     // 현재 선택된 템플릿 이름
@@ -139,7 +139,7 @@ export function ReminderScheduleRow({
                     onChange({ ...schedule, timeValue: Number(value) })
                 }
             >
-                <SelectTrigger className="w-14 h-8">
+                <SelectTrigger className="w-11 h-8" showChevron={false}>
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -163,7 +163,7 @@ export function ReminderScheduleRow({
                     onChange({ ...schedule, timeUnit: value, timeValue: newValue });
                 }}
             >
-                <SelectTrigger className="w-14 h-8">
+                <SelectTrigger className="w-10 h-8" showChevron={false}>
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -177,11 +177,12 @@ export function ReminderScheduleRow({
 
             <span className="text-sm text-gray-600 shrink-0">전</span>
 
-            {/* 시간 선택 */}
+            {/* 시간 선택 (24시간제) */}
             <TimeSelect
                 value={schedule.sendTime}
                 onValueChange={(value) => onChange({ ...schedule, sendTime: value })}
                 size="sm"
+                showChevron={false}
             />
 
             {/* 템플릿 선택 */}
@@ -189,7 +190,7 @@ export function ReminderScheduleRow({
                 value={schedule.templateId || 'default'}
                 onValueChange={handleTemplateChange}
             >
-                <SelectTrigger className="w-20 h-8 text-xs">
+                <SelectTrigger className="w-[76px] h-8 text-xs" showChevron={false}>
                     <SelectValue>
                         {templatesLoading ? '...' : selectedTemplateName}
                     </SelectValue>
