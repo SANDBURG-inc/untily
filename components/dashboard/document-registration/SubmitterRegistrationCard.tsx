@@ -1,11 +1,13 @@
 'use client';
 
-import { Plus, X, Users } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, X, Users, FileSpreadsheet } from 'lucide-react';
 import type { Submitter } from '@/lib/types/document';
 import { Switch } from '@/components/ui/switch';
 import { IconButton } from '@/components/shared/IconButton';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { formatPhoneNumberOnInput } from '@/lib/utils/phone';
+import { ExcelImportDialog } from './ExcelImportDialog';
 
 interface SubmitterRegistrationCardProps {
   /** 제출자 기능 활성화 여부 */
@@ -33,6 +35,8 @@ export function SubmitterRegistrationCard({
   onSubmittersChange,
   isEditMode = false,
 }: SubmitterRegistrationCardProps) {
+  const [excelDialogOpen, setExcelDialogOpen] = useState(false);
+
   /**
    * 새 제출자 추가
    */
@@ -63,6 +67,17 @@ export function SubmitterRegistrationCard({
    */
   const removeSubmitter = (id: string) => {
     onSubmittersChange(submitters.filter((s) => s.id !== id));
+  };
+
+  /**
+   * Excel에서 가져온 제출자 처리
+   */
+  const handleExcelImport = (importedSubmitters: Submitter[], mode: 'add' | 'replace') => {
+    if (mode === 'replace') {
+      onSubmittersChange(importedSubmitters);
+    } else {
+      onSubmittersChange(importedSubmitters);
+    }
   };
 
   return (
@@ -144,15 +159,24 @@ export function SubmitterRegistrationCard({
           ))}
 
           {/* 제출자 추가 버튼 */}
-          <div className="pt-4">
+          <div className="pt-4 flex gap-2">
             <IconButton
               type="button"
               variant="secondary"
               icon={<Plus className="w-4 h-4" />}
               onClick={addSubmitter}
-              className="w-full"
+              className="flex-1"
             >
               제출자 추가
+            </IconButton>
+            <IconButton
+              type="button"
+              variant="secondary"
+              icon={<FileSpreadsheet className="w-4 h-4" />}
+              onClick={() => setExcelDialogOpen(true)}
+              className="flex-1"
+            >
+              Excel로 추가
             </IconButton>
           </div>
         </div>
@@ -161,6 +185,14 @@ export function SubmitterRegistrationCard({
           제출 대상이 있는 경우, 버튼을 활성화해주세요.
         </p>
       )}
+
+      {/* Excel Import 다이얼로그 */}
+      <ExcelImportDialog
+        open={excelDialogOpen}
+        onOpenChange={setExcelDialogOpen}
+        existingSubmitters={submitters}
+        onImport={handleExcelImport}
+      />
     </>
   );
 }
