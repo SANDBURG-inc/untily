@@ -50,8 +50,6 @@ interface Template {
 }
 
 interface EmailPreviewEditableProps {
-    /** 문서함 ID */
-    documentBoxId: string;
     /** 문서함 제목 */
     documentBoxTitle: string;
     /** 문서함 설명 */
@@ -66,8 +64,6 @@ interface EmailPreviewEditableProps {
     }[];
     /** 제출 링크 */
     submissionLink: string;
-    /** 템플릿 타입 */
-    type: 'SEND' | 'SHARE';
     /** 템플릿 변경 핸들러 */
     onTemplateChange: (greetingHtml: string, footerHtml: string) => void;
 }
@@ -81,13 +77,11 @@ export interface EmailPreviewEditableRef {
 }
 
 export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPreviewEditableProps>(function EmailPreviewEditable({
-    documentBoxId,
     documentBoxTitle,
     documentBoxDescription,
     endDate,
     requiredDocuments,
     submissionLink,
-    type,
     onTemplateChange,
 }, ref) {
     // 상태 관리
@@ -127,13 +121,11 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
     // 마지막 사용 템플릿 로드
     const loadLastUsedTemplate = useCallback(async () => {
         try {
-            const res = await fetch(
-                `/api/remind-template/config?documentBoxId=${documentBoxId}&type=${type}`
-            );
+            const res = await fetch('/api/remind-template/config');
             const data = await res.json();
 
-            if (data.success && data.config) {
-                const { lastGreetingHtml, lastFooterHtml, lastTemplateId } = data.config;
+            if (data.success && data.lastTemplate) {
+                const { lastGreetingHtml, lastFooterHtml, lastTemplateId } = data.lastTemplate;
                 if (lastGreetingHtml && lastFooterHtml) {
                     setGreetingHtml(lastGreetingHtml);
                     setFooterHtml(lastFooterHtml);
@@ -146,7 +138,7 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
         } catch (error) {
             console.error('Failed to load last used template:', error);
         }
-    }, [documentBoxId, type, onTemplateChange]);
+    }, [onTemplateChange]);
 
     useEffect(() => {
         loadLastUsedTemplate();
@@ -191,7 +183,7 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
             {/* 헤더 */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                     <span className="text-lg">✉️</span> 이메일 미리보기
                 </h3>
@@ -199,7 +191,6 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
                     {/* 템플릿 셀렉터 */}
                     {!isEditing && (
                         <EmailTemplateSelector
-                            type={type}
                             selectedId={selectedTemplateId}
                             currentGreetingHtml={greetingHtml}
                             currentFooterHtml={footerHtml}
@@ -241,6 +232,9 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
                     )}
                 </div>
             </div>
+            <p className="text-xs text-gray-500 mb-4">
+                마지막으로 편집한 템플릿이 모든 문서함에 자동으로 적용됩니다.
+            </p>
 
             {/* 이메일 미리보기 */}
             <div className="border border-gray-200 rounded-lg overflow-hidden">

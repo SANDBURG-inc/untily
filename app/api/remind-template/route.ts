@@ -1,14 +1,15 @@
 /**
  * 리마인드 이메일 템플릿 API
  *
- * GET: 전역 템플릿 목록 조회
+ * GET: 저장된 템플릿 목록 조회
  * POST: 새 템플릿 생성
+ *
+ * @note SEND/SHARE 구분 없이 통일됨 (v0.2.0)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
-import type { TemplateType } from '@/lib/generated/prisma/client';
 
 // ============================================================================
 // 타입 정의
@@ -19,7 +20,6 @@ interface TemplateListResponse {
     templates?: {
         id: string;
         name: string;
-        type: TemplateType;
         greetingHtml: string;
         footerHtml: string;
         createdAt: Date;
@@ -30,7 +30,6 @@ interface TemplateListResponse {
 
 interface CreateTemplateRequest {
     name: string;
-    type: 'SEND' | 'SHARE';
     greetingHtml: string;
     footerHtml: string;
 }
@@ -40,7 +39,6 @@ interface CreateTemplateResponse {
     template?: {
         id: string;
         name: string;
-        type: TemplateType;
         greetingHtml: string;
         footerHtml: string;
     };
@@ -51,7 +49,7 @@ interface CreateTemplateResponse {
 // GET: 템플릿 목록 조회
 // ============================================================================
 
-export async function GET(request: NextRequest) {
+export async function GET() {
     try {
         const { user } = await neonAuth();
         if (!user) {
@@ -61,19 +59,14 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const { searchParams } = new URL(request.url);
-        const type = searchParams.get('type') as TemplateType | null;
-
         const templates = await prisma.remindTemplate.findMany({
             where: {
                 userId: user.id,
-                ...(type && { type }),
             },
             orderBy: { createdAt: 'desc' },
             select: {
                 id: true,
                 name: true,
-                type: true,
                 greetingHtml: true,
                 footerHtml: true,
                 createdAt: true,
@@ -109,19 +102,12 @@ export async function POST(request: NextRequest) {
         }
 
         const body: CreateTemplateRequest = await request.json();
-        const { name, type, greetingHtml, footerHtml } = body;
+        const { name, greetingHtml, footerHtml } = body;
 
         // 유효성 검사
-        if (!name || !type || !greetingHtml || !footerHtml) {
+        if (!name || !greetingHtml || !footerHtml) {
             return NextResponse.json<CreateTemplateResponse>(
                 { success: false, error: 'Missing required fields' },
-                { status: 400 }
-            );
-        }
-
-        if (type !== 'SEND' && type !== 'SHARE') {
-            return NextResponse.json<CreateTemplateResponse>(
-                { success: false, error: 'Invalid template type' },
                 { status: 400 }
             );
         }
@@ -130,7 +116,6 @@ export async function POST(request: NextRequest) {
         const template = await prisma.remindTemplate.create({
             data: {
                 name,
-                type,
                 greetingHtml,
                 footerHtml,
                 userId: user.id,
@@ -138,7 +123,6 @@ export async function POST(request: NextRequest) {
             select: {
                 id: true,
                 name: true,
-                type: true,
                 greetingHtml: true,
                 footerHtml: true,
             },

@@ -29,8 +29,6 @@ interface Template {
 }
 
 interface AutoReminderTemplateSelectorProps {
-    /** 템플릿 타입 (SEND 고정) */
-    type?: 'SEND' | 'SHARE';
     /** 현재 선택된 템플릿 ID */
     selectedId: string | null;
     /** 템플릿 선택 핸들러 */
@@ -38,7 +36,6 @@ interface AutoReminderTemplateSelectorProps {
 }
 
 export function AutoReminderTemplateSelector({
-    type = 'SEND',
     selectedId,
     onSelect,
 }: AutoReminderTemplateSelectorProps) {
@@ -48,7 +45,7 @@ export function AutoReminderTemplateSelector({
     // 템플릿 목록 조회
     const fetchTemplates = useCallback(async () => {
         try {
-            const res = await fetch(`/api/remind-template?type=${type}`);
+            const res = await fetch('/api/remind-template');
             const data = await res.json();
             if (data.success && data.templates) {
                 setTemplates(data.templates);
@@ -58,7 +55,7 @@ export function AutoReminderTemplateSelector({
         } finally {
             setIsLoading(false);
         }
-    }, [type]);
+    }, []);
 
     useEffect(() => {
         fetchTemplates();

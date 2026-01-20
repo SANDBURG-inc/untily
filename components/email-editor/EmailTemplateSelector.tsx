@@ -30,8 +30,6 @@ interface Template {
 }
 
 interface EmailTemplateSelectorProps {
-    /** 템플릿 타입 (SEND or SHARE) */
-    type: 'SEND' | 'SHARE';
     /** 현재 선택된 템플릿 ID (null이면 기본 템플릿) */
     selectedId: string | null;
     /** 현재 인사말 HTML (저장 시 사용) */
@@ -53,7 +51,6 @@ const DEFAULT_TEMPLATE: Template = {
 };
 
 export function EmailTemplateSelector({
-    type,
     selectedId,
     currentGreetingHtml,
     currentFooterHtml,
@@ -67,7 +64,7 @@ export function EmailTemplateSelector({
     // 템플릿 목록 조회
     const fetchTemplates = useCallback(async () => {
         try {
-            const res = await fetch(`/api/remind-template?type=${type}`);
+            const res = await fetch('/api/remind-template');
             const data = await res.json();
             if (data.success && data.templates) {
                 setTemplates(data.templates);
@@ -77,7 +74,7 @@ export function EmailTemplateSelector({
         } finally {
             setIsLoading(false);
         }
-    }, [type]);
+    }, []);
 
     useEffect(() => {
         fetchTemplates();
@@ -193,7 +190,6 @@ export function EmailTemplateSelector({
             <TemplateSaveDialog
                 open={showSaveDialog}
                 onOpenChange={setShowSaveDialog}
-                type={type}
                 greetingHtml={currentGreetingHtml}
                 footerHtml={currentFooterHtml}
                 existingTemplateId={

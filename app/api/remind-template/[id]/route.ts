@@ -4,12 +4,13 @@
  * GET: 단일 템플릿 조회
  * PUT: 템플릿 수정
  * DELETE: 템플릿 삭제
+ *
+ * @note SEND/SHARE 구분 없이 통일됨 (v0.2.0)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
-import type { TemplateType } from '@/lib/generated/prisma/client';
 
 // ============================================================================
 // 타입 정의
@@ -20,7 +21,6 @@ interface TemplateResponse {
     template?: {
         id: string;
         name: string;
-        type: TemplateType;
         greetingHtml: string;
         footerHtml: string;
         createdAt: Date;
@@ -67,7 +67,6 @@ export async function GET(
             select: {
                 id: true,
                 name: true,
-                type: true,
                 greetingHtml: true,
                 footerHtml: true,
                 createdAt: true,
@@ -142,7 +141,6 @@ export async function PUT(
             select: {
                 id: true,
                 name: true,
-                type: true,
                 greetingHtml: true,
                 footerHtml: true,
                 createdAt: true,

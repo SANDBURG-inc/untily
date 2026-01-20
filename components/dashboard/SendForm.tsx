@@ -209,7 +209,6 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxD
             {/* Email Preview - Editable */}
             <EmailPreviewEditable
                 ref={emailPreviewRef}
-                documentBoxId={documentBoxId}
                 documentBoxTitle={documentBoxTitle}
                 documentBoxDescription={documentBoxDescription}
                 endDate={endDate}
@@ -219,7 +218,6 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxD
                     isRequired: d.isRequired
                 }))}
                 submissionLink="(제출자별 링크가 생성됩니다)"
-                type="SEND"
                 onTemplateChange={handleTemplateChange}
             />
 

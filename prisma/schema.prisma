@@ -329,42 +329,44 @@ model ReminderRecipient {
 // 이메일 템플릿 관리
 // ============================================================================
 
-// 템플릿 타입 (SEND: 지정 제출자 발송, SHARE: 링크 공유용)
-enum TemplateType {
-  SEND
-  SHARE
+// 사용자별 마지막 사용 템플릿
+// - 어느 문서함에서 편집하든 같은 템플릿이 로드됨
+// - 자동 리마인더에서도 이 템플릿을 사용
+model UserLastTemplate {
+  id               String   @id @default(cuid())
+  userId           String   @unique // 사용자당 1개
+  lastTemplateId   String? // 마지막으로 선택한 저장 템플릿 ID
+  lastGreetingHtml String?  @db.Text
+  lastFooterHtml   String?  @db.Text
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
 }
 
-// 전역 이메일 템플릿
+// 저장된 이메일 템플릿 (재사용 가능)
+// - SEND/SHARE 구분 없이 통일
 model RemindTemplate {
-  id           String       @id @default(cuid())
+  id           String   @id @default(cuid())
   name         String // 템플릿 이름
-  type         TemplateType // SEND or SHARE
-  greetingHtml String       @db.Text // 인사말 HTML
-  footerHtml   String       @db.Text // 아랫말 HTML
+  greetingHtml String   @db.Text // 인사말 HTML
+  footerHtml   String   @db.Text // 아랫말 HTML
   userId       String // 소유자
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  @@index([userId, type])
+  @@index([userId])
 }
 
-// 문서함별 템플릿 설정 (마지막 사용 템플릿 + 자동 리마인더용 템플릿)
+// [Deprecated] 문서함별 템플릿 설정
+// - 추후 문서함별 자동 리마인더 템플릿 설정 기능용으로 유지
+// - 현재는 사용하지 않음 (UserLastTemplate로 대체)
 model DocumentBoxTemplateConfig {
-  id            String       @id @default(cuid())
-  documentBoxId String
-  documentBox   DocumentBox  @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
-  type          TemplateType
+  id            String      @id @default(cuid())
+  documentBoxId String      @unique // 문서함당 1개
+  documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
 
-  // 마지막 사용 템플릿 (수동 발송/공유 시)
-  lastTemplateId   String?
-  lastGreetingHtml String? @db.Text
-  lastFooterHtml   String? @db.Text
-
-  // 자동 리마인더용 템플릿 (cron에서 사용)
+  // 자동 리마인더용 템플릿 (추후 기능)
   autoTemplateId String?
 
   updatedAt DateTime @updatedAt
-
-  @@unique([documentBoxId, type])
 }

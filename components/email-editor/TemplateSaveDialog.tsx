@@ -34,8 +34,6 @@ interface TemplateSaveDialogProps {
     open: boolean;
     /** 다이얼로그 상태 변경 핸들러 */
     onOpenChange: (open: boolean) => void;
-    /** 템플릿 타입 */
-    type: 'SEND' | 'SHARE';
     /** 저장할 인사말 HTML */
     greetingHtml: string;
     /** 저장할 아랫말 HTML */
@@ -51,7 +49,6 @@ interface TemplateSaveDialogProps {
 export function TemplateSaveDialog({
     open,
     onOpenChange,
-    type,
     greetingHtml,
     footerHtml,
     existingTemplateId,
@@ -109,7 +106,6 @@ export function TemplateSaveDialog({
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name: name.trim(),
-                        type,
                         greetingHtml,
                         footerHtml,
                     }),

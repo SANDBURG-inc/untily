@@ -35,6 +35,7 @@ interface ProcessResult {
 
 interface DocumentBoxWithRelations {
     documentBoxId: string;
+    userId: string; // 문서함 소유자 ID (템플릿 조회용)
     boxTitle: string;
     boxDescription: string | null;
     endDate: Date;
@@ -204,30 +205,22 @@ async function sendReminderEmails(
     );
 
     // 자동 리마인더 템플릿 조회
+    // v0.2.0: 문서함 소유자의 마지막 사용 템플릿을 사용
     let customGreetingHtml: string | undefined;
     let customFooterHtml: string | undefined;
 
-    const templateConfig = await prisma.documentBoxTemplateConfig.findUnique({
+    const userLastTemplate = await prisma.userLastTemplate.findUnique({
         where: {
-            documentBoxId_type: {
-                documentBoxId: box.documentBoxId,
-                type: 'SEND',
-            },
+            userId: box.userId,
         },
     });
 
-    if (templateConfig?.autoTemplateId) {
-        const template = await prisma.remindTemplate.findUnique({
-            where: { id: templateConfig.autoTemplateId },
-        });
-
-        if (template) {
-            customGreetingHtml = template.greetingHtml;
-            customFooterHtml = template.footerHtml;
-            console.log(
-                `[Auto-Reminder] Using template "${template.name}" for box "${box.boxTitle}"`
-            );
-        }
+    if (userLastTemplate?.lastGreetingHtml || userLastTemplate?.lastFooterHtml) {
+        customGreetingHtml = userLastTemplate.lastGreetingHtml ?? undefined;
+        customFooterHtml = userLastTemplate.lastFooterHtml ?? undefined;
+        console.log(
+            `[Auto-Reminder] Using user's last template for box "${box.boxTitle}"`
+        );
     }
 
     const resend = new Resend(process.env.RESEND_API_KEY || process.env.SMTP_PASS);

@@ -1,209 +1,125 @@
 /**
- * 문서함별 템플릿 설정 API
+ * 사용자별 마지막 사용 템플릿 API
  *
- * GET: 문서함별 템플릿 설정 조회 (마지막 사용 템플릿, 자동 리마인더 템플릿)
- * POST: 문서함별 템플릿 설정 저장/업데이트
+ * GET: 사용자의 마지막 사용 템플릿 조회
+ * POST: 마지막 사용 템플릿 저장/업데이트
+ *
+ * @note v0.2.0에서 documentBoxId 기반 → userId 기반으로 변경됨
+ * - 어느 문서함에서 편집하든 같은 템플릿이 로드됨
+ * - SEND/SHARE 구분 없이 통일됨
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
-import type { TemplateType } from '@/lib/generated/prisma/client';
 
 // ============================================================================
 // 타입 정의
 // ============================================================================
 
-interface ConfigResponse {
+interface LastTemplateResponse {
     success: boolean;
-    config?: {
-        id: string;
-        documentBoxId: string;
-        type: TemplateType;
+    lastTemplate?: {
         lastTemplateId: string | null;
         lastGreetingHtml: string | null;
         lastFooterHtml: string | null;
-        autoTemplateId: string | null;
     };
     error?: string;
 }
 
-interface SaveConfigRequest {
-    documentBoxId: string;
-    type: 'SEND' | 'SHARE';
-    // 마지막 사용 템플릿 정보
+interface SaveLastTemplateRequest {
     lastTemplateId?: string | null;
     lastGreetingHtml?: string | null;
     lastFooterHtml?: string | null;
-    // 자동 리마인더용 템플릿
-    autoTemplateId?: string | null;
 }
 
 // ============================================================================
-// GET: 문서함별 템플릿 설정 조회
+// GET: 사용자의 마지막 사용 템플릿 조회
 // ============================================================================
 
-export async function GET(request: NextRequest) {
+export async function GET() {
     try {
         const { user } = await neonAuth();
         if (!user) {
-            return NextResponse.json<ConfigResponse>(
+            return NextResponse.json<LastTemplateResponse>(
                 { success: false, error: 'Unauthorized' },
                 { status: 401 }
             );
         }
 
-        const { searchParams } = new URL(request.url);
-        const documentBoxId = searchParams.get('documentBoxId');
-        const type = searchParams.get('type') as TemplateType | null;
-
-        if (!documentBoxId || !type) {
-            return NextResponse.json<ConfigResponse>(
-                { success: false, error: 'documentBoxId and type are required' },
-                { status: 400 }
-            );
-        }
-
-        // 문서함 소유권 확인
-        const documentBox = await prisma.documentBox.findFirst({
+        // 사용자의 마지막 사용 템플릿 조회
+        const lastTemplate = await prisma.userLastTemplate.findUnique({
             where: {
-                documentBoxId,
                 userId: user.id,
             },
-        });
-
-        if (!documentBox) {
-            return NextResponse.json<ConfigResponse>(
-                { success: false, error: 'Document box not found' },
-                { status: 404 }
-            );
-        }
-
-        // 설정 조회
-        const config = await prisma.documentBoxTemplateConfig.findUnique({
-            where: {
-                documentBoxId_type: {
-                    documentBoxId,
-                    type,
-                },
+            select: {
+                lastTemplateId: true,
+                lastGreetingHtml: true,
+                lastFooterHtml: true,
             },
         });
 
-        if (!config) {
-            // 설정이 없으면 빈 응답
-            return NextResponse.json<ConfigResponse>({
-                success: true,
-                config: undefined,
-            });
-        }
-
-        return NextResponse.json<ConfigResponse>({
+        return NextResponse.json<LastTemplateResponse>({
             success: true,
-            config: {
-                id: config.id,
-                documentBoxId: config.documentBoxId,
-                type: config.type,
-                lastTemplateId: config.lastTemplateId,
-                lastGreetingHtml: config.lastGreetingHtml,
-                lastFooterHtml: config.lastFooterHtml,
-                autoTemplateId: config.autoTemplateId,
-            },
+            lastTemplate: lastTemplate ?? undefined,
         });
     } catch (error) {
-        console.error('Failed to fetch template config:', error);
-        return NextResponse.json<ConfigResponse>(
-            { success: false, error: 'Failed to fetch template config' },
+        console.error('Failed to fetch last template:', error);
+        return NextResponse.json<LastTemplateResponse>(
+            { success: false, error: 'Failed to fetch last template' },
             { status: 500 }
         );
     }
 }
 
 // ============================================================================
-// POST: 문서함별 템플릿 설정 저장/업데이트
+// POST: 마지막 사용 템플릿 저장/업데이트
 // ============================================================================
 
 export async function POST(request: NextRequest) {
     try {
         const { user } = await neonAuth();
         if (!user) {
-            return NextResponse.json<ConfigResponse>(
+            return NextResponse.json<LastTemplateResponse>(
                 { success: false, error: 'Unauthorized' },
                 { status: 401 }
             );
         }
 
-        const body: SaveConfigRequest = await request.json();
-        const {
-            documentBoxId,
-            type,
-            lastTemplateId,
-            lastGreetingHtml,
-            lastFooterHtml,
-            autoTemplateId,
-        } = body;
-
-        if (!documentBoxId || !type) {
-            return NextResponse.json<ConfigResponse>(
-                { success: false, error: 'documentBoxId and type are required' },
-                { status: 400 }
-            );
-        }
-
-        // 문서함 소유권 확인
-        const documentBox = await prisma.documentBox.findFirst({
-            where: {
-                documentBoxId,
-                userId: user.id,
-            },
-        });
-
-        if (!documentBox) {
-            return NextResponse.json<ConfigResponse>(
-                { success: false, error: 'Document box not found' },
-                { status: 404 }
-            );
-        }
+        const body: SaveLastTemplateRequest = await request.json();
+        const { lastTemplateId, lastGreetingHtml, lastFooterHtml } = body;
 
         // upsert로 설정 저장/업데이트
-        const config = await prisma.documentBoxTemplateConfig.upsert({
+        const lastTemplate = await prisma.userLastTemplate.upsert({
             where: {
-                documentBoxId_type: {
-                    documentBoxId,
-                    type,
-                },
+                userId: user.id,
             },
             update: {
                 ...(lastTemplateId !== undefined && { lastTemplateId }),
                 ...(lastGreetingHtml !== undefined && { lastGreetingHtml }),
                 ...(lastFooterHtml !== undefined && { lastFooterHtml }),
-                ...(autoTemplateId !== undefined && { autoTemplateId }),
             },
             create: {
-                documentBoxId,
-                type,
+                userId: user.id,
                 lastTemplateId: lastTemplateId ?? null,
                 lastGreetingHtml: lastGreetingHtml ?? null,
                 lastFooterHtml: lastFooterHtml ?? null,
-                autoTemplateId: autoTemplateId ?? null,
+            },
+            select: {
+                lastTemplateId: true,
+                lastGreetingHtml: true,
+                lastFooterHtml: true,
             },
         });
 
-        return NextResponse.json<ConfigResponse>({
+        return NextResponse.json<LastTemplateResponse>({
             success: true,
-            config: {
-                id: config.id,
-                documentBoxId: config.documentBoxId,
-                type: config.type,
-                lastTemplateId: config.lastTemplateId,
-                lastGreetingHtml: config.lastGreetingHtml,
-                lastFooterHtml: config.lastFooterHtml,
-                autoTemplateId: config.autoTemplateId,
-            },
+            lastTemplate,
         });
     } catch (error) {
-        console.error('Failed to save template config:', error);
-        return NextResponse.json<ConfigResponse>(
-            { success: false, error: 'Failed to save template config' },
+        console.error('Failed to save last template:', error);
+        return NextResponse.json<LastTemplateResponse>(
+            { success: false, error: 'Failed to save last template' },
             { status: 500 }
         );
     }

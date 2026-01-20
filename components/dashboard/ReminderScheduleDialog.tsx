@@ -253,10 +253,12 @@ export function ReminderScheduleDialog({
                 {/* 템플릿 선택 */}
                 <div className="border-t pt-4">
                     <AutoReminderTemplateSelector
-                        type="SEND"
                         selectedId={localAutoTemplateId}
                         onSelect={setLocalAutoTemplateId}
                     />
+                    <p className="text-xs text-gray-500 mt-2">
+                        마지막으로 편집한 템플릿이 자동으로 적용됩니다.
+                    </p>
                 </div>
 
                 <DialogFooter className="flex gap-2 sm:flex-row">

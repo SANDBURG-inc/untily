@@ -205,22 +205,9 @@ export function AutoReminderSettings({
             }))
         );
 
-        // 2. 템플릿 설정 저장
-        if (result.success) {
-            try {
-                await fetch('/api/remind-template/config', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        documentBoxId,
-                        type: 'SEND',
-                        autoTemplateId: autoTemplateId || null,
-                    }),
-                });
-            } catch (err) {
-                console.error('Failed to save auto template config:', err);
-            }
-        }
+        // 2. 템플릿 설정은 이제 사용자별로 관리됨 (UserLastTemplate)
+        // 자동 리마인더는 마지막 사용 템플릿을 자동으로 사용
+        // autoTemplateId 별도 설정은 추후 기능
 
         setIsPending(false);
 
@@ -301,10 +288,12 @@ export function AutoReminderSettings({
                     {/* 템플릿 선택 */}
                     <div className="border-t pt-4">
                         <AutoReminderTemplateSelector
-                            type="SEND"
                             selectedId={autoTemplateId}
                             onSelect={setAutoTemplateId}
                         />
+                        <p className="text-xs text-gray-500 mt-2">
+                            마지막으로 편집한 템플릿이 자동으로 적용됩니다.
+                        </p>
                     </div>
 
                     <DialogFooter className="flex gap-2 sm:flex-row">

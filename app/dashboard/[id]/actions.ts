@@ -136,21 +136,18 @@ export async function sendManualReminder(
         }
 
         // 6. 마지막 사용 템플릿 저장 (커스텀 템플릿 사용 시)
+        // v0.2.0: userId 기반으로 변경 (UserLastTemplate)
         if (customGreetingHtml || customFooterHtml) {
-            await prisma.documentBoxTemplateConfig.upsert({
+            await prisma.userLastTemplate.upsert({
                 where: {
-                    documentBoxId_type: {
-                        documentBoxId,
-                        type: 'SEND',
-                    },
+                    userId: documentBox.userId,
                 },
                 update: {
                     lastGreetingHtml: customGreetingHtml || null,
                     lastFooterHtml: customFooterHtml || null,
                 },
                 create: {
-                    documentBoxId,
-                    type: 'SEND',
+                    userId: documentBox.userId,
                     lastGreetingHtml: customGreetingHtml || null,
                     lastFooterHtml: customFooterHtml || null,
                 },
@@ -383,21 +380,18 @@ export async function sendReminderAfterDeadline(
         }
 
         // 6. 마지막 사용 템플릿 저장 (커스텀 템플릿 사용 시)
+        // v0.2.0: userId 기반으로 변경 (UserLastTemplate)
         if (customGreetingHtml || customFooterHtml) {
-            await prisma.documentBoxTemplateConfig.upsert({
+            await prisma.userLastTemplate.upsert({
                 where: {
-                    documentBoxId_type: {
-                        documentBoxId,
-                        type: 'SEND',
-                    },
+                    userId: documentBox.userId,
                 },
                 update: {
                     lastGreetingHtml: customGreetingHtml || null,
                     lastFooterHtml: customFooterHtml || null,
                 },
                 create: {
-                    documentBoxId,
-                    type: 'SEND',
+                    userId: documentBox.userId,
                     lastGreetingHtml: customGreetingHtml || null,
                     lastFooterHtml: customFooterHtml || null,
                 },

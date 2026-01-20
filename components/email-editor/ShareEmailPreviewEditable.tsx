@@ -110,13 +110,11 @@ export function ShareEmailPreviewEditable({
     // 마지막 사용 템플릿 로드
     const loadLastUsedTemplate = useCallback(async () => {
         try {
-            const res = await fetch(
-                `/api/remind-template/config?documentBoxId=${documentBoxId}&type=SHARE`
-            );
+            const res = await fetch('/api/remind-template/config');
             const data = await res.json();
 
-            if (data.success && data.config) {
-                const { lastGreetingHtml, lastFooterHtml, lastTemplateId } = data.config;
+            if (data.success && data.lastTemplate) {
+                const { lastGreetingHtml, lastFooterHtml, lastTemplateId } = data.lastTemplate;
                 if (lastGreetingHtml && lastFooterHtml) {
                     setGreetingHtml(lastGreetingHtml);
                     setFooterHtml(lastFooterHtml);
@@ -129,7 +127,7 @@ export function ShareEmailPreviewEditable({
         } catch (error) {
             console.error('Failed to load last used template:', error);
         }
-    }, [documentBoxId, onTemplateChange]);
+    }, [onTemplateChange]);
 
     useEffect(() => {
         loadLastUsedTemplate();
@@ -178,15 +176,14 @@ export function ShareEmailPreviewEditable({
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
             {/* 헤더 */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <span className="text-lg">✉️</span> 이메일 미리보기
+                    <span className="text-lg">✉️</span> 양식 미리보기
                 </h3>
                 <div className="flex items-center gap-2">
                     {/* 템플릿 셀렉터 */}
                     {!isEditing && (
                         <EmailTemplateSelector
-                            type="SHARE"
                             selectedId={selectedTemplateId}
                             currentGreetingHtml={greetingHtml}
                             currentFooterHtml={footerHtml}
@@ -228,6 +225,9 @@ export function ShareEmailPreviewEditable({
                     )}
                 </div>
             </div>
+            <p className="text-xs text-gray-500 mb-4">
+                마지막으로 편집한 템플릿이 모든 문서함에 자동으로 적용됩니다.
+            </p>
 
             {/* 이메일 미리보기 - 현재 ShareForm 스타일 유지 */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden p-6 relative">
