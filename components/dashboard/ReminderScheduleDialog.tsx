@@ -210,7 +210,7 @@ export function ReminderScheduleRow({
                 <button
                     type="button"
                     onClick={onDelete}
-                    className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors ml-auto shrink-0"
+                    className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors ml-1 shrink-0"
                     aria-label="리마인더 삭제"
                 >
                     <X className="w-4 h-4" />
