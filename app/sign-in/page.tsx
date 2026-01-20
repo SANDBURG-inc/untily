@@ -35,10 +35,6 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col items-center justify-center p-4">
                 <SignInForm callbackURL={callbackURL} />
-
-                <footer className="mt-12 text-center text-xs text-gray-400">
-                    문서 제출 관리 플랫폼 v1.0
-                </footer>
             </main>
         </div>
     );
