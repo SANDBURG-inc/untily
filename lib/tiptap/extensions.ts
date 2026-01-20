@@ -32,7 +32,41 @@ import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import Highlight from '@tiptap/extension-highlight';
-import { TextStyle, Color } from '@tiptap/extension-text-style';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+
+// ============================================================================
+// TextStyle 확장 - fontSize 속성 추가
+// ============================================================================
+
+/**
+ * TextStyle을 확장하여 fontSize 속성을 지원합니다.
+ *
+ * @note
+ * 기본 TipTap TextStyle은 span 태그의 기반만 제공하고,
+ * fontSize 같은 실제 CSS 속성은 addAttributes()로 별도 정의해야 함.
+ *
+ * @relatedFiles
+ * - components/email-editor/EmailEditorToolbar.tsx - FONT_SIZES 상수
+ * - lib/tiptap/html-utils.ts - sanitizeHtmlForEmail()에서 인라인 스타일 처리
+ */
+const TextStyleExtended = TextStyle.extend({
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            fontSize: {
+                default: null,
+                // HTML 파싱 시 style 속성에서 font-size 추출
+                parseHTML: element => element.style.fontSize?.replace(/['"]+/g, '') || null,
+                // HTML 렌더링 시 style 속성에 font-size 추가
+                renderHTML: attributes => {
+                    if (!attributes.fontSize) return {};
+                    return { style: `font-size: ${attributes.fontSize}` };
+                },
+            },
+        };
+    },
+});
 
 // ============================================================================
 // 확장 설정
@@ -120,13 +154,16 @@ export function getEmailEditorExtensions(placeholderText?: string) {
         }),
 
         /**
-         * TextStyle - 인라인 스타일 확장 (Color, FontSize 등의 기반)
+         * TextStyleExtended - 인라인 스타일 확장 (fontSize 속성 추가)
          *
          * @note
+         * 기본 TextStyle을 확장하여 fontSize 속성을 지원.
          * Color, FontSize 등의 마크를 사용하려면 TextStyle이 필수.
          * span 태그에 style 속성을 추가하는 역할.
+         *
+         * @see TextStyleExtended (이 파일 상단)
          */
-        TextStyle,
+        TextStyleExtended,
 
         /**
          * Color - 텍스트 색상 확장

@@ -420,7 +420,7 @@ export function ShareEmailPreviewEditable({
                             />
                         ) : (
                             <div
-                                className="text-xs text-slate-500 email-preview-content"
+                                className="text-sm text-slate-700 email-preview-content"
                                 dangerouslySetInnerHTML={{
                                     __html: highlightPlaceholders(footerHtml),
                                 }}

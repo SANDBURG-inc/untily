@@ -412,7 +412,7 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
                             />
                         ) : (
                             <div
-                                className="text-xs text-gray-500 email-preview-content"
+                                className="text-sm text-gray-700 email-preview-content"
                                 dangerouslySetInnerHTML={{
                                     __html: highlightPlaceholders(footerHtml),
                                 }}
