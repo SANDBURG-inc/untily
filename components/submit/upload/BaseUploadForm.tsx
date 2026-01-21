@@ -8,6 +8,7 @@ import { FormFieldGroupItem } from '@/components/submit/form';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { LabeledProgress } from '@/components/shared/LabeledProgress';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/Button';
 import { AlertBanner } from '@/components/shared/AlertBanner';
 import { SubmitActionFooter } from '@/app/submit/_components';
 import {
@@ -60,6 +61,8 @@ export interface BaseUploadFormProps {
   initialFormResponses?: FormFieldResponseData[];
   /** 미리보기 모드 (업로드/저장 불가, UI만 체험) */
   previewMode?: boolean;
+  /** 미리보기 모드에서 뒤로가기 핸들러 */
+  onPreviewBack?: () => void;
 }
 
 // Debounce 시간 (ms)
@@ -75,6 +78,7 @@ export default function BaseUploadForm({
   formFieldsAboveDocuments = false,
   initialFormResponses = [],
   previewMode = false,
+  onPreviewBack,
 }: BaseUploadFormProps) {
   const router = useRouter();
 
@@ -367,8 +371,30 @@ export default function BaseUploadForm({
         </div>
       </main>
 
-      {/* 하단 고정 버튼 영역 (미리보기 모드에서는 숨김) */}
-      {!previewMode && (
+      {/* 하단 고정 버튼 영역 */}
+      {previewMode ? (
+        // 미리보기 모드: sticky footer (Sheet 내부에서 동작)
+        <footer className="sticky bottom-0 bg-card border-t border-border px-4 py-4">
+          <div className="max-w-2xl mx-auto flex gap-3">
+            <Button
+              variant="secondary"
+              size="lg"
+              className="flex-1"
+              onClick={onPreviewBack}
+            >
+              뒤로가기
+            </Button>
+            <Button
+              variant="primary"
+              size="lg"
+              className="flex-1"
+              disabled={true}
+            >
+              다음
+            </Button>
+          </div>
+        </footer>
+      ) : (
         <SubmitActionFooter
           primaryLabel="다음"
           secondaryLabel="임시저장"

@@ -349,6 +349,8 @@ export default function DocumentRegistrationForm({
         open={previewSheetOpen}
         onOpenChange={setPreviewSheetOpen}
         documentBoxTitle={form.documentName}
+        documentBoxDescription={form.description}
+        logoUrl={form.effectiveLogoUrl}
         requirements={form.requirements.map((req) => ({
           requiredDocumentId: req.id,
           documentTitle: req.name,
