@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { formatPhoneNumberOnInput } from '@/lib/utils/phone';
 import type { FormFieldData } from '@/lib/types/form-field';
 import {
   parseMultiChoiceValue,
@@ -170,7 +171,7 @@ export function FormFieldInput({
             <Input
               type="tel"
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e) => onChange(formatPhoneNumberOnInput(e.target.value))}
               placeholder={placeholder || '010-1234-5678'}
               error={!!error}
               className="pr-16"
