@@ -253,35 +253,38 @@ export function AutoReminderSettings({
 
             {/* 설정 다이얼로그 */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
                             <Bell className="w-5 h-5" />
                             리마인드 설정
-                        </DialogTitle> 
+                        </DialogTitle>
                         <DialogDescription className="text-sm text-gray-600">
                             마감일 기준으로 미제출자에게 자동으로 알림을 발송합니다.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <ReminderScheduleEditor
-                        schedules={schedules}
-                        onAddSchedule={handleAddSchedule}
-                        onUpdateSchedule={handleUpdateSchedule}
-                        onDeleteSchedule={handleDeleteSchedule}
-                    />
+                    {/* 스크롤 가능한 본문 영역 */}
+                    <div className="flex-1 overflow-y-auto space-y-4 -mx-6 px-6">
+                        <ReminderScheduleEditor
+                            schedules={schedules}
+                            onAddSchedule={handleAddSchedule}
+                            onUpdateSchedule={handleUpdateSchedule}
+                            onDeleteSchedule={handleDeleteSchedule}
+                        />
 
-                    {/* 채널 선택 */}
-                    <div className="border-t pt-4">
-                        <h4 className="text-sm font-medium text-gray-900 mb-3">채널 선택</h4>
-                        <div className="space-y-2">
-                            <ChannelOption label="이메일로 발송할게요" enabled={true} selected={true} />
-                            <ChannelOption label="문자로 발송할게요" enabled={false} selected={false} />
-                            <ChannelOption label="알림톡으로 발송할게요" enabled={false} selected={false} />
+                        {/* 채널 선택 */}
+                        <div className="border-t pt-4">
+                            <h4 className="text-sm font-medium text-gray-900 mb-3">채널 선택</h4>
+                            <div className="space-y-2">
+                                <ChannelOption label="이메일로 발송할게요" enabled={true} selected={true} />
+                                <ChannelOption label="문자로 발송할게요" enabled={false} selected={false} />
+                                <ChannelOption label="알림톡으로 발송할게요" enabled={false} selected={false} />
+                            </div>
                         </div>
                     </div>
 
-                    <DialogFooter className="flex gap-2 sm:flex-row">
+                    <DialogFooter className="flex gap-2 sm:flex-row border-t pt-4 -mx-6 px-6 -mb-2">
                         <Button variant="soft" onClick={closeModal} className="flex-1">
                             취소
                         </Button>

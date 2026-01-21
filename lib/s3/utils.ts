@@ -34,22 +34,25 @@ export interface SubmittedFilenameParams {
   requiredDocumentTitle: string;
   submitterName: string;
   originalFilename: string;
-  /** 복수 파일 업로드 시 순번 (1부터 시작) */
+  /** 복수 파일 업로드 시 순번 (1부터 시작) - 현재 미사용 (타임스탬프로 대체) */
   index?: number;
 }
 
 /**
  * 제출 파일명 생성
- * 형식: {서류명}_{날짜}_{제출자이름}.{확장자} (단일 파일)
- * 형식: {서류명}_{날짜}_{제출자이름}_{순번}.{확장자} (복수 파일)
- * 예시: 주민등록등본_20251219_홍길동.pdf
- * 예시: 주민등록등본_20251219_홍길동_2.pdf (두 번째 파일)
+ * 형식: {서류명}_{날짜}_{제출자이름}_{타임스탬프}.{확장자}
+ * 예시: 주민등록등본_20251219_홍길동_1737123456789.pdf
+ *
+ * 타임스탬프를 사용하는 이유:
+ * - 복수 파일 업로드 시 병렬 API 호출로 인한 Race Condition 방지
+ * - 항상 고유한 파일명 보장
  */
 export function generateSubmittedFilename(params: SubmittedFilenameParams): string {
-  const { requiredDocumentTitle, submitterName, originalFilename, index } = params;
+  const { requiredDocumentTitle, submitterName, originalFilename } = params;
 
   const ext = getExtension(originalFilename);
   const date = getDateString();
+  const timestamp = Date.now();
 
   // 서류명과 제출자 이름 정규화 (특수문자 제거)
   const sanitizedTitle = requiredDocumentTitle
@@ -59,10 +62,7 @@ export function generateSubmittedFilename(params: SubmittedFilenameParams): stri
     .normalize('NFC')
     .replace(/[^a-zA-Z0-9가-힣]/g, '');
 
-  // 복수 파일인 경우 순번 추가 (2번째부터)
-  const indexSuffix = index && index > 1 ? `_${index}` : '';
-
-  return `${sanitizedTitle}_${date}_${sanitizedName}${indexSuffix}.${ext}`;
+  return `${sanitizedTitle}_${date}_${sanitizedName}_${timestamp}.${ext}`;
 }
 
 /**

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import DocumentUploadItem from '@/components/submit/upload/DocumentUploadItem';
 import type { UploadedDocument } from '@/components/submit/upload/DocumentUploadItem';
 import { FormFieldGroupItem } from '@/components/submit/form';
@@ -202,6 +203,34 @@ export default function BaseUploadForm({
     debounceTimers.current.set(fieldId, newTimer);
   }, [saveFormResponse]);
 
+  // 임시저장: pending debounce를 모두 즉시 실행하고 토스트 표시
+  const handleSaveDraft = useCallback(async () => {
+    // 미리보기 모드에서는 동작하지 않음
+    if (previewMode) return;
+
+    // pending debounce 타이머를 모두 취소하고 즉시 저장
+    const pendingFieldIds = Array.from(debounceTimers.current.keys());
+    const savePromises: Promise<void>[] = [];
+
+    pendingFieldIds.forEach((fieldId) => {
+      const timer = debounceTimers.current.get(fieldId);
+      if (timer) {
+        clearTimeout(timer);
+        debounceTimers.current.delete(fieldId);
+      }
+      // 현재 값으로 즉시 저장
+      const currentValue = formResponses.get(fieldId) || '';
+      savePromises.push(saveFormResponse(fieldId, currentValue));
+    });
+
+    // 모든 저장이 완료될 때까지 대기
+    if (savePromises.length > 0) {
+      await Promise.all(savePromises);
+    }
+
+    toast.success('임시저장되었습니다');
+  }, [previewMode, formResponses, saveFormResponse]);
+
   const handleSubmit = () => {
     // 1. 필수 서류 업로드 확인
     const requiredDocs = documentBox.requiredDocuments.filter((doc) => doc.isRequired);
@@ -401,7 +430,7 @@ export default function BaseUploadForm({
           primaryLabel="다음"
           secondaryLabel="임시저장"
           onPrimary={handleSubmit}
-          onSecondary={() => router.back()}
+          onSecondary={handleSaveDraft}
           primaryDisabled={!canProceed}
         />
       )}

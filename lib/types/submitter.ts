@@ -72,10 +72,22 @@ export function formatProgress(submittedCount: number, totalRequired: number): s
     return `${submittedCount}/${totalRequired} (${percentage}%)`;
 }
 
-/** 제출일 포맷팅 */
+/** 제출일 포맷팅 (날짜만) */
 export function formatSubmissionDate(date: Date | null): string {
     if (!date) return '-';
     return date.toISOString().split('T')[0];
+}
+
+/** 제출일시 포맷팅 (날짜 + 시간) */
+export function formatSubmissionDateTime(date: Date | null): string {
+    if (!date) return '-';
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
 /** 제출 경험 여부 (한 번이라도 제출했으면 true) */
