@@ -360,3 +360,17 @@ model DocumentBoxTemplateConfig {
 
   updatedAt DateTime @updatedAt
 }
+
+// ============================================================================
+// 재제출 기록 관리
+// ============================================================================
+
+// 반려 후 재제출 시 로그 기록
+model ResubmissionLog {
+  resubmissionLogId String    @id @default(cuid())
+  submitterId       String
+  submitter         Submitter @relation(fields: [submitterId], references: [submitterId], onDelete: Cascade)
+  resubmittedAt     DateTime  @default(now())
+
+  @@index([submitterId])
+}

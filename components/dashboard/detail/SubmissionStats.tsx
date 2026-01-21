@@ -60,7 +60,7 @@ export function SubmissionStats({
                             valueClassName="text-green-600"
                         />
                         <StatCard
-                            label="미제출"
+                            label="미제출(반려포함)"
                             value={`${notSubmittedCount}명`}
                             valueClassName="text-orange-500"
                         />

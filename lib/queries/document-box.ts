@@ -1,5 +1,6 @@
 import prisma from '@/lib/db';
 import type { DocumentBoxStatus } from '@/lib/types/document';
+import type { SubmitterStatus } from '@/lib/types/submitter';
 
 /**
  * 문서함 관련 Prisma 쿼리 레이어
@@ -28,6 +29,11 @@ export interface SubmitterWithFiles {
     files: SubmittedFileDetail[];
 }
 
+// 재제출 기록 타입
+export interface ResubmissionLogInfo {
+    resubmittedAt: Date;
+}
+
 // 제출자 정보 + 제출 현황 조회 결과 타입
 export interface SubmitterWithStatus {
     submitterId: string;
@@ -36,6 +42,10 @@ export interface SubmitterWithStatus {
     phone: string | null;
     submittedCount: number;
     lastSubmittedAt: Date | null;
+    // 신규 필드
+    status: SubmitterStatus;
+    isChecked: boolean;
+    resubmissionLogs: ResubmissionLogInfo[];
 }
 
 // 문서함 상세 조회 결과 타입
@@ -102,6 +112,10 @@ export async function getDocumentBoxWithSubmissionStatus(
                             createdAt: true,
                         },
                     },
+                    resubmissionLogs: {
+                        select: { resubmittedAt: true },
+                        orderBy: { resubmittedAt: 'desc' },
+                    },
                 },
             },
             requiredDocuments: { orderBy: { order: 'asc' } },
@@ -142,6 +156,11 @@ export async function getDocumentBoxWithSubmissionStatus(
             phone: submitter.phone || null,
             submittedCount: submittedDocs.length,
             lastSubmittedAt,
+            status: submitter.status as SubmitterStatus,
+            isChecked: submitter.isChecked,
+            resubmissionLogs: submitter.resubmissionLogs.map(log => ({
+                resubmittedAt: log.resubmittedAt,
+            })),
         };
     });
 

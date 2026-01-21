@@ -52,10 +52,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '제출이 마감되었습니다.' }, { status: 400 });
     }
 
-    // 6. 이미 제출 완료 체크
+    // 6. 이미 제출 완료 체크 (SUBMITTED 상태면 재제출 불가, REJECTED는 가능)
     if (submitter.status === 'SUBMITTED') {
       return NextResponse.json({ error: '이미 제출이 완료되었습니다.' }, { status: 400 });
     }
+
+    // REJECTED 상태인지 확인 (재제출 로그 기록용)
+    const isResubmission = submitter.status === 'REJECTED';
 
     // 7. 필수 서류 업로드 완료 확인
     const requiredDocs = submitter.documentBox.requiredDocuments.filter((doc) => doc.isRequired);
@@ -115,14 +118,36 @@ export async function POST(request: NextRequest) {
     }
 
     // 9. 제출 완료 처리
-    await prisma.submitter.update({
-      where: { submitterId },
-      data: {
-        status: 'SUBMITTED',
-        submittedAt: new Date(),
-        userId: user.id,
-      },
-    });
+    if (isResubmission) {
+      // 재제출인 경우: ResubmissionLog 생성 + 상태 변경 (트랜잭션)
+      await prisma.$transaction([
+        prisma.resubmissionLog.create({
+          data: {
+            submitterId,
+            resubmittedAt: new Date(),
+          },
+        }),
+        prisma.submitter.update({
+          where: { submitterId },
+          data: {
+            status: 'SUBMITTED',
+            submittedAt: new Date(),
+            userId: user.id,
+            isChecked: false, // 재제출 시 확인 상태 초기화
+          },
+        }),
+      ]);
+    } else {
+      // 최초 제출
+      await prisma.submitter.update({
+        where: { submitterId },
+        data: {
+          status: 'SUBMITTED',
+          submittedAt: new Date(),
+          userId: user.id,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
