@@ -43,7 +43,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
   const formFieldGroups = formFields.length > 0
     ? [{
         id: 'default-group',
-        groupTitle: '질문',
+        groupTitle: '입력 항목',
         groupDescription: undefined,
         isRequired: true,
         order: 0,

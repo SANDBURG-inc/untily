@@ -53,7 +53,7 @@ export default async function EditDocumentBoxPage({
         formFieldGroups: documentBox.formFields.length > 0
             ? [{
                 id: 'default-group',
-                groupTitle: '질문',
+                groupTitle: '입력 항목',
                 groupDescription: '',
                 isRequired: true,
                 order: 0,

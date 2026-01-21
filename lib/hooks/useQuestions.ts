@@ -22,7 +22,7 @@ export function useQuestions(
     id: `question-${Date.now()}-${order}`,
     fieldLabel: '',
     fieldType: 'TEXT',
-    placeholder: '텍스트를 입력하세요',
+    placeholder: '내 답변',
     isRequired: false,
     order,
     options: [],

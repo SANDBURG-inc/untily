@@ -39,9 +39,9 @@ export function FormFieldGroupItem({
 
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardContent className="pt-4">
         {/* 그룹 헤더 */}
-        <div className="flex items-start gap-3 mb-4">
+        <div className="flex items-start gap-3 mb-3">
           <div className="p-2 bg-blue-50 rounded-lg">
             <FileEdit className="w-5 h-5 text-blue-600" />
           </div>

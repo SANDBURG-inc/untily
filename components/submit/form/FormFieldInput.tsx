@@ -5,6 +5,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { FormFieldData } from '@/lib/types/form-field';
 
@@ -39,7 +46,7 @@ export function FormFieldInput({
   const renderLabel = () => {
     if (fieldType === 'CHECKBOX') return null; // 체크박스는 인라인 레이블
     return (
-      <label className="block text-sm font-medium text-gray-900 mb-2">
+      <label className="block text-sm font-semibold text-gray-900 mb-2">
         {fieldLabel}
         {isRequired && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -181,7 +188,7 @@ export function FormFieldInput({
               <Label
                 htmlFor={`field-${field.id}`}
                 className={cn(
-                  'text-sm text-gray-700 cursor-pointer leading-relaxed',
+                  'text-sm text-gray-500 cursor-pointer leading-relaxed',
                   error && 'text-destructive'
                 )}
               >
@@ -212,13 +219,49 @@ export function FormFieldInput({
                 />
                 <Label
                   htmlFor={`field-${field.id}-${index}`}
-                  className="text-sm text-gray-700 cursor-pointer"
+                  className="text-sm text-gray-500 cursor-pointer"
                 >
                   {option}
                 </Label>
               </div>
             ))}
           </RadioGroup>
+          {renderError()}
+        </div>
+      );
+
+    case 'DROPDOWN':
+      return (
+        <div>
+          {renderLabel()}
+          <Select value={value} onValueChange={onChange}>
+            <SelectTrigger className={error ? 'border-destructive' : ''}>
+              <SelectValue placeholder={placeholder || '선택하세요'} />
+            </SelectTrigger>
+            <SelectContent>
+              {(options || [])
+                .filter((option) => option !== '')
+                .map((option, index) => (
+                  <SelectItem key={index} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          {renderError()}
+        </div>
+      );
+
+    case 'TIME':
+      return (
+        <div>
+          {renderLabel()}
+          <Input
+            type="time"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className={error ? 'border-destructive' : ''}
+          />
           {renderError()}
         </div>
       );

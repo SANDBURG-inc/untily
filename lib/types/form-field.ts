@@ -90,7 +90,7 @@ export const QUESTION_TYPE_INFO: Record<QuestionType, QuestionTypeInfo> = {
 export const SHORT_TEXT_SUBTYPE_INFO: Record<ShortTextSubType, { label: string; placeholder: string }> = {
   TEXT: {
     label: '텍스트',
-    placeholder: '텍스트를 입력하세요',
+    placeholder: '내 답변',
   },
   EMAIL: {
     label: '이메일',
@@ -134,7 +134,7 @@ export const FORM_FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
 
 // 폼 필드 타입별 기본 플레이스홀더
 export const FORM_FIELD_TYPE_PLACEHOLDERS: Record<FormFieldType, string> = {
-  TEXT: '텍스트를 입력하세요',
+  TEXT: '내 답변',
   TEXTAREA: '내용을 입력하세요',
   EMAIL: 'example@email.com',
   TEL: '010-1234-5678',
