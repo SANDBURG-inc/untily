@@ -118,6 +118,8 @@ interface UploadFileParams {
   documentBoxId: string;
   submitterId: string;
   requiredDocumentId: string;
+  /** 원본 파일명에서 추출한 한글 힌트 (클라이언트에서 중복 처리 포함) */
+  originalNameHint?: string;
   onProgress?: (percent: number) => void;
   signal?: AbortSignal;
 }
@@ -137,7 +139,7 @@ interface UploadResult {
  * 취소 시 이미 생성된 DB 레코드는 호출자가 deleteFile로 정리해야 함
  */
 export async function uploadFile(params: UploadFileParams): Promise<UploadResult> {
-  const { file, documentBoxId, submitterId, requiredDocumentId, onProgress, signal } = params;
+  const { file, documentBoxId, submitterId, requiredDocumentId, originalNameHint, onProgress, signal } = params;
 
   // 이미 취소된 경우
   if (signal?.aborted) {
@@ -155,6 +157,7 @@ export async function uploadFile(params: UploadFileParams): Promise<UploadResult
       filename: file.name,
       contentType: file.type || 'application/octet-stream',
       size: file.size,
+      originalNameHint,
     }),
     signal,
   });

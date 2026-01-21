@@ -28,31 +28,51 @@ export function getDateString(): string {
 }
 
 /**
+ * 파일명에서 한글만 추출 (최대 maxLength자)
+ * @param filename 원본 파일명
+ * @param maxLength 최대 글자수 (기본: 6)
+ * @returns 추출된 한글 (없으면 빈 문자열)
+ *
+ * @example
+ * extractKorean('근로계약서_v2_최종.pdf') // '근로계약서최종'
+ * extractKorean('contract_2024.pdf')      // ''
+ */
+export function extractKorean(filename: string, maxLength: number = 6): string {
+  // 확장자 제거
+  const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
+  // 한글만 추출
+  const koreanOnly = nameWithoutExt.replace(/[^가-힣]/g, '');
+  // 최대 길이 제한
+  return koreanOnly.slice(0, maxLength);
+}
+
+/**
  * 제출 파일명 생성 파라미터
  */
 export interface SubmittedFilenameParams {
   requiredDocumentTitle: string;
   submitterName: string;
   originalFilename: string;
-  /** 복수 파일 업로드 시 순번 (1부터 시작) - 현재 미사용 (타임스탬프로 대체) */
-  index?: number;
+  /**
+   * 원본 파일명에서 추출한 한글 힌트 (클라이언트에서 중복 처리 후 전달)
+   * 예: "계약서", "계약서_2"
+   * 전달되지 않으면 원본 파일명에서 한글 추출
+   */
+  originalNameHint?: string;
 }
 
 /**
  * 제출 파일명 생성
- * 형식: {서류명}_{날짜}_{제출자이름}_{타임스탬프}.{확장자}
- * 예시: 주민등록등본_20251219_홍길동_1737123456789.pdf
+ * 형식: {서류명}_{날짜}_{제출자이름}_{원본힌트}.{확장자}
+ * 예시: 주민등록등본_20251219_홍길동_근로계약서.pdf
  *
- * 타임스탬프를 사용하는 이유:
- * - 복수 파일 업로드 시 병렬 API 호출로 인한 Race Condition 방지
- * - 항상 고유한 파일명 보장
+ * originalNameHint를 클라이언트에서 전달받아 Race Condition 없이 고유한 파일명 생성
  */
 export function generateSubmittedFilename(params: SubmittedFilenameParams): string {
-  const { requiredDocumentTitle, submitterName, originalFilename } = params;
+  const { requiredDocumentTitle, submitterName, originalFilename, originalNameHint } = params;
 
   const ext = getExtension(originalFilename);
   const date = getDateString();
-  const timestamp = Date.now();
 
   // 서류명과 제출자 이름 정규화 (특수문자 제거)
   const sanitizedTitle = requiredDocumentTitle
@@ -62,7 +82,13 @@ export function generateSubmittedFilename(params: SubmittedFilenameParams): stri
     .normalize('NFC')
     .replace(/[^a-zA-Z0-9가-힣]/g, '');
 
-  return `${sanitizedTitle}_${date}_${sanitizedName}_${timestamp}.${ext}`;
+  // 원본 힌트가 있으면 사용, 없으면 원본 파일명에서 한글 추출
+  const hint = originalNameHint || extractKorean(originalFilename);
+
+  // 힌트가 없으면 타임스탬프 사용 (fallback)
+  const suffix = hint || String(Date.now());
+
+  return `${sanitizedTitle}_${date}_${sanitizedName}_${suffix}.${ext}`;
 }
 
 /**

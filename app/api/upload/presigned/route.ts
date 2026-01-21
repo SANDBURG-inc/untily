@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     // 2. 요청 바디 파싱
     const body = await request.json();
-    const { documentBoxId, submitterId, requiredDocumentId, filename, contentType, size } = body;
+    const { documentBoxId, submitterId, requiredDocumentId, filename, contentType, size, originalNameHint } = body;
 
     if (!documentBoxId || !submitterId || !requiredDocumentId || !filename) {
       return NextResponse.json({ error: '필수 정보가 누락되었습니다.' }, { status: 400 });
@@ -91,22 +91,14 @@ export async function POST(request: NextRequest) {
       filename,
     });
 
-    // 11. 해당 서류에 대한 기존 제출 파일 개수 조회 (복수 파일 순번용)
-    const existingCount = await prisma.submittedDocument.count({
-      where: {
-        submitterId,
-        requiredDocumentId,
-      },
-    });
-
-    // 12. 저장용 파일명 생성 (사용자에게 보여지는 이름)
-    // 형식: {서류명}_{날짜}_{제출자이름}.{확장자} (단일 파일)
-    // 형식: {서류명}_{날짜}_{제출자이름}_{순번}.{확장자} (복수 파일, 2번째부터)
+    // 11. 저장용 파일명 생성 (사용자에게 보여지는 이름)
+    // 형식: {서류명}_{날짜}_{제출자이름}_{원본힌트}.{확장자}
+    // originalNameHint는 클라이언트에서 중복 처리된 한글 추출값 (예: "계약서", "계약서_2")
     const displayFilename = generateSubmittedFilename({
       requiredDocumentTitle: requiredDoc.documentTitle,
       submitterName: submitter.name,
       originalFilename: filename,
-      index: existingCount + 1,
+      originalNameHint,
     });
 
     // 13. Content-Type 결정
