@@ -5,10 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2025-01-20
+## [0.2.0] - 2025-01-21
 
 ### Added
 
+- Google Forms 스타일 질문 카드 UI
+  - 직관적인 질문 카드 인터페이스로 전면 리팩토링
+  - TIME, DROPDOWN 필드 타입 추가
+  - '기타' 옵션 지원 (hasOtherOption)
+  - 질문 옵션 드래그 정렬 기능
+- 제출자 상태 관리 시스템
+  - REJECTED 상태 지원
+  - 관리자 확인 체크박스
+  - 반려 후 재제출 시 ResubmissionLog 자동 기록
+  - 제출자 상세에서 재제출 이력 표시
+- 스프레드시트 Import 기능
+  - Excel, CSV, Numbers 파일로 제출자 일괄 등록
+- 드래그 순서 변경 기능
+  - 서류 항목 드래그 정렬
+  - 질문 드래그 정렬
+  - 선택지 드래그 정렬
+- 문서함 등록 폼 UX 개선
+  - Sticky Header 및 Fixed Footer
+  - 섹션 접기/펼치기 기능 (Collapsible)
+  - 섹션 헤더 툴팁 기능
+- TimePicker 하이브리드 컴포넌트 (키보드 + 드롭다운)
+- 제출화면 미리보기 플로우 개선 (Landing → Upload 전환)
 - 양식 파일 다운로드 기능
   - 관리자: 필수 서류별 양식 파일 업로드 (복수 파일 지원)
   - 사용자: 양식 다운로드 버튼으로 즉시 다운로드
@@ -56,6 +78,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- 폼 필드 구조 개선
+  - 폼 필드 그룹 제거, FormField가 DocumentBox에 직접 연결
+  - 개별 질문 카드 UI로 전면 전환
+- 제출 현황 로직 개선
+  - 제출자 목록에서 제출 경험자만 표시
+  - 제출완료 기준 변경 (SUBMITTED 상태만 카운트)
+- UI 텍스트 개선
+  - '기본 정보 입력' → '기본정보'
+  - '정보 입력 항목' → '사용자 입력 폼'
+  - '받을 파일이 여러 개예요' → '복수 업로드 허용'
 - 베타 기간 무료 이용 문구로 변경 ('14일 무료' → '베타 기간 무료')
 - 문서함 등록/수정 폼 Card 통합 (4개 → 1개, 섹션 구분선)
 - 파일 업로드 정책 변경 (화이트리스트 → 블랙리스트, 실행 파일만 차단)
@@ -64,6 +96,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 체크박스 label 및 기타 옵션 미표시 버그 수정
+- 제출 통계 계산 수정 (PENDING 제외)
+- QuestionCard ring 스타일 잘림 수정
+- 툴팁 overflow 문제 해결
 - 이메일 에디터 아랫말 스타일 및 글자 크기 미리보기 문제 해결
 - 리마인더 스케줄 Dialog UI 개선 (Select 크기, 간격, 높이 조정)
 - Select 드롭다운 스크롤바 표시 문제 수정
