@@ -95,7 +95,7 @@ export function SectionHeader({
           <Info className="w-4 h-4" />
         </button>
       </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-[240px]">
+      <TooltipContent side="top" className="whitespace-pre-line">
         {tooltip}
       </TooltipContent>
     </Tooltip>

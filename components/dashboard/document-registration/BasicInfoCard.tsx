@@ -97,7 +97,7 @@ export function BasicInfoCard({
           </Button>
         )}
         <p className="mt-2 text-xs text-gray-500">
-          제출자에게 보여지는 로고입니다. 미등록 시 기본 로고가 적용됩니다.
+          제출 페이지에 표시됩니다. 미등록 시 기본 로고가 적용됩니다.
         </p>
       </div>
     </div>

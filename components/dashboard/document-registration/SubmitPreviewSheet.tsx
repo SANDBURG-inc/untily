@@ -1,12 +1,8 @@
 'use client';
 
-import { Eye } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
 } from '@/components/ui/sheet';
 import BaseUploadForm from '@/components/submit/upload/BaseUploadForm';
 import type { FormFieldGroupData } from '@/lib/types/form-field';
@@ -74,25 +70,9 @@ export function SubmitPreviewSheet({
         side="right"
         className="w-[95vw] sm:w-[85vw] lg:w-[70vw] max-w-[1000px] overflow-y-auto p-0"
       >
-        <SheetHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Eye className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <SheetTitle>제출화면 미리보기</SheetTitle>
-              <SheetDescription>
-                제출자에게 보여지는 화면입니다. 업로드 및 저장은 동작하지 않습니다.
-              </SheetDescription>
-            </div>
-          </div>
-        </SheetHeader>
-
-        {/* 미리보기 배너 */}
-        <div className="bg-amber-50 border-b border-amber-200 px-6 py-3">
-          <p className="text-sm text-amber-800 text-center">
-            🔍 미리보기 모드 - 실제 업로드 및 저장은 동작하지 않습니다
-          </p>
+        {/* 간결한 미리보기 모드 표시 */}
+        <div className="sticky top-0 z-10 bg-white border-b px-6 py-4">
+          <p className="text-xl font-medium text-gray-700">미리보기 모드</p>
         </div>
 
         {/* BaseUploadForm을 미리보기 모드로 렌더링 */}
