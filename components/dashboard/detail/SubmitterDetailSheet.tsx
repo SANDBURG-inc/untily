@@ -229,7 +229,7 @@ export function SubmitterDetailSheet({
 
                             {/* 폼 응답 - 파일 목록 위에 표시 */}
                             {formResponses?.hasResponses && (
-                                <FormResponseList groups={formResponses.groups} />
+                                <FormResponseList fields={formResponses.fields} groups={formResponses.groups} />
                             )}
 
                             {/* 제출 파일 목록 */}

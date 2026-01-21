@@ -4,11 +4,20 @@ import { ClipboardList } from 'lucide-react';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import type {
   FormFieldType,
+  FormResponseViewData,
   FormResponseGroupViewData,
+} from '@/lib/types/form-field';
+import {
+  isOtherOptionSelected,
+  extractOtherValue,
+  parseMultiChoiceValue,
 } from '@/lib/types/form-field';
 
 interface FormResponseListProps {
-  groups: FormResponseGroupViewData[];
+  /** 새 구조: 필드 배열 직접 전달 */
+  fields?: FormResponseViewData[];
+  /** @deprecated 기존 구조: 그룹 배열 (하위 호환성) */
+  groups?: FormResponseGroupViewData[];
 }
 
 /**
@@ -16,7 +25,8 @@ interface FormResponseListProps {
  */
 function formatFieldValue(
   fieldType: FormFieldType,
-  value: string | null
+  value: string | null,
+  options?: string[]
 ): string {
   if (value === null || value === '') {
     return '-';
@@ -24,10 +34,30 @@ function formatFieldValue(
 
   switch (fieldType) {
     case 'CHECKBOX':
-      return value === 'true' ? '동의함' : '동의하지 않음';
+      // 단순 동의 체크박스
+      if (value === 'true') return '동의함';
+      if (value === 'false') return '동의하지 않음';
+      // 복수 선택 체크박스
+      const { selectedOptions, otherValue } = parseMultiChoiceValue(value);
+      const parts = [...selectedOptions];
+      if (otherValue) parts.push(`기타: ${otherValue}`);
+      return parts.length > 0 ? parts.join(', ') : '-';
+
+    case 'RADIO':
+    case 'DROPDOWN':
+      // '기타' 옵션 처리
+      if (isOtherOptionSelected(value)) {
+        return `기타: ${extractOtherValue(value)}`;
+      }
+      return value;
+
     case 'DATE':
       // YYYY-MM-DD → YYYY.MM.DD 포맷
       return value.replace(/-/g, '.');
+
+    case 'TIME':
+      return value;
+
     default:
       return value;
   }
@@ -35,11 +65,15 @@ function formatFieldValue(
 
 /**
  * 폼 응답 목록 컴포넌트
- * 제출자가 입력한 폼 필드 응답을 그룹별로 표시
+ * 제출자가 입력한 폼 필드 응답을 표시
  */
-export function FormResponseList({ groups }: FormResponseListProps) {
+export function FormResponseList({ fields, groups }: FormResponseListProps) {
+  // 새 구조 우선, 없으면 기존 그룹에서 평탄화
+  const allFields: FormResponseViewData[] = fields ||
+    (groups ? groups.flatMap(g => g.fields) : []);
+
   // 폼 필드가 없으면 렌더링하지 않음
-  if (groups.length === 0) {
+  if (allFields.length === 0) {
     return null;
   }
 
@@ -52,44 +86,22 @@ export function FormResponseList({ groups }: FormResponseListProps) {
         className="mb-4"
       />
 
-      <div className="space-y-4">
-        {groups.map((group) => (
+      <div className="p-4 bg-gray-50 rounded-lg space-y-2">
+        {allFields.map((field) => (
           <div
-            key={group.formFieldGroupId}
-            className="p-4 bg-gray-50 rounded-lg space-y-3"
+            key={field.formFieldId}
+            className="flex items-start gap-2 text-sm"
           >
-            {/* 그룹 헤더 */}
-            <div className="border-b border-gray-200 pb-2">
-              <h4 className="text-sm font-semibold text-gray-900">
-                {group.groupTitle}
-              </h4>
-              {group.groupDescription && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {group.groupDescription}
-                </p>
-              )}
-            </div>
-
-            {/* 필드 목록 */}
-            <div className="space-y-2">
-              {group.fields.map((field) => (
-                <div
-                  key={field.formFieldId}
-                  className="flex items-start gap-2 text-sm"
-                >
-                  <span className="text-gray-500 flex-shrink-0 min-w-[100px]">
-                    {field.fieldLabel}:
-                  </span>
-                  <span className="text-gray-900">
-                    {field.fieldType === 'CHECKBOX' &&
-                      field.value === 'true' && (
-                        <span className="text-green-600 mr-1">✓</span>
-                      )}
-                    {formatFieldValue(field.fieldType, field.value)}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <span className="text-gray-500 flex-shrink-0 min-w-[100px]">
+              {field.fieldLabel}:
+            </span>
+            <span className="text-gray-900">
+              {field.fieldType === 'CHECKBOX' &&
+                field.value === 'true' && (
+                  <span className="text-green-600 mr-1">✓</span>
+                )}
+              {formatFieldValue(field.fieldType, field.value, field.options)}
+            </span>
           </div>
         ))}
       </div>

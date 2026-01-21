@@ -10,7 +10,7 @@ import SubmitterInfoCard from '@/app/submit/[documentBoxId]/checkout/_components
 import EditableFileListCard from '@/app/submit/[documentBoxId]/checkout/_components/EditableFileListCard';
 import FormResponseCard from '@/app/submit/[documentBoxId]/checkout/_components/FormResponseCard';
 import type { UploadedDocument } from '@/components/submit/upload/DocumentUploadItem';
-import type { FormFieldGroupData, FormFieldResponseData } from '@/lib/types/form-field';
+import type { FormFieldGroupData, FormFieldData, FormFieldResponseData } from '@/lib/types/form-field';
 import { getIncompleteFormFields } from '@/lib/types/form-field';
 
 interface RequiredDocument {
@@ -82,8 +82,9 @@ export default function CheckoutView({
   });
   const allDocsUploaded = missingRequiredDocs.length === 0;
 
-  // 필수 폼 필드 검증
-  const incompleteFormFields = getIncompleteFormFields(formFieldGroups, formResponses);
+  // 필수 폼 필드 검증 - 그룹에서 필드 평탄화
+  const allFields: FormFieldData[] = formFieldGroups.flatMap(g => g.fields);
+  const incompleteFormFields = getIncompleteFormFields(allFields, formResponses);
   const allFormsCompleted = incompleteFormFields.length === 0;
 
   // 최종 제출 가능 여부
@@ -118,7 +119,7 @@ export default function CheckoutView({
     // 폼 필드 검증
     if (!allFormsCompleted) {
       const firstIncomplete = incompleteFormFields[0];
-      setError(`필수 입력 항목을 모두 작성해주세요: ${firstIncomplete.groupTitle} - ${firstIncomplete.fieldLabel}`);
+      setError(`필수 입력 항목을 모두 작성해주세요: ${firstIncomplete.fieldLabel}`);
       return;
     }
 

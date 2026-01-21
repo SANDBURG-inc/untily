@@ -74,15 +74,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 8. 필수 폼 필드 응답 확인
-    const formFieldGroups = await prisma.formFieldGroup.findMany({
+    const requiredFields = await prisma.formField.findMany({
       where: {
         documentBoxId: submitter.documentBox.documentBoxId,
         isRequired: true,
-      },
-      include: {
-        formFields: {
-          where: { isRequired: true },
-        },
       },
     });
 
@@ -92,25 +87,30 @@ export async function POST(request: NextRequest) {
 
     const responseMap = new Map(formResponses.map((r) => [r.formFieldId, r.value]));
 
-    for (const group of formFieldGroups) {
-      for (const field of group.formFields) {
-        const response = responseMap.get(field.formFieldId);
+    for (const field of requiredFields) {
+      const response = responseMap.get(field.formFieldId);
 
-        // 응답이 없거나 빈 값인 경우
-        if (!response || response.trim() === '') {
-          return NextResponse.json(
-            { error: `필수 항목 "${field.fieldLabel}"을(를) 입력해주세요.` },
-            { status: 400 }
-          );
-        }
+      // 응답이 없거나 빈 값인 경우
+      if (!response || response.trim() === '') {
+        return NextResponse.json(
+          { error: `필수 항목 "${field.fieldLabel}"을(를) 입력해주세요.` },
+          { status: 400 }
+        );
+      }
 
-        // CHECKBOX 필수 동의 검증
-        if (field.fieldType === 'CHECKBOX' && response !== 'true') {
-          return NextResponse.json(
-            { error: `"${field.fieldLabel}" 동의가 필요합니다.` },
-            { status: 400 }
-          );
+      // CHECKBOX 타입에서 필수 복수선택 검증 (기타 포함 시 기타값도 체크)
+      if (field.fieldType === 'CHECKBOX') {
+        // 단순 동의 체크박스 (options이 없거나 빈 배열인 경우)
+        const options = field.options as string[] | null;
+        if (!options || options.length === 0) {
+          if (response !== 'true') {
+            return NextResponse.json(
+              { error: `"${field.fieldLabel}" 동의가 필요합니다.` },
+              { status: 400 }
+            );
+          }
         }
+        // 복수선택 체크박스는 값이 있으면 통과 (위에서 빈 값 체크 완료)
       }
     }
 

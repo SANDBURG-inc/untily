@@ -92,13 +92,8 @@ export async function validatePublicSubmitAuth(
     where: { documentBoxId },
     include: {
       requiredDocuments: { orderBy: { order: 'asc' } },
-      formFieldGroups: {
+      formFields: {
         orderBy: { order: 'asc' },
-        include: {
-          formFields: {
-            orderBy: { order: 'asc' },
-          },
-        },
       },
     },
   });
@@ -178,8 +173,10 @@ export async function validatePublicSubmitAuth(
     documentBox: {
       ...documentBox,
       requiredDocuments: documentBox.requiredDocuments,
+      formFields: documentBox.formFields,
     },
     submittedDocuments: submitter.submittedDocuments,
+    formFieldResponses: submitter.formFieldResponses,
   };
 
   return { status: 'success', user: user as NeonAuthUser, submitter: submitterWithDocBox, logoUrl };

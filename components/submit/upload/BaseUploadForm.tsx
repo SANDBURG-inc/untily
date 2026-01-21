@@ -13,6 +13,7 @@ import { AlertBanner } from '@/components/shared/AlertBanner';
 import { SubmitActionFooter } from '@/app/submit/_components';
 import {
   type FormFieldGroupData,
+  type FormFieldData,
   type FormFieldResponseData,
   validateFormFieldValue,
   getIncompleteFormFields,
@@ -214,9 +215,10 @@ export default function BaseUploadForm({
       return;
     }
 
-    // 2. 필수 폼 필드 검증
+    // 2. 필수 폼 필드 검증 - 그룹에서 필드 평탄화
+    const allFields: FormFieldData[] = formFieldGroups.flatMap(g => g.fields);
     const incompleteFields = getIncompleteFormFields(
-      formFieldGroups,
+      allFields,
       Array.from(formResponses.entries()).map(([formFieldId, value]) => ({ formFieldId, value }))
     );
 

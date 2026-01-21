@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse, TemplateFile } from '@/lib/types/document';
-import type { FormFieldGroupData } from '@/lib/types/form-field';
+import type { FormFieldGroupData, FormFieldData } from '@/lib/types/form-field';
 import { createTemplateZip } from '@/lib/s3/zip';
 
 export async function POST(request: Request) {
@@ -24,7 +24,8 @@ export async function POST(request: Request) {
             submittersEnabled,
             submitters,
             requirements,
-            formFieldGroups,
+            formFieldGroups, // 기존 호환성
+            formFields,       // 새 구조 (우선)
             formFieldsAboveDocuments,
             deadline,
             reminderEnabled,
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
             kakaoReminder,
         } = body as CreateDocumentBoxRequest & {
             formFieldGroups?: FormFieldGroupData[];
+            formFields?: FormFieldData[];
             formFieldsAboveDocuments?: boolean;
         };
 
@@ -106,34 +108,25 @@ export async function POST(request: Request) {
                 });
             }
 
-            // Create form field groups (정보 입력 항목)
-            if (formFieldGroups && formFieldGroups.length > 0) {
-                for (const group of formFieldGroups) {
-                    const createdGroup = await tx.formFieldGroup.create({
-                        data: {
-                            groupTitle: group.groupTitle,
-                            groupDescription: group.groupDescription || null,
-                            isRequired: group.isRequired,
-                            order: group.order,
-                            documentBoxId: box.documentBoxId,
-                        },
-                    });
+            // Create form fields (정보 입력 항목 - 그룹 없이 직접 연결)
+            // formFields 우선, 없으면 formFieldGroups에서 평탄화
+            const fieldsToCreate: FormFieldData[] = formFields ||
+                (formFieldGroups ? formFieldGroups.flatMap(g => g.fields) : []);
 
-                    // Create form fields for this group
-                    if (group.fields && group.fields.length > 0) {
-                        await tx.formField.createMany({
-                            data: group.fields.map((field) => ({
-                                fieldLabel: field.fieldLabel,
-                                fieldType: field.fieldType,
-                                placeholder: field.placeholder || null,
-                                isRequired: field.isRequired,
-                                order: field.order,
-                                options: JSON.parse(JSON.stringify(field.options || [])),
-                                formFieldGroupId: createdGroup.formFieldGroupId,
-                            })),
-                        });
-                    }
-                }
+            if (fieldsToCreate.length > 0) {
+                await tx.formField.createMany({
+                    data: fieldsToCreate.map((field, index) => ({
+                        fieldLabel: field.fieldLabel,
+                        fieldType: field.fieldType,
+                        placeholder: field.placeholder || null,
+                        description: field.description || null,
+                        isRequired: field.isRequired,
+                        order: field.order ?? index,
+                        options: JSON.parse(JSON.stringify(field.options || [])),
+                        hasOtherOption: field.hasOtherOption ?? false,
+                        documentBoxId: box.documentBoxId,
+                    })),
+                });
             }
 
             // Create reminder types if enabled

@@ -73,9 +73,6 @@ export async function POST(request: NextRequest) {
     // 8. 폼 필드 존재 확인
     const formField = await prisma.formField.findUnique({
       where: { formFieldId },
-      include: {
-        formFieldGroup: true,
-      },
     });
 
     if (!formField) {
@@ -83,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 9. 폼 필드가 해당 문서함에 속하는지 확인
-    if (formField.formFieldGroup.documentBoxId !== documentBoxId) {
+    if (formField.documentBoxId !== documentBoxId) {
       return NextResponse.json({ error: '잘못된 폼 필드입니다.' }, { status: 400 });
     }
 

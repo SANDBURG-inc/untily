@@ -107,7 +107,10 @@ export interface UseFormFieldGroupsOptions {
 }
 
 export interface UseFormFieldGroupsReturn {
-  // 상태
+  // 상태 - 새로운 questions 배열 (UI에서 사용)
+  questions: import('@/lib/types/form-field').FormFieldData[];
+  setQuestions: (questions: import('@/lib/types/form-field').FormFieldData[]) => void;
+  // 상태 - 기존 formFieldGroups 형식 (API 호환성)
   formFieldGroups: FormFieldGroupData[];
   formFieldsAboveDocuments: boolean;
   // 액션
@@ -200,7 +203,7 @@ export interface UseDocumentBoxFormReturn
     Omit<UseTemplateFilesReturn, 'handleTemplateFileSelect' | 'handleTemplateFileRemove' | 'uploadTemplateFiles' | 'clearTemplateFiles'>,
     Omit<UseSubmittersReturn, 'handleSubmittersEnabledChange'>,
     Omit<UseRequirementsReturn, 'addTemplateToRequirement' | 'removeTemplateFromRequirement'>,
-    UseFormFieldGroupsReturn,
+    Omit<UseFormFieldGroupsReturn, never>,
     UseSubmissionSettingsReturn,
     Omit<UseFormSubmissionReturn, 'submitForm'> {
   // 오버라이드된 핸들러

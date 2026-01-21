@@ -17,7 +17,7 @@ import type { TemplateFile } from '@/lib/types/document';
 // 분리된 섹션 컴포넌트들
 import { BasicInfoCard } from './document-registration/BasicInfoCard';
 import { SubmitterRegistrationCard } from './document-registration/SubmitterRegistrationCard';
-import { FormFieldGroupsCard } from './document-registration/FormFieldGroupsCard';
+import { QuestionsCard } from './document-registration/QuestionsCard';
 import { DocumentRequirementsCard } from './document-registration/DocumentRequirementsCard';
 import { SubmissionSettingsCard } from './document-registration/SubmissionSettingsCard';
 import { SubmitPreviewSheet, type PreviewView } from './document-registration/SubmitPreviewSheet';
@@ -222,9 +222,9 @@ export default function DocumentRegistrationForm({
               onToggle={() => toggleSection('formFields')}
               tooltip="제출자가 직접 입력하거나 선택할 수 있는 폼을 생성합니다."
             >
-              <FormFieldGroupsCard
-                formFieldGroups={form.formFieldGroups}
-                onFormFieldGroupsChange={form.setFormFieldGroups}
+              <QuestionsCard
+                questions={form.questions}
+                onQuestionsChange={form.setQuestions}
                 formFieldsAboveDocuments={form.formFieldsAboveDocuments}
                 onFormFieldsAboveDocumentsChange={form.setFormFieldsAboveDocuments}
               />

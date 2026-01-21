@@ -232,7 +232,10 @@ export function useDocumentBoxForm(
     requirements: requirementsHook.requirements,
     setRequirements: requirementsHook.setRequirements,
 
-    // 폼 필드 그룹
+    // 폼 필드 (질문)
+    questions: formFieldGroupsHook.questions,
+    setQuestions: formFieldGroupsHook.setQuestions,
+    // 기존 formFieldGroups (API 호환성)
     formFieldGroups: formFieldGroupsHook.formFieldGroups,
     formFieldsAboveDocuments: formFieldGroupsHook.formFieldsAboveDocuments,
     setFormFieldGroups: formFieldGroupsHook.setFormFieldGroups,

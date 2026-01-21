@@ -180,13 +180,8 @@ export async function getDocumentBoxForEdit(documentBoxId: string, userId: strin
                 where: { type: 'DOCUMENT_BOX' },
                 take: 1,
             },
-            formFieldGroups: {
+            formFields: {
                 orderBy: { order: 'asc' },
-                include: {
-                    formFields: {
-                        orderBy: { order: 'asc' },
-                    },
-                },
             },
         },
     });

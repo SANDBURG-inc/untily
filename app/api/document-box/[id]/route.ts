@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse, TemplateFile } from '@/lib/types/document';
-import type { FormFieldGroupData } from '@/lib/types/form-field';
+import type { FormFieldGroupData, FormFieldData } from '@/lib/types/form-field';
 import { deleteMultipleFromS3 } from '@/lib/s3/delete';
 import { createTemplateZip, deleteTemplateZip, hasTemplatesChanged } from '@/lib/s3/zip';
 import { S3_BUCKET, S3_REGION } from '@/lib/s3/client';
@@ -63,6 +63,7 @@ export async function PUT(
 
         const body: CreateDocumentBoxRequest & {
             formFieldGroups?: FormFieldGroupData[];
+            formFields?: FormFieldData[];
             formFieldsAboveDocuments?: boolean;
             force?: boolean;
             changeStatusToOpen?: boolean;
@@ -74,7 +75,8 @@ export async function PUT(
             submittersEnabled,
             submitters,
             requirements,
-            formFieldGroups,
+            formFieldGroups, // 기존 호환성
+            formFields,      // 새 구조 (우선)
             formFieldsAboveDocuments,
             deadline,
             reminderEnabled,
@@ -433,40 +435,31 @@ export async function PUT(
                 }
             }
 
-            // Form field groups 처리: 기존 그룹 삭제 후 새로 생성
+            // Form fields 처리: 기존 필드 삭제 후 새로 생성
             // FormFieldResponse는 FormField에 cascade 연결되어 자동 삭제됨
-            await tx.formFieldGroup.deleteMany({
+            await tx.formField.deleteMany({
                 where: { documentBoxId: id },
             });
 
-            // 새 폼 필드 그룹 생성
-            if (formFieldGroups && formFieldGroups.length > 0) {
-                for (const group of formFieldGroups) {
-                    const createdGroup = await tx.formFieldGroup.create({
-                        data: {
-                            groupTitle: group.groupTitle,
-                            groupDescription: group.groupDescription || null,
-                            isRequired: group.isRequired,
-                            order: group.order,
-                            documentBoxId: box.documentBoxId,
-                        },
-                    });
+            // 새 폼 필드 생성 (그룹 없이 직접 연결)
+            // formFields 우선, 없으면 formFieldGroups에서 평탄화
+            const fieldsToCreate: FormFieldData[] = formFields ||
+                (formFieldGroups ? formFieldGroups.flatMap(g => g.fields) : []);
 
-                    // 그룹 내 폼 필드 생성
-                    if (group.fields && group.fields.length > 0) {
-                        await tx.formField.createMany({
-                            data: group.fields.map((field) => ({
-                                fieldLabel: field.fieldLabel,
-                                fieldType: field.fieldType,
-                                placeholder: field.placeholder || null,
-                                isRequired: field.isRequired,
-                                order: field.order,
-                                options: JSON.parse(JSON.stringify(field.options || [])),
-                                formFieldGroupId: createdGroup.formFieldGroupId,
-                            })),
-                        });
-                    }
-                }
+            if (fieldsToCreate.length > 0) {
+                await tx.formField.createMany({
+                    data: fieldsToCreate.map((field, index) => ({
+                        fieldLabel: field.fieldLabel,
+                        fieldType: field.fieldType,
+                        placeholder: field.placeholder || null,
+                        description: field.description || null,
+                        isRequired: field.isRequired,
+                        order: field.order ?? index,
+                        options: JSON.parse(JSON.stringify(field.options || [])),
+                        hasOtherOption: field.hasOtherOption ?? false,
+                        documentBoxId: box.documentBoxId,
+                    })),
+                });
             }
 
             return box;
