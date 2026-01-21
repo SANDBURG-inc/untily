@@ -1,6 +1,7 @@
 'use client';
 
-import { useOptimistic, useState, useTransition } from 'react';
+import { useOptimistic, useState, useTransition, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import {
     DropdownMenu,
@@ -40,6 +41,8 @@ export function SubmitterStatusDropdown({
     const [open, setOpen] = useState(false);
     const [showAlert, setShowAlert] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const [alertPosition, setAlertPosition] = useState({ top: 0, left: 0 });
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     // 낙관적 UI
     const [optimisticStatus, setOptimisticStatus] = useOptimistic(
@@ -53,6 +56,17 @@ export function SubmitterStatusDropdown({
     const getBadgeVariant = (status: SubmittedSubmitterStatus) => {
         return status === 'SUBMITTED' ? 'success' as const : 'destructive' as const;
     };
+
+    // Alert 위치 업데이트
+    useEffect(() => {
+        if (showAlert && triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setAlertPosition({
+                top: rect.bottom + window.scrollY + 8,
+                left: rect.left + window.scrollX,
+            });
+        }
+    }, [showAlert]);
 
     const handleStatusChange = (newStatus: SubmittedSubmitterStatus) => {
         setOpen(false);
@@ -80,10 +94,11 @@ export function SubmitterStatusDropdown({
     };
 
     return (
-        <div className="relative">
+        <>
             <DropdownMenu open={open} onOpenChange={setOpen}>
                 <DropdownMenuTrigger asChild disabled={isPending}>
                     <button
+                        ref={triggerRef}
                         className="inline-flex items-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
                         disabled={isPending}
                     >
@@ -109,13 +124,17 @@ export function SubmitterStatusDropdown({
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            {showAlert && (
-                <Alert className="absolute top-full left-0 mt-2 w-64 z-50 bg-white shadow-lg border">
-                    <AlertDescription className="text-xs">
+            {showAlert && typeof document !== 'undefined' && createPortal(
+                <Alert
+                    className="fixed w-80 z-50 bg-white shadow-lg border"
+                    style={{ top: alertPosition.top, left: alertPosition.left }}
+                >
+                    <AlertDescription className="text-xs block">
                         알림기능은 준비중입니다. 필요시 <strong>리마인드</strong> 또는 링크 재공유 부탁드립니다.
                     </AlertDescription>
-                </Alert>
+                </Alert>,
+                document.body
             )}
-        </div>
+        </>
     );
 }
