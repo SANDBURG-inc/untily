@@ -1,4 +1,3 @@
-import { Toaster } from 'sonner';
 import { SubmitHeader } from '@/components/submit/SubmitHeader';
 
 interface SubmitLayoutProps {
@@ -10,7 +9,6 @@ export default function SubmitLayout({ children }: SubmitLayoutProps) {
     <div className="min-h-screen bg-white flex flex-col text-base">
       <SubmitHeader />
       {children}
-      <Toaster position="top-center" richColors />
     </div>
   );
 }

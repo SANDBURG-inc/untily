@@ -11,6 +11,61 @@ import UploadProgressIndicator from './UploadProgressIndicator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
+/**
+ * 파일명에서 한글만 추출 (최대 6자)
+ */
+function extractKorean(filename: string, maxLength: number = 6): string {
+  const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
+  const koreanOnly = nameWithoutExt.replace(/[^가-힣]/g, '');
+  return koreanOnly.slice(0, maxLength);
+}
+
+/**
+ * 저장된 filename에서 힌트 부분 추출
+ * 형식: 서류명_날짜_제출자명_힌트.확장자 → 힌트
+ */
+function extractHintFromFilename(filename: string): string {
+  const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
+  const parts = nameWithoutExt.split('_');
+  // 마지막 부분이 힌트 (최소 4파트: 서류명_날짜_제출자_힌트)
+  return parts.length >= 4 ? parts[parts.length - 1] : '';
+}
+
+/**
+ * 파일 목록에 대해 중복 처리된 힌트 목록 생성
+ * @param files 새로 업로드할 파일들
+ * @param existingHints 기존 업로드된 파일들의 힌트 목록
+ * @returns 각 파일에 대응하는 힌트 배열 (중복 시 _2, _3 등 추가)
+ */
+function generateUniqueHints(files: File[], existingHints: string[]): string[] {
+  // 기존 힌트들의 카운트 (순번 제거한 base 힌트 기준)
+  const hintCounts = new Map<string, number>();
+
+  // 기존 힌트에서 base 힌트와 순번 분리하여 카운트
+  existingHints.forEach((hint) => {
+    // "계약서_2" → base: "계약서", index: 2
+    const match = hint.match(/^(.+)_(\d+)$/);
+    const baseHint = match ? match[1] : hint;
+    const index = match ? parseInt(match[2], 10) : 1;
+    const currentMax = hintCounts.get(baseHint) || 0;
+    hintCounts.set(baseHint, Math.max(currentMax, index));
+  });
+
+  // 새 파일들의 힌트 생성
+  const result: string[] = [];
+  files.forEach((file) => {
+    const baseHint = extractKorean(file.name) || 'file';
+    const currentCount = hintCounts.get(baseHint) || 0;
+    const newCount = currentCount + 1;
+    hintCounts.set(baseHint, newCount);
+
+    // 첫 번째는 순번 없이, 두 번째부터 _2, _3...
+    result.push(newCount === 1 ? baseHint : `${baseHint}_${newCount}`);
+  });
+
+  return result;
+}
+
 export interface UploadedDocument {
   submittedDocumentId: string;
   filename: string; // 관리자용 가공 파일명
@@ -116,8 +171,10 @@ export default function DocumentUploadItem({
 
   /**
    * 비동기 업로드 시작
+   * @param file 업로드할 파일
+   * @param originalNameHint 원본 파일명에서 추출한 한글 힌트 (중복 처리 포함)
    */
-  const startUpload = useCallback(async (file: File) => {
+  const startUpload = useCallback(async (file: File, originalNameHint?: string) => {
     const abortController = new AbortController();
     const taskId = crypto.randomUUID();
 
@@ -142,6 +199,7 @@ export default function DocumentUploadItem({
         documentBoxId,
         submitterId,
         requiredDocumentId: requiredDocument.requiredDocumentId,
+        originalNameHint,
         onProgress: (progress) => {
           setUploadTasks((prev) => {
             const newMap = new Map(prev);
@@ -210,16 +268,24 @@ export default function DocumentUploadItem({
    */
   const handleFileSelect = useCallback((file: File) => {
     setIsModalOpen(false);
-    startUpload(file);
-  }, [startUpload]);
+    // 기존 업로드 파일들의 힌트 추출
+    const existingHints = uploads.map((u) => extractHintFromFilename(u.filename));
+    const [hint] = generateUniqueHints([file], existingHints);
+    startUpload(file, hint);
+  }, [startUpload, uploads]);
 
   /**
    * 복수 파일 선택 시 호출
    */
   const handleFilesSelect = useCallback((files: File[]) => {
     setIsModalOpen(false);
-    files.forEach((file) => startUpload(file));
-  }, [startUpload]);
+    // 기존 업로드 파일들의 힌트 추출
+    const existingHints = uploads.map((u) => extractHintFromFilename(u.filename));
+    // 새 파일들의 힌트 생성 (중복 처리 포함)
+    const hints = generateUniqueHints(files, existingHints);
+    // 각 파일에 대응하는 힌트와 함께 업로드 시작
+    files.forEach((file, index) => startUpload(file, hints[index]));
+  }, [startUpload, uploads]);
 
   /**
    * 업로드 작업 취소
@@ -262,9 +328,12 @@ export default function DocumentUploadItem({
         newMap.delete(taskId);
         return newMap;
       });
-      startUpload(task.file);
+      // 힌트 재계산
+      const existingHints = uploads.map((u) => extractHintFromFilename(u.filename));
+      const [hint] = generateUniqueHints([task.file], existingHints);
+      startUpload(task.file, hint);
     }
-  }, [uploadTasks, startUpload]);
+  }, [uploadTasks, startUpload, uploads]);
 
   /**
    * 양식 파일 다운로드 (개별 파일)

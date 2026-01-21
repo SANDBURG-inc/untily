@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import { Toaster } from 'sonner';
 import "./globals.css";
 
 
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           {children}
+          <Toaster position="top-center" richColors />
 
           {/* ChannelTalk */}
           <Script
