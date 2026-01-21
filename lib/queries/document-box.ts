@@ -92,6 +92,7 @@ export interface DocumentBoxDetail {
         sendTime: string;
         channel: 'EMAIL' | 'SMS' | 'PUSH';
         order: number;
+        isEnabled: boolean;
     }[];
     totalRequiredDocuments: number;
 }

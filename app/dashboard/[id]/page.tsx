@@ -129,7 +129,7 @@ export default async function DocumentBoxDetailPage({
                 <ReminderHistory
                     documentBoxId={id}
                     autoReminderEnabled={
-                        documentBox.reminderSchedules.length > 0 ||
+                        documentBox.reminderSchedules.some(s => s.isEnabled) ||
                         documentBox.documentBoxRemindTypes.length > 0
                     }
                     reminderLogs={documentBox.reminderLogs}

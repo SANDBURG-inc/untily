@@ -14,6 +14,7 @@ import { CheckCircle, Info, Check, Bell } from 'lucide-react';
 import {
     saveReminderSchedules,
     disableAutoReminderV2,
+    enableAutoReminderV2,
 } from '@/app/dashboard/[id]/actions';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/Button';
@@ -51,6 +52,7 @@ interface AutoReminderSettingsProps {
         timeValue: number;
         timeUnit: 'DAY' | 'WEEK';
         sendTime: string;
+        isEnabled: boolean;
     }[];
     /** 초기 자동 리마인더 템플릿 ID */
     initialAutoTemplateId?: string | null;
@@ -144,16 +146,30 @@ export function AutoReminderSettings({
         if (isPending) return;
 
         if (isEnabled) {
+            // On → Off: isEnabled를 false로 변경 (스케줄 설정값은 유지)
             setIsPending(true);
             const result = await disableAutoReminderV2(documentBoxId);
             setIsPending(false);
 
             if (result.success) {
                 setIsEnabled(false);
-                setSchedules([{ id: `new-${uniqueId}-0`, ...DEFAULT_REMINDER_SCHEDULE }]);
+                // 스케줄 상태는 리셋하지 않음 (기존 설정값 유지)
             }
         } else {
-            setIsModalOpen(true);
+            // Off → On: 기존 스케줄이 있으면 활성화만, 없으면 모달 열기
+            if (initialSchedules.length > 0) {
+                // 기존 스케줄 활성화
+                setIsPending(true);
+                const result = await enableAutoReminderV2(documentBoxId);
+                setIsPending(false);
+
+                if (result.success) {
+                    setIsEnabled(true);
+                }
+            } else {
+                // 스케줄이 없으면 모달 열어서 새로 설정
+                setIsModalOpen(true);
+            }
         }
     };
 

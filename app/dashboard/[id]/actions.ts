@@ -202,14 +202,14 @@ export async function saveReminderSchedules(
             }
         }
 
-        // 3. 트랜잭션으로 기존 삭제 + 새로 생성
+        // 3. 트랜잭션으로 기존 삭제 + 새로 생성 (isEnabled: true로 활성화)
         await prisma.$transaction(async (tx) => {
             // 기존 스케줄 삭제
             await tx.reminderSchedule.deleteMany({
                 where: { documentBoxId },
             });
 
-            // 새 스케줄 생성 (템플릿 정보 포함)
+            // 새 스케줄 생성 (템플릿 정보 포함, 활성화 상태)
             if (schedules.length > 0) {
                 await tx.reminderSchedule.createMany({
                     data: schedules.map((schedule, index) => ({
@@ -219,6 +219,7 @@ export async function saveReminderSchedules(
                         sendTime: schedule.sendTime,
                         channel: schedule.channel as RemindType,
                         order: index,
+                        isEnabled: true, // 저장 시 활성화
                         // 템플릿 정보
                         templateId: schedule.templateId || null,
                         greetingHtml: schedule.greetingHtml || null,
@@ -237,8 +238,8 @@ export async function saveReminderSchedules(
 }
 
 /**
- * 자동 리마인더 비활성화 (모든 스케줄 삭제)
- * 기존 disableAutoReminder와 함께 새 스케줄도 삭제합니다.
+ * 자동 리마인더 비활성화 (스케줄 설정은 유지하고 isEnabled만 false로 변경)
+ * 기존 DocumentBoxRemindType은 삭제합니다.
  */
 export async function disableAutoReminderV2(documentBoxId: string) {
     try {
@@ -247,9 +248,10 @@ export async function disableAutoReminderV2(documentBoxId: string) {
             await tx.documentBoxRemindType.deleteMany({
                 where: { documentBoxId },
             });
-            // 새 ReminderSchedule 삭제
-            await tx.reminderSchedule.deleteMany({
+            // ReminderSchedule은 삭제하지 않고 isEnabled만 false로 변경
+            await tx.reminderSchedule.updateMany({
                 where: { documentBoxId },
+                data: { isEnabled: false },
             });
         });
 
@@ -258,6 +260,24 @@ export async function disableAutoReminderV2(documentBoxId: string) {
     } catch (error) {
         console.error('Failed to disable auto reminder:', error);
         return { success: false, error: '자동 리마인드 비활성화에 실패했습니다.' };
+    }
+}
+
+/**
+ * 자동 리마인더 활성화 (기존 스케줄이 있을 때 isEnabled만 true로 변경)
+ */
+export async function enableAutoReminderV2(documentBoxId: string) {
+    try {
+        await prisma.reminderSchedule.updateMany({
+            where: { documentBoxId },
+            data: { isEnabled: true },
+        });
+
+        revalidatePath(`/dashboard/${documentBoxId}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to enable auto reminder:', error);
+        return { success: false, error: '자동 리마인드 활성화에 실패했습니다.' };
     }
 }
 
