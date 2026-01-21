@@ -1,8 +1,14 @@
 'use client';
 
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, HelpCircle } from 'lucide-react';
 import { IconButton } from '@/components/shared/IconButton';
 import { SubmittedFileItem } from './SubmittedFileItem';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface SubmittedFile {
     submittedDocumentId: string;
@@ -36,6 +42,18 @@ export function SubmittedFileList({
                     <span className="text-sm font-medium text-gray-700">
                         제출 파일 ({files.length}개)
                     </span>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <HelpCircle className="w-3.5 h-3.5 text-gray-400 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent side="right">
+                                <p className="text-xs">
+                                    문서명은 일정한 형식으로 자동 변경됩니다.
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
                 {files.length > 0 && (
                     <IconButton

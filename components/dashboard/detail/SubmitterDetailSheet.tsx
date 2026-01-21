@@ -186,33 +186,34 @@ export function SubmitterDetailSheet({
     return (
         <>
             <Sheet open={open} onOpenChange={onOpenChange}>
-                <SheetContent side="right" className="w-[85vw] sm:w-[60vw] lg:w-[50vw] max-w-[800px] overflow-y-auto p-6">
-                    <SheetHeader className="mb-6">
-                        <SheetTitle>제출자 상세</SheetTitle>
+                <SheetContent side="right" className="w-[85vw] sm:w-[60vw] lg:w-[50vw] max-w-[800px] overflow-y-auto p-0">
+                    {/* 헤더: SubmitPreviewSheet 스타일 참고 */}
+                    <SheetHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4">
+                        <SheetTitle className="text-xl font-bold text-gray-700">제출자 상세</SheetTitle>
                     </SheetHeader>
 
                     {isLoading && (
-                        <div className="flex items-center justify-center py-16">
+                        <div className="flex items-center justify-center py-16 px-6">
                             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                         </div>
                     )}
 
                     {error && (
-                        <div className="text-center py-16 text-red-500">
+                        <div className="text-center py-16 px-6 text-red-500">
                             <p>{error}</p>
                         </div>
                     )}
 
                     {submitter && !isLoading && (
-                        <div className="space-y-6">
+                        <div className="px-6 py-5 space-y-6">
                             {/* 제출자 정보 - Primary 위계 */}
-                            <div className="space-y-4">
-                                {/* 이름: 가장 강조 */}
+                            <div className="space-y-3">
+                                {/* 이름: 헤더보다 작게 */}
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <User className="w-5 h-5 text-gray-600" />
+                                    <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <User className="w-4 h-4 text-gray-600" />
                                     </div>
-                                    <span className="text-xl font-bold text-gray-900">{submitter.name}</span>
+                                    <span className="text-lg font-semibold text-gray-900">{submitter.name}</span>
                                 </div>
 
                                 {/* 연락처/제출일: Secondary 위계 - 가로 배치 */}
