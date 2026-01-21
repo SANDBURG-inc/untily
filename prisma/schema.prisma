@@ -91,6 +91,7 @@ model RequiredDocument {
   documentDescription String?
   isRequired          Boolean     @default(true)
   allowMultipleFiles  Boolean     @default(false)
+  order               Int         @default(0) // 표시 순서
   documentBoxId       String
   documentBox         DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
 

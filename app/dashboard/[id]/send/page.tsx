@@ -21,7 +21,7 @@ export default async function ReminderSendPage({
                     submittedDocuments: true // To check submission status
                 }
             },
-            requiredDocuments: true
+            requiredDocuments: { orderBy: { order: 'asc' } }
         }
     });
 

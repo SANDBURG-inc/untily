@@ -65,7 +65,7 @@ export async function sendManualReminder(
         // 1. Fetch details for email
         const documentBox = await prisma.documentBox.findUnique({
             where: { documentBoxId },
-            include: { requiredDocuments: true }
+            include: { requiredDocuments: { orderBy: { order: 'asc' } } }
         });
 
         if (!documentBox) {
@@ -308,7 +308,7 @@ export async function sendReminderAfterDeadline(
         // 1. 문서함 조회
         const documentBox = await prisma.documentBox.findUnique({
             where: { documentBoxId },
-            include: { requiredDocuments: true },
+            include: { requiredDocuments: { orderBy: { order: 'asc' } } },
         });
 
         if (!documentBox) {

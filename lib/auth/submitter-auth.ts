@@ -103,10 +103,14 @@ export async function validateSubmitterAuth(
           formFieldResponses: true,
         },
       },
-      requiredDocuments: true,
+      requiredDocuments: {
+        orderBy: { order: 'asc' },
+      },
       formFieldGroups: {
         include: {
-          formFields: true,
+          formFields: {
+            orderBy: { order: 'asc' },
+          },
         },
         orderBy: { order: 'asc' },
       },

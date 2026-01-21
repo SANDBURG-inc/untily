@@ -91,14 +91,15 @@ export async function POST(request: Request) {
                 });
             }
 
-            // Create required documents (양식 파일 목록 포함)
+            // Create required documents (양식 파일 목록 포함, 순서 유지)
             if (requirements.length > 0) {
                 await tx.requiredDocument.createMany({
-                    data: requirements.map((req) => ({
+                    data: requirements.map((req, index) => ({
                         documentTitle: req.name,
                         documentDescription: req.description || null,
                         isRequired: req.type === '필수',
                         allowMultipleFiles: req.allowMultiple ?? false,
+                        order: req.order ?? index, // 순서 저장 (없으면 배열 인덱스 사용)
                         documentBoxId: box.documentBoxId,
                         templates: JSON.parse(JSON.stringify(req.templates || [])),
                     })),

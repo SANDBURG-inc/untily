@@ -14,7 +14,7 @@ export default async function DocumentSharePage({
     const documentBox = await prisma.documentBox.findUnique({
         where: { documentBoxId: id },
         include: {
-            requiredDocuments: true
+            requiredDocuments: { orderBy: { order: 'asc' } }
         }
     });
 

@@ -20,7 +20,7 @@ import { SubmitterRegistrationCard } from './document-registration/SubmitterRegi
 import { FormFieldGroupsCard } from './document-registration/FormFieldGroupsCard';
 import { DocumentRequirementsCard } from './document-registration/DocumentRequirementsCard';
 import { SubmissionSettingsCard } from './document-registration/SubmissionSettingsCard';
-import { SubmitPreviewSheet } from './document-registration/SubmitPreviewSheet';
+import { SubmitPreviewSheet, type PreviewView } from './document-registration/SubmitPreviewSheet';
 import {
   Dialog,
   DialogContent,
@@ -86,6 +86,9 @@ export default function DocumentRegistrationForm({
 
   // 제출화면 미리보기 Sheet 열림 상태
   const [previewSheetOpen, setPreviewSheetOpen] = useState(false);
+
+  // 미리보기에서 마지막으로 본 화면 상태 (Sheet 재열림 시 유지)
+  const [lastPreviewView, setLastPreviewView] = useState<PreviewView>('landing');
 
   // 섹션 토글 핸들러
   const toggleSection = useCallback((sectionId: SectionId) => {
@@ -376,6 +379,8 @@ export default function DocumentRegistrationForm({
           })),
         }))}
         formFieldsAboveDocuments={form.formFieldsAboveDocuments}
+        initialView={lastPreviewView}
+        onViewChange={setLastPreviewView}
       />
     </>
   );

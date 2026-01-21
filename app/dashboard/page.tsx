@@ -28,7 +28,7 @@ export default async function DashboardPage() {
         },
         include: {
             submitters: true,
-            requiredDocuments: true,
+            requiredDocuments: { orderBy: { order: 'asc' } },
         },
         orderBy: {
             createdAt: 'desc',

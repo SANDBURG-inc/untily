@@ -265,11 +265,12 @@ export async function PUT(
             const existingReqMap = new Map(existingRequirements.map(req => [req.requiredDocumentId, req]));
             const processedReqIds = new Set<string>();
 
-            for (const req of requirements) {
+            for (let i = 0; i < requirements.length; i++) {
+                const req = requirements[i];
                 const newTemplates = req.templates || [];
 
                 if (req.id && existingReqMap.has(req.id)) {
-                    // 기존 항목 업데이트 (양식 파일 목록 포함)
+                    // 기존 항목 업데이트 (양식 파일 목록 포함, 순서 업데이트)
                     const existing = existingReqMap.get(req.id)!;
                     const existingTemplates = (existing.templates as TemplateFile[] | null) || [];
                     const templatesChanged = hasTemplatesChanged(existingTemplates, newTemplates);
@@ -281,6 +282,7 @@ export async function PUT(
                             documentDescription: req.description || null,
                             isRequired: req.type === '필수',
                             allowMultipleFiles: req.allowMultiple ?? false,
+                            order: req.order ?? i, // 순서 업데이트
                             templates: JSON.parse(JSON.stringify(newTemplates)),
                             // 템플릿 변경 시 ZIP 키 초기화 (트랜잭션 후 재생성)
                             templateZipKey: templatesChanged ? null : existing.templateZipKey,
@@ -308,13 +310,14 @@ export async function PUT(
                         });
                     }
                 } else {
-                    // 새 항목 생성 (양식 파일 목록 포함)
+                    // 새 항목 생성 (양식 파일 목록 포함, 순서 설정)
                     const created = await tx.requiredDocument.create({
                         data: {
                             documentTitle: req.name,
                             documentDescription: req.description || null,
                             isRequired: req.type === '필수',
                             allowMultipleFiles: req.allowMultiple ?? false,
+                            order: req.order ?? i, // 순서 저장
                             documentBoxId: box.documentBoxId,
                             templates: JSON.parse(JSON.stringify(newTemplates)),
                         },

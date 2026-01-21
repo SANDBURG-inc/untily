@@ -20,6 +20,9 @@ export interface PreviewRequiredDocument {
   allowMultipleFiles?: boolean;
 }
 
+/** 미리보기 화면 상태 타입 */
+export type PreviewView = 'landing' | 'upload';
+
 interface SubmitPreviewSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,9 +38,11 @@ interface SubmitPreviewSheetProps {
   formFieldGroups: FormFieldGroupData[];
   /** 폼 필드 표시 위치 (true: 서류 위, false: 서류 아래) */
   formFieldsAboveDocuments: boolean;
+  /** Sheet 열릴 때 시작 화면 (기본값: 'landing') */
+  initialView?: PreviewView;
+  /** 화면 전환 시 부모에게 알림 */
+  onViewChange?: (view: PreviewView) => void;
 }
-
-type PreviewView = 'landing' | 'upload';
 
 /**
  * SubmitPreviewSheet 컴포넌트
@@ -59,6 +64,8 @@ export function SubmitPreviewSheet({
   requirements,
   formFieldGroups,
   formFieldsAboveDocuments,
+  initialView = 'landing',
+  onViewChange,
 }: SubmitPreviewSheetProps) {
   // 현재 화면 상태 (landing | upload)
   const [currentView, setCurrentView] = useState<PreviewView>('landing');
@@ -72,13 +79,16 @@ export function SubmitPreviewSheet({
     upload: 0,
   });
 
-  // Sheet가 닫힐 때 상태 초기화
+  // Sheet 열릴 때 initialView로 동기화, 닫힐 때 스크롤만 초기화
   useEffect(() => {
-    if (!open) {
-      setCurrentView('landing');
+    if (open) {
+      // Sheet 열릴 때: 부모에서 전달받은 initialView로 시작
+      setCurrentView(initialView);
+    } else {
+      // Sheet 닫힐 때: 스크롤 위치만 초기화 (currentView는 부모가 관리)
       scrollPositions.current = { landing: 0, upload: 0 };
     }
-  }, [open]);
+  }, [open, initialView]);
 
   // 화면 전환 핸들러 (스크롤 위치 저장 후 전환)
   const handleViewChange = useCallback((newView: PreviewView) => {
@@ -90,13 +100,16 @@ export function SubmitPreviewSheet({
     // 화면 전환
     setCurrentView(newView);
 
+    // 부모 컴포넌트에 화면 변경 알림 (Sheet 재열림 시 상태 유지용)
+    onViewChange?.(newView);
+
     // 전환 후 저장된 스크롤 위치로 복원 (다음 렌더 사이클에서)
     requestAnimationFrame(() => {
       if (contentRef.current) {
         contentRef.current.scrollTop = scrollPositions.current[newView];
       }
     });
-  }, [currentView]);
+  }, [currentView, onViewChange]);
 
   // 기본 로고 URL (실제 로고가 없을 때 사용)
   const effectiveLogoUrl = logoUrl || '/images/logo.svg';

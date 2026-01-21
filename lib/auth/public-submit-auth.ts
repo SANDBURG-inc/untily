@@ -91,7 +91,7 @@ export async function validatePublicSubmitAuth(
   const documentBox = await prisma.documentBox.findUnique({
     where: { documentBoxId },
     include: {
-      requiredDocuments: true,
+      requiredDocuments: { orderBy: { order: 'asc' } },
       formFieldGroups: {
         orderBy: { order: 'asc' },
         include: {
@@ -199,7 +199,7 @@ export async function getPublicDocumentBox(
   const documentBox = await prisma.documentBox.findUnique({
     where: { documentBoxId },
     include: {
-      requiredDocuments: true,
+      requiredDocuments: { orderBy: { order: 'asc' } },
     },
   });
 

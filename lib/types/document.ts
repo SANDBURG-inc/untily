@@ -104,6 +104,8 @@ export interface DocumentRequirement {
     templateZipKey?: string | null;
     // 복수 파일 업로드 허용 여부
     allowMultiple?: boolean;
+    // 표시 순서
+    order?: number;
 }
 
 export interface CreateDocumentBoxRequest {
