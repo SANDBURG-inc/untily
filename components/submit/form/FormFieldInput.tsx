@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
+import { TimePicker } from '@/components/ui/time-picker';
 import {
   Select,
   SelectContent,
@@ -14,6 +16,13 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { FormFieldData } from '@/lib/types/form-field';
+import {
+  parseMultiChoiceValue,
+  createMultiChoiceValue,
+  isOtherOptionSelected,
+  extractOtherValue,
+  createOtherValue,
+} from '@/lib/types/form-field';
 
 interface FormFieldInputProps {
   /** 필드 정의 */
@@ -40,13 +49,26 @@ export function FormFieldInput({
   error,
   isSaving,
 }: FormFieldInputProps) {
-  const { fieldType, fieldLabel, placeholder, isRequired, options } = field;
+  const { fieldType, fieldLabel, placeholder, isRequired, options, hasOtherOption } = field;
+
+  // '기타' 옵션 입력 상태 (CHECKBOX, RADIO에서 사용)
+  const [otherInputValue, setOtherInputValue] = useState(() => {
+    if (fieldType === 'CHECKBOX') {
+      const { otherValue } = parseMultiChoiceValue(value);
+      return otherValue || '';
+    }
+    if (fieldType === 'RADIO' && isOtherOptionSelected(value)) {
+      return extractOtherValue(value);
+    }
+    return '';
+  });
 
   // 공통 레이블 렌더링
   const renderLabel = () => {
-    if (fieldType === 'CHECKBOX') return null; // 체크박스는 인라인 레이블
+    // 단일 동의 체크박스만 인라인 레이블 사용 (options 없는 경우)
+    if (fieldType === 'CHECKBOX' && (!options || options.length === 0)) return null;
     return (
-      <label className="block text-sm font-semibold text-gray-900 mb-2">
+      <label className="block text-base text-gray-900 mb-3">
         {fieldLabel}
         {isRequired && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -70,7 +92,11 @@ export function FormFieldInput({
   };
 
   switch (fieldType) {
-    case 'TEXT':
+    case 'TEXT': {
+      // 전화번호 패턴이면 기본 placeholder 사용 (타입 변경 후 잘못된 데이터 방어)
+      const textPlaceholder = /^0\d{1,2}-\d{3,4}-\d{4}$/.test(placeholder || '')
+        ? '내 답변'
+        : (placeholder || '내 답변');
       return (
         <div>
           {renderLabel()}
@@ -79,7 +105,7 @@ export function FormFieldInput({
               type="text"
               value={value}
               onChange={(e) => onChange(e.target.value)}
-              placeholder={placeholder || '텍스트를 입력하세요'}
+              placeholder={textPlaceholder}
               error={!!error}
               className="pr-16"
             />
@@ -88,6 +114,7 @@ export function FormFieldInput({
           {renderError()}
         </div>
       );
+    }
 
     case 'TEXTAREA':
       return (
@@ -171,7 +198,92 @@ export function FormFieldInput({
         </div>
       );
 
-    case 'CHECKBOX':
+    case 'CHECKBOX': {
+      // options가 있으면 복수 선택 체크박스
+      if (options && options.length > 0) {
+        const { selectedOptions, otherValue } = parseMultiChoiceValue(value);
+        const isOtherChecked = otherValue !== null;
+
+        const handleOptionChange = (option: string, checked: boolean) => {
+          const newSelected = checked
+            ? [...selectedOptions, option]
+            : selectedOptions.filter((o) => o !== option);
+          onChange(createMultiChoiceValue(newSelected, isOtherChecked ? otherInputValue : null));
+        };
+
+        const handleOtherCheck = (checked: boolean) => {
+          if (checked) {
+            onChange(createMultiChoiceValue(selectedOptions, otherInputValue || ''));
+          } else {
+            onChange(createMultiChoiceValue(selectedOptions, null));
+            setOtherInputValue('');
+          }
+        };
+
+        const handleOtherInputChange = (inputValue: string) => {
+          setOtherInputValue(inputValue);
+          // 입력값이 있으면 자동으로 '기타' 체크
+          if (inputValue) {
+            onChange(createMultiChoiceValue(selectedOptions, inputValue));
+          } else if (!isOtherChecked) {
+            // 입력값 비우고 체크도 안 된 상태면 기타 제거
+            onChange(createMultiChoiceValue(selectedOptions, null));
+          } else {
+            // 입력값 비웠지만 체크는 유지
+            onChange(createMultiChoiceValue(selectedOptions, ''));
+          }
+        };
+
+        return (
+          <div>
+            {renderLabel()}
+            <div className="space-y-2">
+              {options.filter((opt) => opt !== '').map((option, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <Checkbox
+                    id={`field-${field.id}-${index}`}
+                    checked={selectedOptions.includes(option)}
+                    onCheckedChange={(checked) => handleOptionChange(option, !!checked)}
+                    className={error ? 'border-destructive' : ''}
+                  />
+                  <Label
+                    htmlFor={`field-${field.id}-${index}`}
+                    className="text-sm text-gray-600 cursor-pointer"
+                  >
+                    {option}
+                  </Label>
+                </div>
+              ))}
+              {hasOtherOption && (
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id={`field-${field.id}-other`}
+                    checked={isOtherChecked}
+                    onCheckedChange={(checked) => handleOtherCheck(!!checked)}
+                    className={error ? 'border-destructive' : ''}
+                  />
+                  <Label
+                    htmlFor={`field-${field.id}-other`}
+                    className="text-sm text-gray-600 cursor-pointer"
+                  >
+                    기타:
+                  </Label>
+                  <Input
+                    type="text"
+                    value={otherInputValue}
+                    onChange={(e) => handleOtherInputChange(e.target.value)}
+                    placeholder="직접 입력"
+                    className="flex-1 h-8"
+                  />
+                </div>
+              )}
+            </div>
+            {renderError()}
+          </div>
+        );
+      }
+
+      // options가 없으면 단일 동의 체크박스 (기존 동작)
       return (
         <div>
           <div className="flex items-start gap-3">
@@ -200,17 +312,43 @@ export function FormFieldInput({
           {renderError()}
         </div>
       );
+    }
 
-    case 'RADIO':
+    case 'RADIO': {
+      const isOtherSelected = isOtherOptionSelected(value);
+
+      const handleRadioChange = (newValue: string) => {
+        if (newValue === '__OTHER__') {
+          onChange(createOtherValue(otherInputValue));
+        } else {
+          onChange(newValue);
+          setOtherInputValue('');
+        }
+      };
+
+      const handleOtherInputChange = (inputValue: string) => {
+        setOtherInputValue(inputValue);
+        // 입력값이 있으면 자동으로 '기타' 선택
+        if (inputValue) {
+          onChange(createOtherValue(inputValue));
+        } else if (!isOtherSelected) {
+          // 입력값 비우고 선택도 안 된 상태면 빈 값으로
+          onChange('');
+        } else {
+          // 입력값 비웠지만 기타 선택은 유지
+          onChange(createOtherValue(''));
+        }
+      };
+
       return (
         <div>
           {renderLabel()}
           <RadioGroup
-            value={value}
-            onValueChange={onChange}
+            value={isOtherSelected ? '__OTHER__' : value}
+            onValueChange={handleRadioChange}
             className="flex flex-wrap gap-4"
           >
-            {(options || []).map((option, index) => (
+            {(options || []).filter((opt) => opt !== '').map((option, index) => (
               <div key={index} className="flex items-center gap-2">
                 <RadioGroupItem
                   value={option}
@@ -219,16 +357,39 @@ export function FormFieldInput({
                 />
                 <Label
                   htmlFor={`field-${field.id}-${index}`}
-                  className="text-sm text-gray-500 cursor-pointer"
+                  className="text-sm text-gray-600 cursor-pointer"
                 >
                   {option}
                 </Label>
               </div>
             ))}
+            {hasOtherOption && (
+              <div className="flex items-center gap-2">
+                <RadioGroupItem
+                  value="__OTHER__"
+                  id={`field-${field.id}-other`}
+                  className={error ? 'border-destructive' : ''}
+                />
+                <Label
+                  htmlFor={`field-${field.id}-other`}
+                  className="text-sm text-gray-600 cursor-pointer"
+                >
+                  기타:
+                </Label>
+                <Input
+                  type="text"
+                  value={otherInputValue}
+                  onChange={(e) => handleOtherInputChange(e.target.value)}
+                  placeholder="직접 입력"
+                  className="flex-1 h-8 max-w-[200px]"
+                />
+              </div>
+            )}
           </RadioGroup>
           {renderError()}
         </div>
       );
+    }
 
     case 'DROPDOWN':
       return (
@@ -256,10 +417,10 @@ export function FormFieldInput({
       return (
         <div>
           {renderLabel()}
-          <Input
-            type="time"
+          <TimePicker
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onTimeChange={onChange}
+            placeholder={placeholder || '시간을 선택하세요'}
             className={error ? 'border-destructive' : ''}
           />
           {renderError()}

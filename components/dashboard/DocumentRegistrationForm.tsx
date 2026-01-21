@@ -485,6 +485,7 @@ export default function DocumentRegistrationForm({
             isRequired: field.isRequired,
             order: field.order,
             options: field.options,
+            hasOtherOption: field.hasOtherOption,
             validation: field.validation,
           })),
         }))}
