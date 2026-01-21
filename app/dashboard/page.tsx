@@ -73,22 +73,6 @@ export default async function DashboardPage() {
                         const currentCount = box.submitters.filter(s => s.status === 'SUBMITTED').length;
                         const totalCount = box.submitters.length;
                         const unsubmittedCount = totalCount - currentCount;
-                        const isExpired = new Date() > box.endDate;
-
-                        let status: "In Progress" | "Expired Incomplete" | "Completed" = 'In Progress';
-                        if (hasLimitedSubmitters) {
-                            if (currentCount === totalCount && totalCount > 0) {
-                                status = 'Completed';
-                            } else if (isExpired) {
-                                status = 'Expired Incomplete';
-                            } else {
-                                status = 'In Progress';
-                            }
-                        } else {
-                            // Public box
-                            status = isExpired ? 'Completed' : 'In Progress';
-                        }
-
                         return (
                             <DocumentCard
                                 key={box.documentBoxId}
@@ -100,7 +84,6 @@ export default async function DashboardPage() {
                                 currentCount={currentCount}
                                 totalCount={totalCount}
                                 unsubmittedCount={unsubmittedCount}
-                                status={status}
                                 hasLimitedSubmitters={hasLimitedSubmitters}
                                 documentBoxStatus={box.status}
                             />
