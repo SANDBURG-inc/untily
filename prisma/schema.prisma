@@ -119,9 +119,13 @@ model Submitter {
   status      SubmitterStatus @default(PENDING)
   submittedAt DateTime? // 제출 완료 시간
 
+  // 관리자 확인 여부
+  isChecked Boolean @default(false)
+
   submittedDocuments SubmittedDocument[]
   formFieldResponses FormFieldResponse[]
   reminderRecipients ReminderRecipient[]
+  resubmissionLogs   ResubmissionLog[] // 재제출 기록
 
   @@index([userId])
   @@index([email])
@@ -226,6 +230,7 @@ model ReminderSchedule {
 enum SubmitterStatus {
   PENDING
   SUBMITTED
+  REJECTED // 반려됨
 }
 
 // ============================================================================
