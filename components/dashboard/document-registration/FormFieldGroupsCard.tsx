@@ -1,7 +1,6 @@
 'use client';
 
-import { Plus, X, FileEdit, GripVertical } from 'lucide-react';
-import { SectionHeader } from '@/components/shared/SectionHeader';
+import { Plus, X, GripVertical } from 'lucide-react';
 import { IconButton } from '@/components/shared/IconButton';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -25,6 +24,7 @@ interface FormFieldGroupsCardProps {
  *
  * 정보 입력 항목(폼 필드)을 등록하는 카드 컴포넌트입니다.
  * 그룹별로 필드를 관리하며, 다양한 입력 타입을 지원합니다.
+ * SectionHeader는 부모 CollapsibleSection에서 렌더링합니다.
  */
 export function FormFieldGroupsCard({
   formFieldGroups,
@@ -49,30 +49,25 @@ export function FormFieldGroupsCard({
   // 그룹이 없으면 추가 버튼만 표시
   if (formFieldGroups.length === 0) {
     return (
-      <>
-        <SectionHeader icon={FileEdit} title="정보 입력 항목" size="md" />
-        <div className="mt-4">
-          <IconButton
-            type="button"
-            variant="secondary"
-            icon={<Plus className="w-4 h-4" />}
-            onClick={addGroup}
-            className="w-full"
-          >
-            정보 입력 항목 추가
-          </IconButton>
-        </div>
-      </>
+      <div>
+        <IconButton
+          type="button"
+          variant="secondary"
+          icon={<Plus className="w-4 h-4" />}
+          onClick={addGroup}
+          className="w-full"
+        >
+          정보 입력 항목 추가
+        </IconButton>
+      </div>
     );
   }
 
   return (
     <>
-      <SectionHeader icon={FileEdit} title="정보 입력 항목" size="md" />
-
       {/* 표시 위치 설정 */}
-      <div className="mt-4 mb-6 p-4 bg-gray-50 rounded-lg">
-        <p className="text-sm font-medium text-gray-700 mb-3">
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <p className="text-sm font-normal text-gray-700 mb-3">
           제출자 화면에서 표시 위치
         </p>
         <RadioGroup
@@ -98,7 +93,7 @@ export function FormFieldGroupsCard({
       </div>
 
       {/* 그룹 목록 */}
-      <div className="mt-4 space-y-6">
+      <div className="space-y-6">
         {formFieldGroups.map((group, groupIndex) => (
           <div
             key={group.id}
@@ -122,7 +117,7 @@ export function FormFieldGroupsCard({
             {/* 그룹 정보 입력 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+                <label className="block text-sm font-normal text-gray-700 mb-2">
                   그룹명<span className="text-red-500">*</span>
                 </label>
                 <input
@@ -137,7 +132,7 @@ export function FormFieldGroupsCard({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+                <label className="block text-sm font-normal text-gray-700 mb-2">
                   유형<span className="text-red-500">*</span>
                 </label>
                 <GroupRequiredSelect
@@ -151,7 +146,7 @@ export function FormFieldGroupsCard({
 
             {/* 그룹 설명 */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+              <label className="block text-sm font-normal text-gray-700 mb-2">
                 설명
               </label>
               <textarea
@@ -167,7 +162,7 @@ export function FormFieldGroupsCard({
 
             {/* 필드 목록 */}
             <div className="border-t border-gray-200 pt-4">
-              <p className="text-sm font-medium text-gray-700 mb-3">입력 필드</p>
+              <p className="text-sm font-normal text-gray-700 mb-3">입력 필드</p>
               <div className="space-y-4">
                 {group.fields.map((field, fieldIndex) => (
                   <FieldEditor

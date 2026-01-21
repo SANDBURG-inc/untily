@@ -1,11 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, X, FileText, ChevronDown, Paperclip, Loader2 } from 'lucide-react';
+import { Plus, X, ChevronDown, Paperclip, Loader2 } from 'lucide-react';
 import type { DocumentRequirement, TemplateFile } from '@/lib/types/document';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IconButton } from '@/components/shared/IconButton';
-import { SectionHeader } from '@/components/shared/SectionHeader';
 import FileUploadDialog from '@/components/submit/upload/FileUploadDialog';
 
 interface DocumentRequirementsCardProps {
@@ -28,6 +27,7 @@ interface DocumentRequirementsCardProps {
  *
  * 수집할 서류 정보를 등록하는 카드 컴포넌트입니다.
  * 서류명, 유형(필수/옵션), 설명, 양식 파일(여러 개)을 입력받습니다.
+ * SectionHeader는 부모 CollapsibleSection에서 렌더링합니다.
  */
 export function DocumentRequirementsCard({
   requirements,
@@ -119,8 +119,7 @@ export function DocumentRequirementsCard({
 
   return (
     <>
-      <SectionHeader icon={FileText} title="수집 서류 등록" size="md" />
-      <div className="mt-4 space-y-0">
+      <div className="space-y-0">
         {requirements.map((requirement, index) => (
           <div
             key={requirement.id}
@@ -140,7 +139,7 @@ export function DocumentRequirementsCard({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pr-8">
               {/* 서류명 입력 */}
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+                <label className="block text-sm font-normal text-gray-700 mb-2">
                   서류명<span className="text-red-500">*</span>
                 </label>
                 <input
@@ -157,7 +156,7 @@ export function DocumentRequirementsCard({
 
               {/* 서류 유형 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+                <label className="block text-sm font-normal text-gray-700 mb-2">
                   서류 유형<span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -179,7 +178,7 @@ export function DocumentRequirementsCard({
 
             {/* 서류 설명 입력 */}
             <div className="pr-8">
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+              <label className="block text-sm font-normal text-gray-700 mb-2">
                 설명
               </label>
               <textarea

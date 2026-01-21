@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -35,6 +36,12 @@ interface SectionHeaderProps {
   size?: SectionHeaderSize;
   /** 추가 className */
   className?: string;
+  /** 접기/펼치기 기능 활성화 */
+  collapsible?: boolean;
+  /** 현재 열림 상태 (collapsible=true일 때만 사용) */
+  isOpen?: boolean;
+  /** 토글 핸들러 (collapsible=true일 때만 사용) */
+  onToggle?: () => void;
 }
 
 /**
@@ -60,8 +67,15 @@ interface SectionHeaderProps {
  *   size="lg"
  * />
  *
- * // 크기 변경 (폼 입력 섹션)
- * <SectionHeader icon={Settings} title="제출 옵션 설정" size="sm" />
+ * // Collapsible 기능 사용
+ * <SectionHeader
+ *   icon={Settings}
+ *   title="제출 옵션 설정"
+ *   size="sm"
+ *   collapsible
+ *   isOpen={isOpen}
+ *   onToggle={() => setIsOpen(!isOpen)}
+ * />
  * ```
  */
 export function SectionHeader({
@@ -70,9 +84,38 @@ export function SectionHeader({
   description,
   size = 'lg',
   className,
+  collapsible = false,
+  isOpen = true,
+  onToggle,
 }: SectionHeaderProps) {
   const styles = sizeStyles[size];
 
+  // Collapsible 모드일 때 클릭 가능한 헤더
+  if (collapsible) {
+    return (
+      <div className={cn('flex flex-col gap-1', className)}>
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex items-center gap-2 w-full text-left group hover:opacity-80 transition-opacity"
+        >
+          {/* Chevron 아이콘 (열림/닫힘 상태 표시) */}
+          {isOpen ? (
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          )}
+          {Icon && <Icon className={cn(styles.icon, 'text-gray-700')} />}
+          <span className={styles.title}>{title}</span>
+        </button>
+        {description && isOpen && (
+          <p className="text-sm text-gray-500 pl-7">{description}</p>
+        )}
+      </div>
+    );
+  }
+
+  // 기본 모드 (기존 동작)
   return (
     <div className={cn('flex flex-col gap-1', className)}>
       <div className="flex items-center gap-2">

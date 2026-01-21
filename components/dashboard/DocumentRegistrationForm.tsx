@@ -1,11 +1,13 @@
 'use client';
 
-import { useCallback } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { Loader2, FileText, Users, FileEdit, Settings } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { LogoUploadDialog } from './LogoUploadDialog';
+import { CollapsibleSection } from '@/components/shared/CollapsibleSection';
 import {
   useDocumentBoxForm,
   type DocumentBoxInitialData,
@@ -28,6 +30,11 @@ import {
 } from '@/components/ui/dialog';
 
 /**
+ * 섹션 ID 타입
+ */
+type SectionId = 'basicInfo' | 'submitters' | 'formFields' | 'requirements' | 'settings';
+
+/**
  * DocumentRegistrationForm Props 인터페이스
  */
 interface DocumentRegistrationFormProps {
@@ -44,13 +51,14 @@ interface DocumentRegistrationFormProps {
  *
  * 문서함을 생성하거나 수정하는 폼 컴포넌트입니다.
  * 기본 정보, 제출자, 수집 서류, 제출 옵션 등을 설정할 수 있습니다.
+ * 각 섹션은 접기/펼치기가 가능하며, 모드에 따라 초기 상태가 다릅니다.
  *
  * @example
  * ```tsx
- * // 생성 모드
+ * // 생성 모드 (모든 섹션 펼침)
  * <DocumentRegistrationForm mode="create" />
  *
- * // 수정 모드
+ * // 수정 모드 (모든 섹션 접힘)
  * <DocumentRegistrationForm
  *   mode="edit"
  *   documentBoxId="doc-123"
@@ -65,6 +73,23 @@ export default function DocumentRegistrationForm({
 }: DocumentRegistrationFormProps) {
   // 모든 폼 상태와 핸들러를 Custom Hook으로 관리
   const form = useDocumentBoxForm({ mode, documentBoxId, initialData });
+
+  // 섹션별 열림/닫힘 상태 (등록: 모두 열림, 수정: 모두 닫힘)
+  const [openSections, setOpenSections] = useState<Record<SectionId, boolean>>(() => ({
+    basicInfo: mode === 'create',
+    submitters: mode === 'create',
+    formFields: mode === 'create',
+    requirements: mode === 'create',
+    settings: mode === 'create',
+  }));
+
+  // 섹션 토글 핸들러
+  const toggleSection = useCallback((sectionId: SectionId) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }));
+  }, []);
 
   // 양식 파일 미리보기 핸들러 (edit 모드에서만 사용)
   const handleTemplatePreview = useCallback(
@@ -132,72 +157,117 @@ export default function DocumentRegistrationForm({
         <Card variant="compact" className="mb-8">
           {/* 기본 정보 섹션 */}
           <div className="px-6 pt-6 pb-6">
-            <BasicInfoCard
-              documentName={form.documentName}
-              onDocumentNameChange={form.setDocumentName}
-              description={form.description}
-              onDescriptionChange={form.setDescription}
-              logoUrl={form.effectiveLogoUrl}
-              onLogoRemove={form.handleLogoRemove}
-              onLogoDialogOpen={() => form.setLogoDialogOpen(true)}
-            />
+            <CollapsibleSection
+              title="기본 정보 입력"
+              icon={FileText}
+              size="md"
+              isOpen={openSections.basicInfo}
+              onToggle={() => toggleSection('basicInfo')}
+            >
+              <BasicInfoCard
+                documentName={form.documentName}
+                onDocumentNameChange={form.setDocumentName}
+                description={form.description}
+                onDescriptionChange={form.setDescription}
+                logoUrl={form.effectiveLogoUrl}
+                onLogoRemove={form.handleLogoRemove}
+                onLogoDialogOpen={() => form.setLogoDialogOpen(true)}
+              />
+            </CollapsibleSection>
           </div>
 
           <div className="mx-6 border-t border-gray-200 rounded-full" />
 
           {/* 서류 제출자 섹션 */}
           <div className="px-6 py-6">
-            <SubmitterRegistrationCard
-              submittersEnabled={form.submittersEnabled}
-              onSubmittersEnabledChange={form.handleSubmittersEnabledChange}
-              submitters={form.submitters}
-              onSubmittersChange={form.setSubmitters}
-              isEditMode={form.isEditMode}
-            />
+            <CollapsibleSection
+              title="서류 제출자 등록"
+              icon={Users}
+              size="md"
+              isOpen={openSections.submitters}
+              onToggle={() => toggleSection('submitters')}
+              rightAction={
+                <Switch
+                  checked={form.submittersEnabled}
+                  onCheckedChange={form.handleSubmittersEnabledChange}
+                  disabled={form.isEditMode}
+                />
+              }
+            >
+              <SubmitterRegistrationCard
+                submittersEnabled={form.submittersEnabled}
+                submitters={form.submitters}
+                onSubmittersChange={form.setSubmitters}
+              />
+            </CollapsibleSection>
           </div>
 
           <div className="mx-6 border-t border-gray-200 rounded-full" />
 
           {/* 정보 입력 항목 섹션 */}
           <div className="px-6 py-6">
-            <FormFieldGroupsCard
-              formFieldGroups={form.formFieldGroups}
-              onFormFieldGroupsChange={form.setFormFieldGroups}
-              formFieldsAboveDocuments={form.formFieldsAboveDocuments}
-              onFormFieldsAboveDocumentsChange={form.setFormFieldsAboveDocuments}
-            />
+            <CollapsibleSection
+              title="정보 입력 항목"
+              icon={FileEdit}
+              size="md"
+              isOpen={openSections.formFields}
+              onToggle={() => toggleSection('formFields')}
+            >
+              <FormFieldGroupsCard
+                formFieldGroups={form.formFieldGroups}
+                onFormFieldGroupsChange={form.setFormFieldGroups}
+                formFieldsAboveDocuments={form.formFieldsAboveDocuments}
+                onFormFieldsAboveDocumentsChange={form.setFormFieldsAboveDocuments}
+              />
+            </CollapsibleSection>
           </div>
 
           <div className="mx-6 border-t border-gray-200 rounded-full" />
 
           {/* 수집 서류 섹션 */}
           <div className="px-6 py-6">
-            <DocumentRequirementsCard
-              requirements={form.requirements}
-              onRequirementsChange={form.setRequirements}
-              onTemplateFileSelect={form.handleTemplateFileSelect}
-              onTemplateFileRemove={form.handleTemplateFileRemove}
-              uploadingTemplateIds={form.uploadingTemplateIds}
-              onTemplatePreview={form.isEditMode ? handleTemplatePreview : undefined}
-            />
+            <CollapsibleSection
+              title="수집 서류 등록"
+              icon={FileText}
+              size="md"
+              isOpen={openSections.requirements}
+              onToggle={() => toggleSection('requirements')}
+            >
+              <DocumentRequirementsCard
+                requirements={form.requirements}
+                onRequirementsChange={form.setRequirements}
+                onTemplateFileSelect={form.handleTemplateFileSelect}
+                onTemplateFileRemove={form.handleTemplateFileRemove}
+                uploadingTemplateIds={form.uploadingTemplateIds}
+                onTemplatePreview={form.isEditMode ? handleTemplatePreview : undefined}
+              />
+            </CollapsibleSection>
           </div>
 
           <div className="mx-6 border-t border-gray-200 rounded-full" />
 
           {/* 제출 옵션 섹션 */}
           <div className="px-6 pt-6 pb-6">
-            <SubmissionSettingsCard
-              deadline={form.deadline}
-              onDeadlineChange={form.setDeadline}
-              reminderEnabled={form.reminderEnabled}
-              onReminderEnabledChange={form.setReminderEnabled}
-              emailReminder={form.emailReminder}
-              onEmailReminderChange={form.setEmailReminder}
-              submittersEnabled={form.submittersEnabled}
-              documentBoxStatus={form.documentBoxStatus}
-              initialDeadline={form.initialDeadline}
-              onReopenConfirmed={form.setReopenConfirmed}
-            />
+            <CollapsibleSection
+              title="제출 옵션 설정"
+              icon={Settings}
+              size="md"
+              isOpen={openSections.settings}
+              onToggle={() => toggleSection('settings')}
+            >
+              <SubmissionSettingsCard
+                deadline={form.deadline}
+                onDeadlineChange={form.setDeadline}
+                reminderEnabled={form.reminderEnabled}
+                onReminderEnabledChange={form.setReminderEnabled}
+                emailReminder={form.emailReminder}
+                onEmailReminderChange={form.setEmailReminder}
+                submittersEnabled={form.submittersEnabled}
+                documentBoxStatus={form.documentBoxStatus}
+                initialDeadline={form.initialDeadline}
+                onReopenConfirmed={form.setReopenConfirmed}
+              />
+            </CollapsibleSection>
           </div>
         </Card>
 

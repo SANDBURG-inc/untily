@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useId } from 'react';
-import { Settings, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { DatePicker } from '@/components/ui/date-picker';
 import { TimeSelect } from '@/components/ui/time-select';
-import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Button } from '@/components/ui/Button';
 import type { DocumentBoxStatus } from '@/lib/types/document';
 import { isDocumentBoxClosed, isDocumentBoxLimitedOpen } from '@/lib/types/document';
@@ -116,6 +115,7 @@ function ChannelOption({ label, enabled, selected, onSelect }: ChannelOptionProp
  *
  * 제출 옵션을 설정하는 카드 컴포넌트입니다.
  * 제출 마감일과 리마인드 자동 발송 설정을 관리합니다.
+ * SectionHeader는 부모 CollapsibleSection에서 렌더링합니다.
  *
  * 수정 모드에서 닫힌 문서함의 기한을 연장하면 "다시 열기" 확인 Dialog를 표시합니다.
  */
@@ -354,11 +354,10 @@ export function SubmissionSettingsCard({
                 onSave={handleScheduleSave}
             />
 
-            <SectionHeader icon={Settings} title="제출 옵션 설정" size="md" />
-            <div className="mt-4 space-y-6">
+            <div className="space-y-6">
                 {/* 제출 마감일 선택 (날짜 + 시간) */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                    <label className="block text-sm font-normal text-gray-700 mb-2">
                         마감 일시<span className="text-red-500">*</span>
                     </label>
                     <div className="flex items-center gap-3">
