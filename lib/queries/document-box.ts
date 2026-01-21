@@ -197,6 +197,9 @@ export async function getDocumentBoxForEdit(documentBoxId: string, userId: strin
             submitters: true,
             requiredDocuments: { orderBy: { order: 'asc' } },
             documentBoxRemindTypes: true,
+            reminderSchedules: {
+                orderBy: { order: 'asc' },
+            },
             logos: {
                 where: { type: 'DOCUMENT_BOX' },
                 take: 1,

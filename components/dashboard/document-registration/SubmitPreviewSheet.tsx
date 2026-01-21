@@ -111,8 +111,8 @@ export function SubmitPreviewSheet({
     });
   }, [currentView, onViewChange]);
 
-  // 기본 로고 URL (실제 로고가 없을 때 사용)
-  const effectiveLogoUrl = logoUrl || '/images/logo.svg';
+  // 기본 로고 URL (실제 로고가 없을 때 사용 - 시스템 기본 로고)
+  const effectiveLogoUrl = logoUrl || '/logo_light.svg';
 
   // BaseUploadForm에 전달할 데이터 변환
   const previewDocumentBox = {

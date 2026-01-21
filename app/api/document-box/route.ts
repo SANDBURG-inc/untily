@@ -32,10 +32,16 @@ export async function POST(request: Request) {
             emailReminder,
             smsReminder,
             kakaoReminder,
+            reminderSchedules,
         } = body as CreateDocumentBoxRequest & {
             formFieldGroups?: FormFieldGroupData[];
             formFields?: FormFieldData[];
             formFieldsAboveDocuments?: boolean;
+            reminderSchedules?: Array<{
+                timeValue: number;
+                timeUnit: 'DAY' | 'WEEK';
+                sendTime: string;
+            }>;
         };
 
         // Validate required fields
@@ -157,6 +163,20 @@ export async function POST(request: Request) {
                 if (remindTypes.length > 0) {
                     await tx.documentBoxRemindType.createMany({
                         data: remindTypes,
+                    });
+                }
+
+                // Create reminder schedules
+                if (reminderSchedules && reminderSchedules.length > 0) {
+                    await tx.reminderSchedule.createMany({
+                        data: reminderSchedules.map((schedule, index) => ({
+                            documentBoxId: box.documentBoxId,
+                            timeValue: schedule.timeValue,
+                            timeUnit: schedule.timeUnit,
+                            sendTime: schedule.sendTime,
+                            channel: 'EMAIL' as const, // 현재 이메일만 지원
+                            order: index,
+                        })),
                     });
                 }
             }

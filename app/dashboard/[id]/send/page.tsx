@@ -46,6 +46,7 @@ export default async function ReminderSendPage({
                     submitterId: s.submitterId,
                     name: s.name,
                     email: s.email,
+                    status: s.status,
                     submittedDocuments: s.submittedDocuments
                 }))}
                 requiredDocuments={documentBox.requiredDocuments.map(d => ({

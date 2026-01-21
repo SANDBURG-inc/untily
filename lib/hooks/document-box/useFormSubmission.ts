@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { format } from 'date-fns';
 import type { SubmitFormParams, ConfirmDialogData, UseFormSubmissionReturn } from './types';
 
 /**
@@ -40,6 +39,7 @@ export function useFormSubmission(): UseFormSubmissionReturn {
         emailReminder,
         smsReminder,
         kakaoReminder,
+        reminderSchedules,
         changeStatusToOpen,
         uploadLogoFile,
         uploadTemplateFiles,
@@ -82,11 +82,13 @@ export function useFormSubmission(): UseFormSubmissionReturn {
           requirements: requirementsWithTemplates,
           formFieldGroups,
           formFieldsAboveDocuments,
-          deadline: deadline ? format(deadline, 'yyyy-MM-dd') : '',
+          deadline: deadline ? deadline.toISOString() : '',
           reminderEnabled,
           emailReminder,
           smsReminder,
           kakaoReminder,
+          // 리마인드 스케줄 (ID 제외, API에서 새로 생성)
+          reminderSchedules: reminderSchedules.map(({ id, ...rest }) => rest),
           force,
           // 수정 모드에서 기한 연장으로 다시 열기 확인 시 상태를 OPEN으로 변경
           ...(isEditMode && changeStatusToOpen && { changeStatusToOpen: true }),

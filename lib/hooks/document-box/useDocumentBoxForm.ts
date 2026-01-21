@@ -29,10 +29,13 @@ import { useFormSubmission } from './useFormSubmission';
  * );
  * ```
  */
+/** 시스템 기본 로고 경로 */
+const SYSTEM_LOGO = '/logo_light.svg';
+
 export function useDocumentBoxForm(
   options: UseDocumentBoxFormOptions
 ): UseDocumentBoxFormReturn {
-  const { mode, documentBoxId, initialData } = options;
+  const { mode, documentBoxId, initialData, userDefaultLogoUrl } = options;
   const router = useRouter();
   const isEditMode = mode === 'edit';
 
@@ -54,9 +57,10 @@ export function useDocumentBoxForm(
     : undefined;
 
   // === 파생 상태 ===
+  // 로고 우선순위: 문서함 로고 > 사용자 기본 로고 > 시스템 기본 로고
   const effectiveLogoUrl = isEditMode
-    ? basicInfo.logoUrl
-    : basicInfo.logoPreviewUrl || basicInfo.logoUrl;
+    ? basicInfo.logoUrl || userDefaultLogoUrl || SYSTEM_LOGO
+    : basicInfo.logoPreviewUrl || basicInfo.logoUrl || userDefaultLogoUrl || SYSTEM_LOGO;
 
   // === 통합 핸들러 ===
 
@@ -148,6 +152,7 @@ export function useDocumentBoxForm(
         emailReminder: submissionSettings.emailReminder,
         smsReminder: submissionSettings.smsReminder,
         kakaoReminder: submissionSettings.kakaoReminder,
+        reminderSchedules: submissionSettings.reminderSchedules,
         // 기한 연장으로 다시 열기 확인된 경우 상태를 OPEN으로 변경
         changeStatusToOpen: reopenConfirmed,
         uploadLogoFile,
@@ -247,9 +252,11 @@ export function useDocumentBoxForm(
     emailReminder: submissionSettings.emailReminder,
     smsReminder: submissionSettings.smsReminder,
     kakaoReminder: submissionSettings.kakaoReminder,
+    reminderSchedules: submissionSettings.reminderSchedules,
     setDeadline: submissionSettings.setDeadline,
     setReminderEnabled: submissionSettings.setReminderEnabled,
     setEmailReminder: submissionSettings.setEmailReminder,
+    setReminderSchedules: submissionSettings.setReminderSchedules,
 
     // 다시 열기 관련 (기한 연장으로 닫힌 문서함을 다시 열 때)
     documentBoxStatus: initialData?.status,

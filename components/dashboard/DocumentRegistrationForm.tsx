@@ -57,6 +57,8 @@ interface DocumentRegistrationFormProps {
   documentBoxId?: string;
   /** 수정 모드 시 초기 데이터 */
   initialData?: DocumentBoxInitialData;
+  /** 사용자 기본 로고 URL (문서함 로고가 없을 때 fallback) */
+  userDefaultLogoUrl?: string;
 }
 
 /**
@@ -83,9 +85,10 @@ export default function DocumentRegistrationForm({
   mode = 'create',
   documentBoxId,
   initialData,
+  userDefaultLogoUrl,
 }: DocumentRegistrationFormProps) {
   // 모든 폼 상태와 핸들러를 Custom Hook으로 관리
-  const form = useDocumentBoxForm({ mode, documentBoxId, initialData });
+  const form = useDocumentBoxForm({ mode, documentBoxId, initialData, userDefaultLogoUrl });
 
   // 섹션별 열림/닫힘 상태 (등록: 모두 열림, 수정: 모두 닫힘)
   const [openSections, setOpenSections] = useState<Record<SectionId, boolean>>(() => ({
@@ -379,6 +382,8 @@ export default function DocumentRegistrationForm({
                 documentBoxStatus={form.documentBoxStatus}
                 initialDeadline={form.initialDeadline}
                 onReopenConfirmed={form.setReopenConfirmed}
+                reminderSchedules={form.reminderSchedules}
+                onReminderSchedulesChange={form.setReminderSchedules}
               />
             </CollapsibleSection>
           </div>

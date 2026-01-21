@@ -66,3 +66,25 @@ export async function getLogoForDocumentBox(
   // 3순위: 시스템 기본 로고
   return SYSTEM_LOGO;
 }
+
+/**
+ * 사용자 ID로 기본 로고 URL 조회
+ *
+ * 우선순위:
+ * 1. 사용자 기본 로고 (type: DEFAULT)
+ * 2. 시스템 기본 로고 (/logo_light.svg)
+ *
+ * @param userId 사용자 ID
+ * @returns 로고 이미지 URL
+ */
+export async function getUserDefaultLogo(userId: string): Promise<string> {
+  const defaultLogo = await prisma.logo.findFirst({
+    where: {
+      userId,
+      type: "DEFAULT",
+      documentBoxId: null,
+    },
+  });
+
+  return defaultLogo?.imageUrl || SYSTEM_LOGO;
+}

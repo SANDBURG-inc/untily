@@ -34,9 +34,9 @@ export async function generateUploadUrl({
  * @param filename 다운로드 시 표시될 파일명 (선택, 없으면 원본 파일명)
  */
 export async function generateDownloadUrl(key: string, filename?: string): Promise<string> {
-  // 파일명에서 안전하지 않은 문자 제거 및 인코딩
+  // macOS NFD 한글을 NFC로 정규화 후 안전한 문자만 허용
   const safeFilename = filename
-    ? encodeURIComponent(filename.replace(/[^\w가-힣._\-() ]/g, '_'))
+    ? encodeURIComponent(filename.normalize('NFC').replace(/[^\w가-힣._\-() ]/g, '_'))
     : undefined;
 
   const command = new GetObjectCommand({

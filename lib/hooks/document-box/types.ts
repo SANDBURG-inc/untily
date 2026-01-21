@@ -4,6 +4,7 @@
 
 import type { Submitter, DocumentRequirement, TemplateFile, DocumentBoxStatus } from '@/lib/types/document';
 import type { FormFieldGroupData } from '@/lib/types/form-field';
+import type { ReminderScheduleState } from '@/lib/types/reminder';
 
 // ===== 초기 데이터 =====
 
@@ -26,6 +27,8 @@ export interface DocumentBoxInitialData {
   emailReminder: boolean;
   smsReminder: boolean;
   kakaoReminder: boolean;
+  /** 리마인더 스케줄 목록 */
+  reminderSchedules?: ReminderScheduleState[];
   /** 문서함 상태 (수정 모드에서만 사용) */
   status?: DocumentBoxStatus;
 }
@@ -123,7 +126,7 @@ export interface UseFormFieldGroupsReturn {
 export interface UseSubmissionSettingsOptions {
   initialData?: Pick<
     DocumentBoxInitialData,
-    'deadline' | 'reminderEnabled' | 'emailReminder' | 'smsReminder' | 'kakaoReminder'
+    'deadline' | 'reminderEnabled' | 'emailReminder' | 'smsReminder' | 'kakaoReminder' | 'reminderSchedules'
   >;
 }
 
@@ -134,10 +137,12 @@ export interface UseSubmissionSettingsReturn {
   emailReminder: boolean;
   smsReminder: boolean;
   kakaoReminder: boolean;
+  reminderSchedules: ReminderScheduleState[];
   // 액션
   setDeadline: (date: Date | undefined) => void;
   setReminderEnabled: (enabled: boolean) => void;
   setEmailReminder: (enabled: boolean) => void;
+  setReminderSchedules: (schedules: ReminderScheduleState[]) => void;
 }
 
 // ===== useFormSubmission =====
@@ -160,6 +165,7 @@ export interface SubmitFormParams {
   emailReminder: boolean;
   smsReminder: boolean;
   kakaoReminder: boolean;
+  reminderSchedules: ReminderScheduleState[];
   /** 상태를 OPEN으로 변경할지 여부 (기한 연장으로 다시 열기 확인 시) */
   changeStatusToOpen?: boolean;
   // 파일 업로드 함수 (의존성 주입)
@@ -196,6 +202,8 @@ export interface UseDocumentBoxFormOptions {
   mode: 'create' | 'edit';
   documentBoxId?: string;
   initialData?: DocumentBoxInitialData;
+  /** 사용자 기본 로고 URL (문서함 로고가 없을 때 fallback) */
+  userDefaultLogoUrl?: string;
 }
 
 export interface UseDocumentBoxFormReturn
