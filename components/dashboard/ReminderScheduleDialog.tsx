@@ -118,18 +118,18 @@ export function ReminderScheduleRow({
         }
     };
 
-    // 템플릿 이름 7자 제한
-    const truncateName = (name: string, maxLength: number = 7) =>
+    // 템플릿 이름 6자 제한
+    const truncateName = (name: string, maxLength: number = 6) =>
         name.length > maxLength ? `${name.slice(0, maxLength)}…` : name;
 
     // 현재 선택된 템플릿 이름
     const selectedTemplateName =
         !schedule.templateId || schedule.templateId === 'default'
-            ? '기본'
-            : truncateName(templates.find((t) => t.id === schedule.templateId)?.name || '기본');
+            ? '기본 템플릿'
+            : truncateName(templates.find((t) => t.id === schedule.templateId)?.name || '기본 템플릿');
 
     return (
-        <div className="flex items-center gap-1.5 py-1">
+        <div className="group flex items-center gap-1.5 py-1">
             <span className="text-sm text-gray-600 shrink-0">마감</span>
 
             {/* 숫자 선택 */}
@@ -139,10 +139,10 @@ export function ReminderScheduleRow({
                     onChange({ ...schedule, timeValue: Number(value) })
                 }
             >
-                <SelectTrigger className="w-12 h-8" showChevron={false}>
+                <SelectTrigger className="w-16 h-8">
                     <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[224px] overflow-y-auto">
                     {timeValues.map((v) => (
                         <SelectItem key={v} value={String(v)}>
                             {v}
@@ -163,7 +163,7 @@ export function ReminderScheduleRow({
                     onChange({ ...schedule, timeUnit: value, timeValue: newValue });
                 }}
             >
-                <SelectTrigger className="w-11 h-8" showChevron={false}>
+                <SelectTrigger className="w-16 h-8">
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,8 +181,7 @@ export function ReminderScheduleRow({
             <TimeSelect
                 value={schedule.sendTime}
                 onValueChange={(value) => onChange({ ...schedule, sendTime: value })}
-                className="h-8"
-                showChevron={false}
+                className="w-[90px] h-8"
             />
 
             {/* 템플릿 선택 - 시간 설정과 구분을 위한 간격 */}
@@ -190,13 +189,13 @@ export function ReminderScheduleRow({
                 value={schedule.templateId || 'default'}
                 onValueChange={handleTemplateChange}
             >
-                <SelectTrigger className="w-[88px] h-8 text-xs ml-4" showChevron={false}>
+                <SelectTrigger className="w-[116px] h-8 text-xs ml-4">
                     <SelectValue>
                         {templatesLoading ? '...' : selectedTemplateName}
                     </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="default">기본</SelectItem>
+                    <SelectItem value="default">기본 템플릿</SelectItem>
                     {templates.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                             {truncateName(template.name)}
@@ -205,12 +204,12 @@ export function ReminderScheduleRow({
                 </SelectContent>
             </Select>
 
-            {/* 삭제 버튼 */}
+            {/* 삭제 버튼 - 2개 이상일 때 호버 시에만 표시 */}
             {canDelete && (
                 <button
                     type="button"
                     onClick={onDelete}
-                    className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors ml-1 shrink-0"
+                    className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-all ml-1 shrink-0 opacity-0 group-hover:opacity-100"
                     aria-label="리마인더 삭제"
                 >
                     <X className="w-4 h-4" />
