@@ -102,7 +102,8 @@ export function QuestionCard({
     // 선택지가 필요한 타입으로 변경 시 기본 옵션 추가
     const newTypeInfo = QUESTION_TYPE_INFO[newQuestionType];
     if (newTypeInfo.hasOptions && (!question.options || question.options.length === 0)) {
-      updates.options = ['옵션 1', '옵션 2'];
+      // 체크박스는 기본 1개, 나머지(객관식, 드롭다운)는 2개
+      updates.options = newQuestionType === 'MULTI_CHOICE' ? ['옵션 1'] : ['옵션 1', '옵션 2'];
     }
 
     // 선택지가 필요 없는 타입으로 변경 시 옵션 초기화
@@ -160,9 +161,9 @@ export function QuestionCard({
         ref={containerRef}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`relative bg-white border border-gray-200 rounded-lg shadow-sm transition-all ${
-          isDragging ? 'shadow-lg ring-2 ring-blue-300' : ''
-        } ${isFocused ? 'ring-2 ring-blue-500 border-blue-500' : 'hover:border-gray-300'}`}
+        className={`relative bg-white border rounded-lg shadow-sm transition-all ${
+          isDragging ? 'shadow-lg ring-2 ring-blue-300 border-transparent' : ''
+        } ${isFocused ? 'ring-2 ring-blue-300 border-transparent' : 'border-gray-200 hover:border-gray-300'}`}
       >
         {/* 드래그 핸들 - 중앙 상단 */}
         <div
@@ -239,8 +240,8 @@ export function QuestionCard({
 
           {/* 하단: 액션 버튼 + 필수 토글 */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-            {/* 액션 버튼 */}
-            <div className="flex items-center gap-1">
+            {/* 액션 버튼 - Focus/Hover 시에만 표시 */}
+            <div className={`flex items-center gap-1 transition-opacity duration-200 ${showDragHandle ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               <button
                 type="button"
                 onClick={onDuplicate}
