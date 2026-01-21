@@ -5,16 +5,23 @@ import {
     type DocumentBoxStatus,
     DOCUMENT_BOX_STATUS_SHORT_LABELS,
 } from "@/lib/types/document";
+import { formatSubmissionDate } from "@/lib/types/submitter";
 
 interface DocumentCardProps {
     title: string;
     description: string;
-    createdDate: string;
-    dueDate: string;
-    currentCount: number;
-    totalCount: number;
-    unsubmittedCount: number;
-    hasLimitedSubmitters?: boolean;
+    /** 문서함 생성일 */
+    createdAt: Date;
+    /** 문서함 마감일 */
+    endDate: Date;
+    /** 제출 완료 수 */
+    submittedCount: number;
+    /** 전체 제출자 수 */
+    totalSubmitters: number;
+    /** 미제출 수 */
+    notSubmittedCount: number;
+    /** 지정 제출자 여부 */
+    hasDesignatedSubmitters?: boolean;
     documentBoxId: string;
     /** 문서함 상태 (OPEN, CLOSED, OPEN_SOMEONE, CLOSED_EXPIRED, OPEN_RESUME) */
     documentBoxStatus?: DocumentBoxStatus;
@@ -23,12 +30,12 @@ interface DocumentCardProps {
 export function DocumentCard({
     title,
     description,
-    createdDate,
-    dueDate,
-    currentCount,
-    totalCount,
-    unsubmittedCount,
-    hasLimitedSubmitters = true,
+    createdAt,
+    endDate,
+    submittedCount,
+    totalSubmitters,
+    notSubmittedCount,
+    hasDesignatedSubmitters = true,
     documentBoxId,
     documentBoxStatus = 'OPEN',
 }: DocumentCardProps) {
@@ -60,32 +67,32 @@ export function DocumentCard({
             <div className="space-y-2 mb-6 text-sm text-slate-600">
                 <div className="flex gap-2">
                     <span className="w-16 text-slate-500">생성일:</span>
-                    <span>{createdDate}</span>
+                    <span>{formatSubmissionDate(createdAt)}</span>
                 </div>
                 <div className="flex gap-2">
                     <span className="w-16 text-slate-500">마감일:</span>
-                    <span>{dueDate}</span>
+                    <span>{formatSubmissionDate(endDate)}</span>
                 </div>
                 <div className="flex gap-2">
                     <span className="w-16 text-slate-500">제출:</span>
                     <span>
-                        {hasLimitedSubmitters ? (
+                        {hasDesignatedSubmitters ? (
                             <>
-                                {currentCount} / {totalCount}명
-                                {unsubmittedCount > 0 && (
+                                {submittedCount} / {totalSubmitters}명
+                                {notSubmittedCount > 0 && (
                                     <span className="text-orange-500 ml-1">
-                                        (미제출 {unsubmittedCount}명)
+                                        (미제출 {notSubmittedCount}명)
                                     </span>
                                 )}
                             </>
                         ) : (
-                            <>{currentCount}명 제출</>
+                            <>{submittedCount}명 제출</>
                         )}
                     </span>
                 </div>
             </div>
 
-            {hasLimitedSubmitters && <LabeledProgress label="진행률" current={currentCount} total={totalCount} displayMode="percentage" size="lg"/>}
+            {hasDesignatedSubmitters && <LabeledProgress label="진행률" current={submittedCount} total={totalSubmitters} displayMode="percentage" size="lg"/>}
 
             <div className="flex-1"></div>
 
