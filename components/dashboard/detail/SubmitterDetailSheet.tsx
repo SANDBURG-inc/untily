@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { User, Mail, Phone, Calendar, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Loader2, RotateCcw } from 'lucide-react';
 import {
     Sheet,
     SheetContent,
@@ -186,50 +186,75 @@ export function SubmitterDetailSheet({
     return (
         <>
             <Sheet open={open} onOpenChange={onOpenChange}>
-                <SheetContent side="right" className="w-[85vw] sm:w-[60vw] lg:w-[50vw] max-w-[800px] overflow-y-auto p-6">
-                    <SheetHeader className="mb-6">
-                        <SheetTitle>제출자 상세</SheetTitle>
+                <SheetContent side="right" className="w-[85vw] sm:w-[60vw] lg:w-[50vw] max-w-[800px] overflow-y-auto p-0">
+                    {/* 헤더: SubmitPreviewSheet 스타일 참고 */}
+                    <SheetHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4">
+                        <SheetTitle className="text-xl font-bold text-gray-700">제출자 상세</SheetTitle>
                     </SheetHeader>
 
                     {isLoading && (
-                        <div className="flex items-center justify-center py-16">
+                        <div className="flex items-center justify-center py-16 px-6">
                             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                         </div>
                     )}
 
                     {error && (
-                        <div className="text-center py-16 text-red-500">
+                        <div className="text-center py-16 px-6 text-red-500">
                             <p>{error}</p>
                         </div>
                     )}
 
                     {submitter && !isLoading && (
-                        <div className="space-y-6">
-                            {/* 제출자 정보 */}
-                            <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                        <div className="px-6 py-5 space-y-6">
+                            {/* 제출자 정보 - Primary 위계 */}
+                            <div className="space-y-3">
+                                {/* 이름: 헤더보다 작게 */}
                                 <div className="flex items-center gap-3">
-                                    <User className="w-5 h-5 text-gray-400" />
-                                    <span className="text-lg font-semibold">{submitter.name}</span>
+                                    <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <User className="w-4 h-4 text-gray-600" />
+                                    </div>
+                                    <span className="text-lg font-semibold text-gray-900">{submitter.name}</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm text-gray-600">
-                                    <Mail className="w-4 h-4 text-gray-400" />
-                                    <span>{submitter.email}</span>
+
+                                {/* 연락처/제출일: Secondary 위계 - 가로 배치 */}
+                                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
+                                    <div className="flex items-center gap-2">
+                                        <Mail className="w-4 h-4 text-gray-400" />
+                                        <span>{submitter.email}</span>
+                                    </div>
+                                    {submitter.phone && (
+                                        <div className="flex items-center gap-2">
+                                            <Phone className="w-4 h-4 text-gray-400" />
+                                            <span>{submitter.phone}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 text-gray-400" />
+                                        <span>{formatDate(submitter.lastSubmittedAt)}</span>
+                                    </div>
                                 </div>
-                                {submitter.phone && (
-                                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                                        <Phone className="w-4 h-4 text-gray-400" />
-                                        <span>{submitter.phone}</span>
+
+                                {/* 재제출 이력 */}
+                                {submitter.resubmissionLogs.length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                        <div className="flex items-center gap-2 text-sm text-amber-600">
+                                            <RotateCcw className="w-4 h-4" />
+                                            <span className="font-medium">재제출 {submitter.resubmissionLogs.length}회</span>
+                                        </div>
+                                        <div className="mt-2 pl-6 space-y-1 text-xs text-gray-500">
+                                            {submitter.resubmissionLogs.map((log, index) => (
+                                                <div key={index}>
+                                                    {formatDate(log.resubmittedAt)}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
-                                <div className="flex items-center gap-3 text-sm text-gray-600">
-                                    <Calendar className="w-4 h-4 text-gray-400" />
-                                    <span>제출일: {formatDate(submitter.lastSubmittedAt)}</span>
-                                </div>
                             </div>
 
                             {/* 폼 응답 - 파일 목록 위에 표시 */}
                             {formResponses?.hasResponses && (
-                                <FormResponseList groups={formResponses.groups} />
+                                <FormResponseList fields={formResponses.fields} groups={formResponses.groups} />
                             )}
 
                             {/* 제출 파일 목록 */}

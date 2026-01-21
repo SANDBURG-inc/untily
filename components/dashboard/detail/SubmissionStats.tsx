@@ -1,3 +1,5 @@
+'use client';
+
 import { FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from './StatCard';
@@ -51,14 +53,14 @@ export function SubmissionStats({
                     <div className="grid grid-cols-3 gap-4">
                         <StatCard label="생성일" value={formatSubmissionDate(createdAt)} />
                         <StatCard label="마감일" value={formatSubmissionDate(endDate)} />
-                        <StatCard label="제출자" value={`${totalSubmitters}명`} />
+                        <StatCard label="등록된 제출자" value={`${totalSubmitters}명`} />
                         <StatCard
                             label="제출완료"
                             value={`${submittedCount}명`}
                             valueClassName="text-green-600"
                         />
                         <StatCard
-                            label="미제출"
+                            label="미제출(반려포함)"
                             value={`${notSubmittedCount}명`}
                             valueClassName="text-orange-500"
                         />

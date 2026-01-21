@@ -1,5 +1,6 @@
 import prisma from '@/lib/db';
 import type { DocumentBoxStatus } from '@/lib/types/document';
+import type { SubmitterStatus } from '@/lib/types/submitter';
 
 /**
  * 문서함 관련 Prisma 쿼리 레이어
@@ -26,6 +27,13 @@ export interface SubmitterWithFiles {
     phone: string | null;
     lastSubmittedAt: Date | null;
     files: SubmittedFileDetail[];
+    // 재제출 이력 (제출자 상세에서 표시용)
+    resubmissionLogs: ResubmissionLogInfo[];
+}
+
+// 재제출 기록 타입
+export interface ResubmissionLogInfo {
+    resubmittedAt: Date;
 }
 
 // 제출자 정보 + 제출 현황 조회 결과 타입
@@ -36,6 +44,10 @@ export interface SubmitterWithStatus {
     phone: string | null;
     submittedCount: number;
     lastSubmittedAt: Date | null;
+    // 신규 필드
+    status: SubmitterStatus;
+    isChecked: boolean;
+    resubmissionLogs: ResubmissionLogInfo[];
 }
 
 // 문서함 상세 조회 결과 타입
@@ -102,9 +114,13 @@ export async function getDocumentBoxWithSubmissionStatus(
                             createdAt: true,
                         },
                     },
+                    resubmissionLogs: {
+                        select: { resubmittedAt: true },
+                        orderBy: { resubmittedAt: 'desc' },
+                    },
                 },
             },
-            requiredDocuments: true,
+            requiredDocuments: { orderBy: { order: 'asc' } },
             documentBoxRemindTypes: true,
             reminderLogs: {
                 orderBy: { sentAt: 'desc' },
@@ -142,6 +158,11 @@ export async function getDocumentBoxWithSubmissionStatus(
             phone: submitter.phone || null,
             submittedCount: submittedDocs.length,
             lastSubmittedAt,
+            status: submitter.status as SubmitterStatus,
+            isChecked: submitter.isChecked,
+            resubmissionLogs: submitter.resubmissionLogs.map(log => ({
+                resubmittedAt: log.resubmittedAt,
+            })),
         };
     });
 
@@ -174,19 +195,14 @@ export async function getDocumentBoxForEdit(documentBoxId: string, userId: strin
         where: { documentBoxId },
         include: {
             submitters: true,
-            requiredDocuments: true,
+            requiredDocuments: { orderBy: { order: 'asc' } },
             documentBoxRemindTypes: true,
             logos: {
                 where: { type: 'DOCUMENT_BOX' },
                 take: 1,
             },
-            formFieldGroups: {
+            formFields: {
                 orderBy: { order: 'asc' },
-                include: {
-                    formFields: {
-                        orderBy: { order: 'asc' },
-                    },
-                },
             },
         },
     });
@@ -255,7 +271,7 @@ export async function getDocumentBoxesByUser(userId: string) {
         where: { userId },
         include: {
             submitters: true,
-            requiredDocuments: true,
+            requiredDocuments: { orderBy: { order: 'asc' } },
         },
         orderBy: { createdAt: 'desc' },
     });
@@ -336,11 +352,19 @@ export async function getSubmitterWithFiles(
                     submittedDocuments: {
                         include: {
                             requiredDocument: {
-                                select: { documentTitle: true }
+                                select: { documentTitle: true, order: true }
                             }
                         },
-                        orderBy: { createdAt: 'desc' }
-                    }
+                        orderBy: [
+                            { requiredDocument: { order: 'asc' } },
+                            { createdAt: 'desc' }
+                        ]
+                    },
+                    // 재제출 이력 조회 (최신순)
+                    resubmissionLogs: {
+                        select: { resubmittedAt: true },
+                        orderBy: { resubmittedAt: 'desc' },
+                    },
                 }
             }
         }
@@ -372,7 +396,10 @@ export async function getSubmitterWithFiles(
         email: submitter.email,
         phone: submitter.phone,
         lastSubmittedAt,
-        files
+        files,
+        resubmissionLogs: submitter.resubmissionLogs.map(log => ({
+            resubmittedAt: log.resubmittedAt,
+        })),
     };
 }
 

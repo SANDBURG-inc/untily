@@ -1,7 +1,7 @@
 'use server';
 
 import prisma from "@/lib/db";
-import { RemindType, ReminderTimeUnit, DocumentBoxStatus } from "@/lib/generated/prisma/client";
+import { RemindType, ReminderTimeUnit, DocumentBoxStatus, SubmitterStatus } from "@/lib/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { Resend } from 'resend';
 import { generateReminderEmailHtml } from '@/lib/email-templates';
@@ -13,6 +13,8 @@ import {
     type ReminderTimeUnitType,
     type SendTimeOption,
 } from '@/lib/types/reminder';
+import type { SubmittedSubmitterStatus } from '@/lib/types/submitter';
+import { getSubmissionUrl } from '@/lib/utils/url';
 
 export async function disableAutoReminder(documentBoxId: string) {
     try {
@@ -65,7 +67,7 @@ export async function sendManualReminder(
         // 1. Fetch details for email
         const documentBox = await prisma.documentBox.findUnique({
             where: { documentBoxId },
-            include: { requiredDocuments: true }
+            include: { requiredDocuments: { orderBy: { order: 'asc' } } }
         });
 
         if (!documentBox) {
@@ -98,7 +100,7 @@ export async function sendManualReminder(
         const emails = submitters
             .filter(submitter => submitter.email)
             .map(submitter => {
-                const submissionLink = `https://untily.kr/submit/${documentBoxId}/${submitter.submitterId}`;
+                const submissionLink = getSubmissionUrl(documentBoxId, submitter.submitterId);
 
                 const emailHtml = generateReminderEmailHtml({
                     submitterName: submitter.name,
@@ -308,7 +310,7 @@ export async function sendReminderAfterDeadline(
         // 1. 문서함 조회
         const documentBox = await prisma.documentBox.findUnique({
             where: { documentBoxId },
-            include: { requiredDocuments: true },
+            include: { requiredDocuments: { orderBy: { order: 'asc' } } },
         });
 
         if (!documentBox) {
@@ -342,7 +344,7 @@ export async function sendReminderAfterDeadline(
         const emails = submitters
             .filter((submitter) => submitter.email)
             .map((submitter) => {
-                const submissionLink = `https://untily.kr/submit/${documentBoxId}/${submitter.submitterId}`;
+                const submissionLink = getSubmissionUrl(documentBoxId, submitter.submitterId);
 
                 const emailHtml = generateReminderEmailHtml({
                     submitterName: submitter.name,
@@ -410,5 +412,75 @@ export async function sendReminderAfterDeadline(
     } catch (error) {
         console.error('Failed to send reminder after deadline:', error);
         return { success: false, error: '리마인드 발송에 실패했습니다.' };
+    }
+}
+
+// ============================================================================
+// 제출자 상태 관리 액션
+// ============================================================================
+
+/**
+ * 제출자 상태 변경 (SUBMITTED <-> REJECTED)
+ *
+ * @param documentBoxId 문서함 ID (revalidatePath용)
+ * @param submitterId 제출자 ID
+ * @param newStatus 새 상태 (SUBMITTED 또는 REJECTED)
+ */
+export async function updateSubmitterStatus(
+    documentBoxId: string,
+    submitterId: string,
+    newStatus: SubmittedSubmitterStatus
+) {
+    try {
+        // 유효한 상태인지 확인
+        if (newStatus !== 'SUBMITTED' && newStatus !== 'REJECTED') {
+            return { success: false, error: '유효하지 않은 상태입니다.' };
+        }
+
+        await prisma.submitter.update({
+            where: { submitterId },
+            data: { status: newStatus as SubmitterStatus },
+        });
+
+        revalidatePath(`/dashboard/${documentBoxId}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to update submitter status:', error);
+        return { success: false, error: '상태 변경에 실패했습니다.' };
+    }
+}
+
+/**
+ * 제출자 확인 상태 토글
+ *
+ * @param documentBoxId 문서함 ID (revalidatePath용)
+ * @param submitterId 제출자 ID
+ */
+export async function toggleSubmitterChecked(
+    documentBoxId: string,
+    submitterId: string
+) {
+    try {
+        // 현재 상태 조회
+        const submitter = await prisma.submitter.findUnique({
+            where: { submitterId },
+            select: { isChecked: true },
+        });
+
+        if (!submitter) {
+            return { success: false, error: '제출자를 찾을 수 없습니다.' };
+        }
+
+        // 토글
+        await prisma.submitter.update({
+            where: { submitterId },
+            data: { isChecked: !submitter.isChecked },
+        });
+
+        revalidatePath(`/dashboard/${documentBoxId}`);
+        return { success: true, isChecked: !submitter.isChecked };
+    } catch (error) {
+        console.error('Failed to toggle submitter checked:', error);
+        return { success: false, error: '확인 상태 변경에 실패했습니다.' };
     }
 }

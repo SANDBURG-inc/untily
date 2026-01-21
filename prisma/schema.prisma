@@ -76,7 +76,7 @@ model DocumentBox {
   logos                  Logo[]
   submitters             Submitter[]
   requiredDocuments      RequiredDocument[]
-  formFieldGroups        FormFieldGroup[]
+  formFields             FormField[]
   documentBoxRemindTypes DocumentBoxRemindType[]
   reminderLogs           ReminderLog[]
   reminderSchedules      ReminderSchedule[]
@@ -91,6 +91,7 @@ model RequiredDocument {
   documentDescription String?
   isRequired          Boolean     @default(true)
   allowMultipleFiles  Boolean     @default(false)
+  order               Int         @default(0) // 표시 순서
   documentBoxId       String
   documentBox         DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId])
 
@@ -118,9 +119,13 @@ model Submitter {
   status      SubmitterStatus @default(PENDING)
   submittedAt DateTime? // 제출 완료 시간
 
+  // 관리자 확인 여부
+  isChecked Boolean @default(false)
+
   submittedDocuments SubmittedDocument[]
   formFieldResponses FormFieldResponse[]
   reminderRecipients ReminderRecipient[]
+  resubmissionLogs   ResubmissionLog[] // 재제출 기록
 
   @@index([userId])
   @@index([email])
@@ -225,6 +230,7 @@ model ReminderSchedule {
 enum SubmitterStatus {
   PENDING
   SUBMITTED
+  REJECTED // 반려됨
 }
 
 // ============================================================================
@@ -232,58 +238,49 @@ enum SubmitterStatus {
 // ============================================================================
 
 enum FormFieldType {
-  TEXT      // 단일 행 텍스트
-  TEXTAREA  // 여러 행 텍스트
+  TEXT      // 단답형 텍스트
+  TEXTAREA  // 장문형 텍스트
   EMAIL     // 이메일 (validation 포함)
   TEL       // 전화번호 (validation 포함)
   DATE      // 날짜 선택
-  CHECKBOX  // 체크박스 (단일)
-  RADIO     // 라디오 버튼 (선택지)
+  TIME      // 시간 선택
+  CHECKBOX  // 체크박스 (복수 선택)
+  RADIO     // 객관식 (1개 선택)
+  DROPDOWN  // 드롭다운 (1개 선택)
 }
 
-// 폼 필드 그룹 (관리자가 생성)
-// 예: "개인정보 동의", "추가 인적사항" 등
-model FormFieldGroup {
-  formFieldGroupId String  @id @default(cuid())
-  groupTitle       String  // 그룹 제목
-  groupDescription String? // 그룹 설명
-  isRequired       Boolean @default(true) // 그룹 필수 여부
-  order            Int     @default(0) // 표시 순서
-
-  documentBoxId String
-  documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
-
-  formFields FormField[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([documentBoxId])
-}
-
-// 폼 필드 정의 (개별 입력 항목)
+// 폼 필드 정의 (개별 질문 - 구글 폼 스타일)
+// 그룹 없이 DocumentBox에 직접 연결
 model FormField {
   formFieldId String        @id @default(cuid())
-  fieldLabel  String        // 필드 레이블 (예: "생년월일")
-  fieldType   FormFieldType // 필드 타입
+  fieldLabel  String        // 질문 텍스트
+  fieldType   FormFieldType // 질문 타입
   placeholder String?       // 플레이스홀더 텍스트
+  description String?       // 질문 설명 (선택적)
   isRequired  Boolean       @default(true) // 필수 여부
-  order       Int           @default(0) // 필드 순서
+  order       Int           @default(0) // 표시 순서
 
-  // radio/checkbox 선택지 (JSON 배열)
-  // 형식: ["동의함", "동의하지 않음"]
+  // 선택지 (JSON 배열) - RADIO, CHECKBOX, DROPDOWN에서 사용
+  // 형식: ["옵션1", "옵션2", "옵션3"]
   options Json? @default("[]")
+
+  // '기타' 옵션 활성화 여부 (RADIO, CHECKBOX에서만 사용)
+  hasOtherOption Boolean @default(false)
 
   // 유효성 검사 규칙 (JSON, 확장용)
   // 형식: {minLength: 1, maxLength: 100}
   validation Json?
 
-  formFieldGroupId String
-  formFieldGroup   FormFieldGroup @relation(fields: [formFieldGroupId], references: [formFieldGroupId], onDelete: Cascade)
+  // DocumentBox에 직접 연결 (FormFieldGroup 제거)
+  documentBoxId String
+  documentBox   DocumentBox @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
 
   responses FormFieldResponse[]
 
-  @@index([formFieldGroupId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentBoxId])
 }
 
 // 폼 응답 (제출자가 입력)
@@ -362,4 +359,18 @@ model DocumentBoxTemplateConfig {
   lastFooterHtml   String?  @db.Text // 아랫말 HTML
 
   updatedAt DateTime @updatedAt
+}
+
+// ============================================================================
+// 재제출 기록 관리
+// ============================================================================
+
+// 반려 후 재제출 시 로그 기록
+model ResubmissionLog {
+  resubmissionLogId String    @id @default(cuid())
+  submitterId       String
+  submitter         Submitter @relation(fields: [submitterId], references: [submitterId], onDelete: Cascade)
+  resubmittedAt     DateTime  @default(now())
+
+  @@index([submitterId])
 }

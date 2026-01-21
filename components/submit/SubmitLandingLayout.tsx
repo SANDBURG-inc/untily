@@ -12,8 +12,10 @@ interface SubmitLandingLayoutProps {
   logoUrl: string;
   /** 제출 버튼 텍스트 */
   buttonText: string;
-  /** 제출 버튼 클릭 시 이동할 URL */
-  buttonHref: string;
+  /** 제출 버튼 클릭 시 이동할 URL (buttonOnClick과 함께 사용 불가) */
+  buttonHref?: string;
+  /** 제출 버튼 클릭 핸들러 (미리보기 모드용, buttonHref 대신 사용) */
+  buttonOnClick?: () => void;
   /** 제목 아래 표시할 콘텐츠 (제출자 정보, 설명, 마감일, 서류 목록 등) */
   children: React.ReactNode;
   /** 제목 margin-bottom 클래스 (기본: 'mb-6') */
@@ -25,6 +27,7 @@ export function SubmitLandingLayout({
   logoUrl,
   buttonText,
   buttonHref,
+  buttonOnClick,
   children,
   titleClassName = 'mb-6',
 }: SubmitLandingLayoutProps) {
@@ -60,12 +63,19 @@ export function SubmitLandingLayout({
             {children}
 
             {/* 제출하기 버튼 */}
-            <Button variant="primary" size="lg" className="w-full" asChild>
-              <Link href={buttonHref}>
+            {buttonOnClick ? (
+              <Button variant="primary" size="lg" className="w-full" onClick={buttonOnClick}>
                 {buttonText}
                 <ArrowRight className="w-5 h-5" />
-              </Link>
-            </Button>
+              </Button>
+            ) : (
+              <Button variant="primary" size="lg" className="w-full" asChild>
+                <Link href={buttonHref!}>
+                  {buttonText}
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+              </Button>
+            )}
 
             {/* 안내 문구 */}
             <p className="text-sm text-muted-foreground text-center mt-6">

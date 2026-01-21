@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Users, Download, FileArchive, FileText, ClockAlert } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Users, Download, FileArchive, FileText, ClockAlert, RotateCcw, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import {
     Tooltip,
@@ -9,12 +9,12 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IconButton } from '@/components/shared/IconButton';
 import { SectionHeader } from '@/components/shared/SectionHeader';
@@ -22,19 +22,29 @@ import { Table, Column } from '@/components/shared/Table';
 import { downloadCsv } from '@/lib/utils/csv-export';
 import type { SubmitterWithStatus } from '@/lib/queries/document-box';
 import {
-    type StatusFilter,
-    STATUS_FILTER_OPTIONS,
-    getSubmissionStatus,
-    getStatusStyle,
-    formatProgress,
+    type SubmittedSubmitterStatus,
+    hasEverSubmitted,
+    SUBMITTER_STATUS_LABELS,
     formatSubmissionDate,
 } from '@/lib/types/submitter';
 import { useIntersectionObserver } from '@/lib/hooks/useIntersectionObserver';
 import { SubmitterDetailSheet } from './SubmitterDetailSheet';
+import { SubmitterStatusDropdown } from './SubmitterStatusDropdown';
+import { CheckedToggle } from './CheckedToggle';
+
+// 제출상태 필터 타입
+type StatusFilter = 'all' | SubmittedSubmitterStatus;
+
+const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+    { value: 'all', label: '전체' },
+    { value: 'SUBMITTED', label: '제출됨' },
+    { value: 'REJECTED', label: '반려됨' },
+];
 
 /**
  * 제출자 목록 컴포넌트
- * 체크박스 선택, CSV 다운로드, 접기/펼치기 기능 제공
+ * 제출 경험이 있는 사람만 표시 (SUBMITTED 또는 REJECTED)
+ * 체크박스 선택, CSV 다운로드 기능 제공
  */
 interface SubmittersListProps {
     /** 제출자 목록 (제출 상태 포함) */
@@ -43,8 +53,6 @@ interface SubmittersListProps {
     documentBoxId: string;
     /** 문서함 제목 (CSV 파일명에 사용) */
     documentBoxTitle: string;
-    /** 필수 서류 총 개수 */
-    totalRequiredDocuments: number;
     /** 문서함 마감일 (늦은 제출 표시용) */
     endDate: Date;
 }
@@ -62,27 +70,28 @@ export function SubmittersList({
     submitters,
     documentBoxId,
     documentBoxTitle,
-    totalRequiredDocuments,
     endDate,
 }: SubmittersListProps) {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [isDownloadingFiles, setIsDownloadingFiles] = useState(false);
     const [isDownloadingResponses, setIsDownloadingResponses] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
     // Sheet 상태
     const [sheetOpen, setSheetOpen] = useState(false);
     const [selectedSubmitterId, setSelectedSubmitterId] = useState<string | null>(null);
 
-    // 필터링된 제출자 목록
+    // 제출 경험이 있는 제출자만 필터링 (SUBMITTED 또는 REJECTED)
+    const submittedSubmitters = useMemo(() => {
+        return submitters.filter(s => hasEverSubmitted(s.status));
+    }, [submitters]);
+
+    // 상태 필터 적용
     const filteredSubmitters = useMemo(() => {
-        if (statusFilter === 'all') return submitters;
-        return submitters.filter(s => {
-            const status = getSubmissionStatus(s.submittedCount, totalRequiredDocuments);
-            return status === statusFilter;
-        });
-    }, [submitters, statusFilter, totalRequiredDocuments]);
+        if (statusFilter === 'all') return submittedSubmitters;
+        return submittedSubmitters.filter(s => s.status === statusFilter);
+    }, [submittedSubmitters, statusFilter]);
 
     const displayedSubmitters = useMemo(() => {
         return filteredSubmitters.slice(0, displayCount);
@@ -96,22 +105,28 @@ export function SubmittersList({
         onIntersect: handleLoadMore,
     });
 
-    // 필터 변경 시 displayCount 초기화
-    useEffect(() => {
-        setDisplayCount(INITIAL_DISPLAY_COUNT);
-    }, [statusFilter]);
-
+    // 현재 필터링된 목록 기준으로 전체 선택 판단
     const allSelected = useMemo(() => {
-        return submitters.length > 0 && selectedIds.size === submitters.length;
-    }, [submitters.length, selectedIds.size]);
+        return filteredSubmitters.length > 0 && filteredSubmitters.every(s => selectedIds.has(s.submitterId));
+    }, [filteredSubmitters, selectedIds]);
 
     const handleSelectAll = useCallback(() => {
         if (allSelected) {
-            setSelectedIds(new Set());
+            // 필터된 항목들만 선택 해제
+            setSelectedIds(prev => {
+                const newSelected = new Set(prev);
+                filteredSubmitters.forEach(s => newSelected.delete(s.submitterId));
+                return newSelected;
+            });
         } else {
-            setSelectedIds(new Set(submitters.map(s => s.submitterId)));
+            // 필터된 항목들 선택 추가
+            setSelectedIds(prev => {
+                const newSelected = new Set(prev);
+                filteredSubmitters.forEach(s => newSelected.add(s.submitterId));
+                return newSelected;
+            });
         }
-    }, [allSelected, submitters]);
+    }, [allSelected, filteredSubmitters]);
 
     const handleSelectOne = useCallback((id: string) => {
         setSelectedIds(prev => {
@@ -150,14 +165,21 @@ export function SubmittersList({
         {
             key: 'name',
             header: '이름',
-            render: (submitter) => (
-                <button
-                    onClick={() => handleNameClick(submitter.submitterId)}
-                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium text-left"
-                >
-                    {submitter.name}
-                </button>
-            ),
+            render: (submitter) => {
+                // 제출됨/반려됨만 클릭 가능
+                const canClick = hasEverSubmitted(submitter.status);
+                if (canClick) {
+                    return (
+                        <button
+                            onClick={() => handleNameClick(submitter.submitterId)}
+                            className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium text-left"
+                        >
+                            {submitter.name}
+                        </button>
+                    );
+                }
+                return <span className="text-sm text-gray-900">{submitter.name}</span>;
+            },
         },
         {
             key: 'email',
@@ -175,56 +197,87 @@ export function SubmittersList({
         },
         {
             key: 'status',
-            header: '제출상태',
-            render: (submitter) => {
-                const status = getSubmissionStatus(submitter.submittedCount, totalRequiredDocuments);
-                return (
-                    <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusStyle(status)}`}>
-                        {status}
-                    </span>
-                );
-            },
+            header: (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button className="inline-flex items-center gap-1 hover:text-gray-900 focus:outline-none">
+                            제출상태
+                            <ChevronDown className="w-3 h-3" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                        {STATUS_FILTER_OPTIONS.map((option) => (
+                            <DropdownMenuItem
+                                key={option.value}
+                                onClick={() => setStatusFilter(option.value)}
+                                className={statusFilter === option.value ? 'bg-gray-100' : ''}
+                            >
+                                {option.label}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+            render: (submitter) => (
+                <SubmitterStatusDropdown
+                    documentBoxId={documentBoxId}
+                    submitterId={submitter.submitterId}
+                    currentStatus={submitter.status as SubmittedSubmitterStatus}
+                />
+            ),
         },
         {
             key: 'lastDate',
             header: '제출일',
             render: (submitter) => {
                 const isLate = isLateSubmission(submitter.lastSubmittedAt, endDate);
+                const resubmissionCount = submitter.resubmissionLogs.length;
                 return (
                     <span className="text-sm text-gray-600 flex items-center gap-1">
                         {formatSubmissionDate(submitter.lastSubmittedAt)}
                         {isLate && (
                             <ClockAlert className="w-3.5 h-3.5 text-orange-500" />
                         )}
+                        {resubmissionCount > 0 && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                                        <RotateCcw className="w-2.5 h-2.5 mr-0.5" />
+                                        {resubmissionCount}
+                                    </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    재제출 {resubmissionCount}회
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
                     </span>
                 );
             },
         },
         {
-            key: 'progress',
-            header: '진행상황',
+            key: 'checked',
+            header: '확인',
             render: (submitter) => (
-                <span className="text-sm text-gray-600">
-                    {formatProgress(submitter.submittedCount, totalRequiredDocuments)}
-                </span>
+                <CheckedToggle
+                    documentBoxId={documentBoxId}
+                    submitterId={submitter.submitterId}
+                    isChecked={submitter.isChecked}
+                />
             ),
         },
-        {
-            key: 'action',
-            header: '',
-            render: () => <span className="text-sm text-gray-400">...</span>,
-        },
-    ], [allSelected, selectedIds, totalRequiredDocuments, endDate, handleSelectAll, handleSelectOne, handleNameClick]);
+    ], [allSelected, selectedIds, documentBoxId, endDate, statusFilter, handleSelectAll, handleSelectOne, handleNameClick]);
 
     const handleDownload = () => {
-        const headers = ['이름', '이메일', '휴대전화', '제출상태', '제출일', '진행상황'];
-        const rows = submitters.map(s => [
+        const headers = ['이름', '이메일', '휴대전화', '제출상태', '제출일', '재제출횟수', '확인'];
+        const rows = submittedSubmitters.map(s => [
             s.name,
             s.email,
             s.phone || '',
-            getSubmissionStatus(s.submittedCount, totalRequiredDocuments),
+            SUBMITTER_STATUS_LABELS[s.status as SubmittedSubmitterStatus] || s.status,
             formatSubmissionDate(s.lastSubmittedAt),
-            formatProgress(s.submittedCount, totalRequiredDocuments),
+            String(s.resubmissionLogs.length),
+            s.isChecked ? 'O' : '',
         ]);
 
         downloadCsv({
@@ -322,7 +375,7 @@ export function SubmittersList({
                     >
                         {isDownloadingResponses ? '다운로드 중...' : '폼 응답'}
                     </IconButton>
-                    {submitters.length > 0 && (
+                    {submittedSubmitters.length > 0 && (
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <IconButton
@@ -349,20 +402,6 @@ export function SubmittersList({
             </CardHeader>
 
             <CardContent variant="compact">
-                <div className="mb-4">
-                    <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
-                        <SelectTrigger className="w-[140px]">
-                            <SelectValue placeholder="제출상태" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {STATUS_FILTER_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
                 <div className="max-h-[500px] overflow-y-auto">
                     <Table
                         columns={columns}

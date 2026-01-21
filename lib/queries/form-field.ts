@@ -2,13 +2,12 @@ import prisma from '@/lib/db';
 import type {
   FormFieldType,
   FormResponseViewData,
-  FormResponseGroupViewData,
   SubmitterFormResponsesData,
 } from '@/lib/types/form-field';
 
 /**
  * 제출자의 폼 응답 조회 (관리자용)
- * 그룹 → 필드 → 응답 구조로 반환
+ * 필드 → 응답 구조로 반환 (그룹 제거)
  *
  * @param documentBoxId 문서함 ID
  * @param submitterId 제출자 ID
@@ -20,7 +19,7 @@ export async function getSubmitterFormResponses(
   submitterId: string,
   userId: string
 ): Promise<SubmitterFormResponsesData | null> {
-  // 문서함 소유권 + 제출자 + 폼 필드 그룹 조회
+  // 문서함 소유권 + 제출자 + 폼 필드 조회
   const documentBox = await prisma.documentBox.findUnique({
     where: { documentBoxId },
     select: {
@@ -29,16 +28,11 @@ export async function getSubmitterFormResponses(
         where: { submitterId },
         select: { submitterId: true, name: true },
       },
-      formFieldGroups: {
+      formFields: {
         orderBy: { order: 'asc' },
         include: {
-          formFields: {
-            orderBy: { order: 'asc' },
-            include: {
-              responses: {
-                where: { submitterId },
-              },
-            },
+          responses: {
+            where: { submitterId },
           },
         },
       },
@@ -55,37 +49,30 @@ export async function getSubmitterFormResponses(
     return null;
   }
 
-  // 그룹 → 필드 → 응답 구조로 변환
-  const groups: FormResponseGroupViewData[] = documentBox.formFieldGroups.map(
-    (group) => ({
-      formFieldGroupId: group.formFieldGroupId,
-      groupTitle: group.groupTitle,
-      groupDescription: group.groupDescription ?? undefined,
-      isRequired: group.isRequired,
-      fields: group.formFields.map((field): FormResponseViewData => ({
-        formFieldId: field.formFieldId,
-        fieldLabel: field.fieldLabel,
-        fieldType: field.fieldType as FormFieldType,
-        isRequired: field.isRequired,
-        value: field.responses[0]?.value ?? null,
-        // RADIO 타입일 때만 선택지 포함
-        options:
-          field.fieldType === 'RADIO'
-            ? ((field.options as string[] | null) ?? undefined)
-            : undefined,
-      })),
+  // 필드 → 응답 구조로 변환
+  const fields: FormResponseViewData[] = documentBox.formFields.map(
+    (field): FormResponseViewData => ({
+      formFieldId: field.formFieldId,
+      fieldLabel: field.fieldLabel,
+      fieldType: field.fieldType as FormFieldType,
+      isRequired: field.isRequired,
+      value: field.responses[0]?.value ?? null,
+      // RADIO, CHECKBOX, DROPDOWN 타입일 때 선택지 포함
+      options:
+        ['RADIO', 'CHECKBOX', 'DROPDOWN'].includes(field.fieldType)
+          ? ((field.options as string[] | null) ?? undefined)
+          : undefined,
+      hasOtherOption: field.hasOtherOption || undefined,
     })
   );
 
   // 응답 존재 여부 확인
-  const hasResponses = groups.some((group) =>
-    group.fields.some((field) => field.value !== null)
-  );
+  const hasResponses = fields.some((field) => field.value !== null);
 
   return {
     submitterId: submitter.submitterId,
     submitterName: submitter.name,
-    groups,
+    fields,
     hasResponses,
   };
 }
@@ -99,9 +86,7 @@ export interface FormFieldForExport {
   formFieldId: string;
   fieldLabel: string;
   fieldType: FormFieldType;
-  groupTitle: string;
-  order: number; // 필드 순서
-  groupOrder: number; // 그룹 순서
+  order: number;
 }
 
 /** 제출자별 폼 응답 데이터 */
@@ -128,7 +113,7 @@ export interface FormResponsesExportData {
 /**
  * CSV 내보내기용 폼 응답 데이터 조회
  * - 문서함 소유권 검증
- * - 폼 필드 그룹/필드를 order 기준으로 정렬
+ * - 폼 필드를 order 기준으로 정렬
  * - 제출자별 응답 매핑 (응답 없는 제출자도 포함)
  *
  * @param documentBoxId 문서함 ID
@@ -142,18 +127,13 @@ export async function getFormResponsesForExport(
   const documentBox = await prisma.documentBox.findUnique({
     where: { documentBoxId },
     include: {
-      formFieldGroups: {
+      formFields: {
         orderBy: { order: 'asc' },
         include: {
-          formFields: {
-            orderBy: { order: 'asc' },
-            include: {
-              responses: {
-                select: {
-                  value: true,
-                  submitterId: true,
-                },
-              },
+          responses: {
+            select: {
+              value: true,
+              submitterId: true,
             },
           },
         },
@@ -176,33 +156,24 @@ export async function getFormResponsesForExport(
     return null;
   }
 
-  // 필드 목록 평탄화 (그룹 order → 필드 order 순서)
-  const fields: FormFieldForExport[] = [];
-  for (const group of documentBox.formFieldGroups) {
-    for (const field of group.formFields) {
-      fields.push({
-        formFieldId: field.formFieldId,
-        fieldLabel: field.fieldLabel,
-        fieldType: field.fieldType as FormFieldType,
-        groupTitle: group.groupTitle,
-        order: field.order,
-        groupOrder: group.order,
-      });
-    }
-  }
+  // 필드 목록
+  const fields: FormFieldForExport[] = documentBox.formFields.map((field) => ({
+    formFieldId: field.formFieldId,
+    fieldLabel: field.fieldLabel,
+    fieldType: field.fieldType as FormFieldType,
+    order: field.order,
+  }));
 
   // 제출자별 응답 매핑
   const submitterResponseMap = new Map<string, Map<string, string>>();
 
-  for (const group of documentBox.formFieldGroups) {
-    for (const field of group.formFields) {
-      for (const response of field.responses) {
-        const { submitterId, value } = response;
-        if (!submitterResponseMap.has(submitterId)) {
-          submitterResponseMap.set(submitterId, new Map());
-        }
-        submitterResponseMap.get(submitterId)!.set(field.formFieldId, value);
+  for (const field of documentBox.formFields) {
+    for (const response of field.responses) {
+      const { submitterId, value } = response;
+      if (!submitterResponseMap.has(submitterId)) {
+        submitterResponseMap.set(submitterId, new Map());
       }
+      submitterResponseMap.get(submitterId)!.set(field.formFieldId, value);
     }
   }
 

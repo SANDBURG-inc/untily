@@ -91,14 +91,9 @@ export async function validatePublicSubmitAuth(
   const documentBox = await prisma.documentBox.findUnique({
     where: { documentBoxId },
     include: {
-      requiredDocuments: true,
-      formFieldGroups: {
+      requiredDocuments: { orderBy: { order: 'asc' } },
+      formFields: {
         orderBy: { order: 'asc' },
-        include: {
-          formFields: {
-            orderBy: { order: 'asc' },
-          },
-        },
       },
     },
   });
@@ -178,8 +173,10 @@ export async function validatePublicSubmitAuth(
     documentBox: {
       ...documentBox,
       requiredDocuments: documentBox.requiredDocuments,
+      formFields: documentBox.formFields,
     },
     submittedDocuments: submitter.submittedDocuments,
+    formFieldResponses: submitter.formFieldResponses,
   };
 
   return { status: 'success', user: user as NeonAuthUser, submitter: submitterWithDocBox, logoUrl };
@@ -199,7 +196,7 @@ export async function getPublicDocumentBox(
   const documentBox = await prisma.documentBox.findUnique({
     where: { documentBoxId },
     include: {
-      requiredDocuments: true,
+      requiredDocuments: { orderBy: { order: 'asc' } },
     },
   });
 

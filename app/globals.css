@@ -237,3 +237,34 @@ button,
   border-radius: 9999px;
   min-height: 30px;
 }
+
+/* Collapsible 애니메이션 */
+@keyframes collapsible-slide-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes collapsible-slide-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+.collapsible-content[data-state="open"] {
+  animation: collapsible-slide-down 200ms ease-out;
+}
+
+.collapsible-content[data-state="closed"] {
+  animation: collapsible-slide-up 200ms ease-out;
+}

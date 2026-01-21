@@ -64,8 +64,8 @@ export function AutoReminderTemplateSelector({
     // 현재 선택된 템플릿 이름
     const selectedName =
         selectedId === null || selectedId === 'default'
-            ? '기본 템플릿'
-            : templates.find((t) => t.id === selectedId)?.name || '기본 템플릿';
+            ? '기본템플릿'
+            : templates.find((t) => t.id === selectedId)?.name || '기본템플릿';
 
     return (
         <div className="space-y-2">
@@ -92,7 +92,7 @@ export function AutoReminderTemplateSelector({
                                 : ''
                         }
                     >
-                        <span className="font-medium">기본 템플릿</span>
+                        <span className="font-medium">기본템플릿</span>
                     </DropdownMenuItem>
 
                     {templates.length > 0 && <DropdownMenuSeparator />}

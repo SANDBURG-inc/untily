@@ -8,10 +8,12 @@ import { FormFieldGroupItem } from '@/components/submit/form';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { LabeledProgress } from '@/components/shared/LabeledProgress';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/Button';
 import { AlertBanner } from '@/components/shared/AlertBanner';
 import { SubmitActionFooter } from '@/app/submit/_components';
 import {
   type FormFieldGroupData,
+  type FormFieldData,
   type FormFieldResponseData,
   validateFormFieldValue,
   getIncompleteFormFields,
@@ -58,6 +60,10 @@ export interface BaseUploadFormProps {
   formFieldsAboveDocuments?: boolean;
   /** 기존 폼 응답 */
   initialFormResponses?: FormFieldResponseData[];
+  /** 미리보기 모드 (업로드/저장 불가, UI만 체험) */
+  previewMode?: boolean;
+  /** 미리보기 모드에서 뒤로가기 핸들러 */
+  onPreviewBack?: () => void;
 }
 
 // Debounce 시간 (ms)
@@ -72,6 +78,8 @@ export default function BaseUploadForm({
   formFieldGroups = [],
   formFieldsAboveDocuments = false,
   initialFormResponses = [],
+  previewMode = false,
+  onPreviewBack,
 }: BaseUploadFormProps) {
   const router = useRouter();
 
@@ -128,8 +136,11 @@ export default function BaseUploadForm({
     setError(errorMsg);
   }, []);
 
-  // 폼 응답 자동 저장
+  // 폼 응답 자동 저장 (미리보기 모드에서는 실행 안 함)
   const saveFormResponse = useCallback(async (fieldId: string, value: string) => {
+    // 미리보기 모드에서는 저장하지 않음
+    if (previewMode) return;
+
     setSavingFields((prev) => new Set(prev).add(fieldId));
 
     try {
@@ -157,7 +168,7 @@ export default function BaseUploadForm({
         return next;
       });
     }
-  }, [documentBoxId, submitterId]);
+  }, [documentBoxId, submitterId, previewMode]);
 
   // 폼 응답 변경 핸들러 (debounce 적용)
   const handleFormResponseChange = useCallback((fieldId: string, value: string) => {
@@ -204,9 +215,10 @@ export default function BaseUploadForm({
       return;
     }
 
-    // 2. 필수 폼 필드 검증
+    // 2. 필수 폼 필드 검증 - 그룹에서 필드 평탄화
+    const allFields: FormFieldData[] = formFieldGroups.flatMap(g => g.fields);
     const incompleteFields = getIncompleteFormFields(
-      formFieldGroups,
+      allFields,
       Array.from(formResponses.entries()).map(([formFieldId, value]) => ({ formFieldId, value }))
     );
 
@@ -308,6 +320,7 @@ export default function BaseUploadForm({
             existingUploads={existingUploads}
             onUploadsChange={(uploads) => handleUploadsChange(doc.requiredDocumentId, uploads)}
             onUploadError={handleUploadError}
+            previewMode={previewMode}
           />
         );
       })}
@@ -361,13 +374,37 @@ export default function BaseUploadForm({
       </main>
 
       {/* 하단 고정 버튼 영역 */}
-      <SubmitActionFooter
-        primaryLabel="다음"
-        secondaryLabel="임시저장"
-        onPrimary={handleSubmit}
-        onSecondary={() => router.back()}
-        primaryDisabled={!canProceed}
-      />
+      {previewMode ? (
+        // 미리보기 모드: sticky footer (Sheet 내부에서 동작)
+        <footer className="sticky bottom-0 bg-card border-t border-border px-4 py-4">
+          <div className="max-w-2xl mx-auto flex gap-3">
+            <Button
+              variant="secondary"
+              size="lg"
+              className="flex-1"
+              onClick={onPreviewBack}
+            >
+              뒤로가기
+            </Button>
+            <Button
+              variant="primary"
+              size="lg"
+              className="flex-1"
+              disabled={true}
+            >
+              다음
+            </Button>
+          </div>
+        </footer>
+      ) : (
+        <SubmitActionFooter
+          primaryLabel="다음"
+          secondaryLabel="임시저장"
+          onPrimary={handleSubmit}
+          onSecondary={() => router.back()}
+          primaryDisabled={!canProceed}
+        />
+      )}
     </div>
   );
 }

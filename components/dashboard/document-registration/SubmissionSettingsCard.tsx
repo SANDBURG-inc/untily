@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useId } from 'react';
-import { Settings, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { DatePicker } from '@/components/ui/date-picker';
 import { TimeSelect } from '@/components/ui/time-select';
-import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Button } from '@/components/ui/Button';
 import type { DocumentBoxStatus } from '@/lib/types/document';
 import { isDocumentBoxClosed, isDocumentBoxLimitedOpen } from '@/lib/types/document';
@@ -19,6 +18,11 @@ import {
     DEFAULT_REMINDER_SCHEDULE,
 } from '@/lib/types/reminder';
 import { cn } from '@/lib/utils';
+import {
+    Tooltip,
+    TooltipTrigger,
+    TooltipContent,
+} from '@/components/ui/tooltip';
 
 // ============================================================================
 // Props Interface
@@ -116,6 +120,7 @@ function ChannelOption({ label, enabled, selected, onSelect }: ChannelOptionProp
  *
  * 제출 옵션을 설정하는 카드 컴포넌트입니다.
  * 제출 마감일과 리마인드 자동 발송 설정을 관리합니다.
+ * SectionHeader는 부모 CollapsibleSection에서 렌더링합니다.
  *
  * 수정 모드에서 닫힌 문서함의 기한을 연장하면 "다시 열기" 확인 Dialog를 표시합니다.
  */
@@ -354,11 +359,10 @@ export function SubmissionSettingsCard({
                 onSave={handleScheduleSave}
             />
 
-            <SectionHeader icon={Settings} title="제출 옵션 설정" size="md" />
-            <div className="mt-4 space-y-6">
+            <div className="space-y-6">
                 {/* 제출 마감일 선택 (날짜 + 시간) */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                    <label className="block text-sm font-normal text-gray-700 mb-2">
                         마감 일시<span className="text-red-500">*</span>
                     </label>
                     <div className="flex items-center gap-3">
@@ -373,9 +377,6 @@ export function SubmissionSettingsCard({
                             disabled={!deadline}
                         />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1.5">
-                        선택한 시간부터 문서함이 닫힙니다
-                    </p>
                 </div>
 
                 {/* 리마인드 설정 영역 */}
@@ -391,20 +392,28 @@ export function SubmissionSettingsCard({
                         </div>
 
                         {/* 리마인드 토글 */}
-                        <div className="relative group">
+                        {!submittersEnabled ? (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="ml-4">
+                                        <Switch
+                                            checked={reminderEnabled}
+                                            onCheckedChange={onReminderEnabledChange}
+                                            disabled
+                                        />
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-center">
+                                    서류 제출자가 없는 경우<br />리마인드 기능이 비활성화됩니다.
+                                </TooltipContent>
+                            </Tooltip>
+                        ) : (
                             <Switch
                                 checked={reminderEnabled}
                                 onCheckedChange={onReminderEnabledChange}
-                                disabled={!submittersEnabled}
                                 className="ml-4"
                             />
-                            {!submittersEnabled && (
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                                    서류 제출자가 없는 경우, 리마인드 기능이 비활성화 됩니다
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
-                                </div>
-                            )}
-                        </div>
+                        )}
                     </div>
 
                     {/* 리마인드 활성화 시 상세 설정 */}

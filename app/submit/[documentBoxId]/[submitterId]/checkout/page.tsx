@@ -25,24 +25,31 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
     redirect(`/submit/${documentBoxId}/${submitterId}/upload`);
   }
 
-  // 폼 필드 그룹 변환 (Prisma → FormFieldGroupData)
-  const formFieldGroups = submitter.documentBox.formFieldGroups.map((group) => ({
-    id: group.formFieldGroupId,
-    groupTitle: group.groupTitle,
-    groupDescription: group.groupDescription || undefined,
-    isRequired: group.isRequired,
-    order: group.order,
-    fields: group.formFields.map((field) => ({
-      id: field.formFieldId,
-      fieldLabel: field.fieldLabel,
-      fieldType: field.fieldType,
-      placeholder: field.placeholder || undefined,
-      isRequired: field.isRequired,
-      order: field.order,
-      options: (field.options as string[]) || [],
-      validation: field.validation as { minLength?: number; maxLength?: number; pattern?: string; patternMessage?: string } | undefined,
-    })),
+  // 폼 필드 변환 (Prisma → FormFieldData) - 그룹 없이 직접 연결
+  const formFields = submitter.documentBox.formFields.map((field) => ({
+    id: field.formFieldId,
+    fieldLabel: field.fieldLabel,
+    fieldType: field.fieldType,
+    placeholder: field.placeholder || undefined,
+    description: field.description || undefined,
+    isRequired: field.isRequired,
+    order: field.order,
+    options: (field.options as string[]) || [],
+    hasOtherOption: field.hasOtherOption,
+    validation: field.validation as { minLength?: number; maxLength?: number; pattern?: string; patternMessage?: string } | undefined,
   }));
+
+  // 기존 호환성을 위한 formFieldGroups 변환 (CheckoutView에서 사용)
+  const formFieldGroups = formFields.length > 0
+    ? [{
+        id: 'default-group',
+        groupTitle: '입력 항목',
+        groupDescription: undefined,
+        isRequired: true,
+        order: 0,
+        fields: formFields,
+      }]
+    : [];
 
   // 폼 응답 변환
   const formResponses = submitter.formFieldResponses.map((response) => ({

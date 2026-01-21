@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       where: { submitterId },
       include: {
         documentBox: {
-          include: { requiredDocuments: true },
+          include: { requiredDocuments: { orderBy: { order: 'asc' } } },
         },
       },
     });

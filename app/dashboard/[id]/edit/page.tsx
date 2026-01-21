@@ -47,24 +47,29 @@ export default async function EditDocumentBoxPage({
         smsReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'SMS'),
         kakaoReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'PUSH'),
         status: documentBox.status,
-        // 폼 필드 그룹 데이터 (정보 입력 항목)
+        // 폼 필드 데이터 (정보 입력 항목 - 그룹 없이 직접 연결)
         formFieldsAboveDocuments: documentBox.formFieldsAboveDocuments,
-        formFieldGroups: documentBox.formFieldGroups.map((group) => ({
-            id: group.formFieldGroupId,
-            groupTitle: group.groupTitle,
-            groupDescription: group.groupDescription || '',
-            isRequired: group.isRequired,
-            order: group.order,
-            fields: group.formFields.map((field) => ({
-                id: field.formFieldId,
-                fieldLabel: field.fieldLabel,
-                fieldType: field.fieldType,
-                placeholder: field.placeholder || '',
-                isRequired: field.isRequired,
-                order: field.order,
-                options: (field.options as string[]) || [],
-            })),
-        })),
+        // 기존 formFieldGroups 형식 유지 (호환성) - 하나의 기본 그룹으로 래핑
+        formFieldGroups: documentBox.formFields.length > 0
+            ? [{
+                id: 'default-group',
+                groupTitle: '입력 항목',
+                groupDescription: '',
+                isRequired: true,
+                order: 0,
+                fields: documentBox.formFields.map((field) => ({
+                    id: field.formFieldId,
+                    fieldLabel: field.fieldLabel,
+                    fieldType: field.fieldType,
+                    placeholder: field.placeholder || '',
+                    description: field.description || '',
+                    isRequired: field.isRequired,
+                    order: field.order,
+                    options: (field.options as string[]) || [],
+                    hasOtherOption: field.hasOtherOption,
+                })),
+            }]
+            : [],
     };
 
     return (
