@@ -190,6 +190,7 @@ export default function DocumentRegistrationForm({
               size="md"
               isOpen={openSections.submitters}
               onToggle={() => toggleSection('submitters')}
+              tooltip="등록된 이메일로만 제출 가능합니다. 미등록 시 링크를 받은 누구나 제출할 수 있습니다."
               rightAction={
                 <Switch
                   checked={form.submittersEnabled}
@@ -216,6 +217,7 @@ export default function DocumentRegistrationForm({
               size="md"
               isOpen={openSections.formFields}
               onToggle={() => toggleSection('formFields')}
+              tooltip="제출자가 직접 입력하거나 선택할 수 있는 폼을 생성합니다."
             >
               <FormFieldGroupsCard
                 formFieldGroups={form.formFieldGroups}

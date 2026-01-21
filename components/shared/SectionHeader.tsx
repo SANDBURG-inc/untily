@@ -1,6 +1,13 @@
+'use client';
+
 import * as React from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 
 /**
  * 섹션 헤더 크기 타입
@@ -42,6 +49,8 @@ interface SectionHeaderProps {
   isOpen?: boolean;
   /** 토글 핸들러 (collapsible=true일 때만 사용) */
   onToggle?: () => void;
+  /** 툴팁 텍스트 (i 아이콘 hover 시 표시) */
+  tooltip?: string;
 }
 
 /**
@@ -52,29 +61,12 @@ interface SectionHeaderProps {
  *
  * @example
  * ```tsx
- * // CardTitle 내부에서 사용 (권장)
- * <CardHeader>
- *   <CardTitle>
- *     <SectionHeader icon={FileText} title="기본 정보 입력" />
- *   </CardTitle>
- * </CardHeader>
- *
- * // 설명 포함
+ * // 툴팁 포함
  * <SectionHeader
  *   icon={Users}
- *   title="제출자 목록"
- *   description="서류를 제출할 사람들을 관리합니다."
- *   size="lg"
- * />
- *
- * // Collapsible 기능 사용
- * <SectionHeader
- *   icon={Settings}
- *   title="제출 옵션 설정"
- *   size="sm"
- *   collapsible
- *   isOpen={isOpen}
- *   onToggle={() => setIsOpen(!isOpen)}
+ *   title="제출자 등록"
+ *   tooltip="제출자를 등록하면 해당 이메일로만 제출이 가능합니다."
+ *   size="md"
  * />
  * ```
  */
@@ -87,27 +79,49 @@ export function SectionHeader({
   collapsible = false,
   isOpen = true,
   onToggle,
+  tooltip,
 }: SectionHeaderProps) {
   const styles = sizeStyles[size];
+
+  // 툴팁 아이콘 렌더링
+  const TooltipIcon = tooltip ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Info className="w-4 h-4" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[240px]">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  ) : null;
 
   // Collapsible 모드일 때 클릭 가능한 헤더
   if (collapsible) {
     return (
       <div className={cn('flex flex-col gap-1', className)}>
-        <button
-          type="button"
-          onClick={onToggle}
-          className="flex items-center gap-2 w-full text-left group hover:opacity-80 transition-opacity"
-        >
-          {/* Chevron 아이콘 (열림/닫힘 상태 표시) */}
-          {isOpen ? (
-            <ChevronDown className="w-5 h-5 text-gray-400" />
-          ) : (
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          )}
-          {Icon && <Icon className={cn(styles.icon, 'text-gray-700')} />}
-          <span className={styles.title}>{title}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex items-center gap-2 text-left group hover:opacity-80 transition-opacity"
+          >
+            {/* Chevron 아이콘 (열림/닫힘 상태 표시) */}
+            {isOpen ? (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            )}
+            {Icon && <Icon className={cn(styles.icon, 'text-gray-700')} />}
+            <span className={styles.title}>{title}</span>
+          </button>
+          {TooltipIcon}
+        </div>
         {description && isOpen && (
           <p className="text-sm text-gray-500 pl-7">{description}</p>
         )}
@@ -121,6 +135,7 @@ export function SectionHeader({
       <div className="flex items-center gap-2">
         {Icon && <Icon className={cn(styles.icon, 'text-gray-700')} />}
         <span className={styles.title}>{title}</span>
+        {TooltipIcon}
       </div>
       {description && (
         <p className="text-sm text-gray-500">{description}</p>

@@ -24,6 +24,8 @@ interface CollapsibleSectionProps {
   rightAction?: React.ReactNode;
   /** 추가 className */
   className?: string;
+  /** 툴팁 텍스트 (i 아이콘 hover 시 표시) */
+  tooltip?: string;
 }
 
 /**
@@ -34,25 +36,14 @@ interface CollapsibleSectionProps {
  *
  * @example
  * ```tsx
- * // 기본 사용
- * <CollapsibleSection
- *   title="기본 정보"
- *   icon={FileText}
- *   size="md"
- *   isOpen={isOpen}
- *   onToggle={() => setIsOpen(!isOpen)}
- * >
- *   <BasicInfoCard {...props} />
- * </CollapsibleSection>
- *
- * // 우측 액션 포함 (예: Switch)
+ * // 툴팁 포함
  * <CollapsibleSection
  *   title="서류 제출자 등록"
  *   icon={Users}
  *   size="md"
  *   isOpen={isOpen}
  *   onToggle={() => setIsOpen(!isOpen)}
- *   rightAction={<Switch checked={enabled} onCheckedChange={setEnabled} />}
+ *   tooltip="제출자를 등록하면 해당 이메일로만 제출이 가능합니다."
  * >
  *   <SubmitterContent {...props} />
  * </CollapsibleSection>
@@ -67,6 +58,7 @@ export function CollapsibleSection({
   children,
   rightAction,
   className,
+  tooltip,
 }: CollapsibleSectionProps) {
   return (
     <Collapsible open={isOpen} onOpenChange={onToggle} className={className}>
@@ -78,6 +70,7 @@ export function CollapsibleSection({
           collapsible
           isOpen={isOpen}
           onToggle={onToggle}
+          tooltip={tooltip}
         />
         {rightAction && (
           <div onClick={(e) => e.stopPropagation()}>
