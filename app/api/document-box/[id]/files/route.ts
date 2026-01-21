@@ -46,6 +46,9 @@ export async function GET(
         // ZIP 파일 생성
         const zip = new JSZip();
 
+        // 중복 파일명 추적 (제출자별로 구분)
+        const fileNameCountMap = new Map<string, number>();
+
         // 제출자별 폴더로 파일 정리
         for (const file of files) {
             try {
@@ -73,7 +76,19 @@ export async function GET(
 
                 // 폴더 구조: {제출자이름}/{파일명}
                 const folderName = sanitizeFolderName(file.submitterName);
-                const filePath = `${folderName}/${file.filename}`;
+
+                // 중복 파일명 처리 (같은 폴더 내 같은 파일명이면 순번 추가)
+                const baseFilePath = `${folderName}/${file.filename}`;
+                const count = fileNameCountMap.get(baseFilePath) || 0;
+                fileNameCountMap.set(baseFilePath, count + 1);
+
+                // 두 번째 이후 파일은 확장자 앞에 순번 추가
+                let filePath = baseFilePath;
+                if (count > 0) {
+                    const ext = file.filename.split('.').pop() || '';
+                    const nameWithoutExt = file.filename.replace(/\.[^.]+$/, '');
+                    filePath = `${folderName}/${nameWithoutExt}_${count + 1}.${ext}`;
+                }
 
                 zip.file(filePath, fileBuffer);
             } catch (fileError) {
