@@ -121,7 +121,7 @@ export function OptionsEditor({
         <button
           type="button"
           onClick={onAddOption}
-          className="text-sm text-gray-400 hover:text-gray-600"
+          className="text-sm text-gray-500 hover:text-gray-700 hover:underline"
         >
           옵션 추가
         </button>
@@ -133,7 +133,7 @@ export function OptionsEditor({
             <button
               type="button"
               onClick={onToggleOther}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className="text-sm text-blue-400 hover:text-blue-500 hover:underline font-medium"
             >
               &apos;기타&apos; 추가
             </button>
