@@ -165,7 +165,7 @@ export function SubmitterRegistrationCard({
             variant="secondary"
             icon={<FileSpreadsheet className="w-4 h-4" />}
             onClick={() => setExcelDialogOpen(true)}
-            className="flex-1"
+            className="flex-1 font-semibold"
           >
             Excel로 추가
           </IconButton>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Loader2, FileText, Users, FileEdit, Settings } from 'lucide-react';
+import { Loader2, FileText, Users, FileEdit, Settings, Eye } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
@@ -20,6 +20,7 @@ import { SubmitterRegistrationCard } from './document-registration/SubmitterRegi
 import { FormFieldGroupsCard } from './document-registration/FormFieldGroupsCard';
 import { DocumentRequirementsCard } from './document-registration/DocumentRequirementsCard';
 import { SubmissionSettingsCard } from './document-registration/SubmissionSettingsCard';
+import { SubmitPreviewSheet } from './document-registration/SubmitPreviewSheet';
 import {
   Dialog,
   DialogContent,
@@ -82,6 +83,9 @@ export default function DocumentRegistrationForm({
     requirements: mode === 'create',
     settings: mode === 'create',
   }));
+
+  // 제출화면 미리보기 Sheet 열림 상태
+  const [previewSheetOpen, setPreviewSheetOpen] = useState(false);
 
   // 섹션 토글 핸들러
   const toggleSection = useCallback((sectionId: SectionId) => {
@@ -158,7 +162,7 @@ export default function DocumentRegistrationForm({
           {/* 기본 정보 섹션 */}
           <div className="px-6 pt-6 pb-6">
             <CollapsibleSection
-              title="기본 정보 입력"
+              title="기본정보"
               icon={FileText}
               size="md"
               isOpen={openSections.basicInfo}
@@ -204,10 +208,10 @@ export default function DocumentRegistrationForm({
 
           <div className="mx-6 border-t border-gray-200 rounded-full" />
 
-          {/* 정보 입력 항목 섹션 */}
+          {/* 사용자 입력 폼 섹션 */}
           <div className="px-6 py-6">
             <CollapsibleSection
-              title="정보 입력 항목"
+              title="사용자 입력 폼"
               icon={FileEdit}
               size="md"
               isOpen={openSections.formFields}
@@ -277,11 +281,12 @@ export default function DocumentRegistrationForm({
             type="button"
             variant="soft"
             size="lg"
-            onClick={form.handleCancel}
+            onClick={() => setPreviewSheetOpen(true)}
             disabled={form.isSubmitting}
             className="flex-1"
           >
-            취소
+            <Eye className="w-4 h-4" />
+            제출화면 미리보기
           </Button>
           <Button
             type="submit"
@@ -336,6 +341,38 @@ export default function DocumentRegistrationForm({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 제출화면 미리보기 Sheet */}
+      <SubmitPreviewSheet
+        open={previewSheetOpen}
+        onOpenChange={setPreviewSheetOpen}
+        documentBoxTitle={form.documentName}
+        requirements={form.requirements.map((req) => ({
+          requiredDocumentId: req.id,
+          documentTitle: req.name,
+          documentDescription: req.description,
+          isRequired: req.type === '필수',
+          allowMultipleFiles: req.allowMultiple,
+        }))}
+        formFieldGroups={form.formFieldGroups.map((group) => ({
+          id: group.id,
+          groupTitle: group.groupTitle,
+          groupDescription: group.groupDescription,
+          isRequired: group.isRequired,
+          order: group.order,
+          fields: group.fields.map((field) => ({
+            id: field.id,
+            fieldLabel: field.fieldLabel,
+            fieldType: field.fieldType,
+            placeholder: field.placeholder,
+            isRequired: field.isRequired,
+            order: field.order,
+            options: field.options,
+            validation: field.validation,
+          })),
+        }))}
+        formFieldsAboveDocuments={form.formFieldsAboveDocuments}
+      />
     </>
   );
 }

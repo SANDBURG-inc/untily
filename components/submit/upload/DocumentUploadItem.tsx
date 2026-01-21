@@ -48,6 +48,8 @@ interface DocumentUploadItemProps {
   onUploadsChange?: (uploads: UploadedDocument[]) => void;
   onUploadError?: (error: string) => void;
   showCard?: boolean;
+  /** 미리보기 모드 (업로드 불가, UI만 표시) */
+  previewMode?: boolean;
 }
 
 /**
@@ -70,6 +72,7 @@ export default function DocumentUploadItem({
   onUploadsChange,
   onUploadError,
   showCard = true,
+  previewMode = false,
 }: DocumentUploadItemProps) {
   // 업로드된 파일 목록
   const [uploads, setUploads] = useState<UploadedDocument[]>(existingUploads);
@@ -364,8 +367,8 @@ export default function DocumentUploadItem({
             )}
           </div>
 
-          {/* 양식 다운로드 버튼 */}
-          {requiredDocument.templates && requiredDocument.templates.length > 0 && (
+          {/* 양식 다운로드 버튼 (미리보기 모드에서는 숨김 - 실제 S3 파일 없음) */}
+          {!previewMode && requiredDocument.templates && requiredDocument.templates.length > 0 && (
             <button
               type="button"
               onClick={
@@ -403,13 +406,13 @@ export default function DocumentUploadItem({
               key={upload.submittedDocumentId}
               filename={upload.originalFilename}
               size={upload.size}
-              onRemove={() => handleRemove(upload.submittedDocumentId)}
+              onRemove={previewMode ? undefined : () => handleRemove(upload.submittedDocumentId)}
               isRemoving={removingIds.has(upload.submittedDocumentId)}
             />
           ))}
 
           {/* 업로드 진행 중인 작업들 */}
-          {taskArray.map((task) => (
+          {!previewMode && taskArray.map((task) => (
             <UploadProgressIndicator
               key={task.id}
               task={task}
@@ -420,14 +423,15 @@ export default function DocumentUploadItem({
 
           {/* 파일 추가 버튼 */}
           <FileUploadButton
-            onClick={() => setIsModalOpen(true)}
+            onClick={previewMode ? undefined : () => setIsModalOpen(true)}
             label={uploads.length > 0 ? '파일 추가하기' : '파일 업로드하기'}
+            disabled={previewMode}
           />
         </div>
       ) : (
         // 단일 파일 모드 (기존 UI)
         <>
-          {taskArray.length > 0 ? (
+          {!previewMode && taskArray.length > 0 ? (
             // 업로드 진행 중 또는 에러 상태
             <UploadProgressIndicator
               task={taskArray[0]}
@@ -439,12 +443,15 @@ export default function DocumentUploadItem({
             <FilePreview
               filename={uploads[0].originalFilename}
               size={uploads[0].size}
-              onRemove={() => handleRemove(uploads[0].submittedDocumentId)}
+              onRemove={previewMode ? undefined : () => handleRemove(uploads[0].submittedDocumentId)}
               isRemoving={removingIds.has(uploads[0].submittedDocumentId)}
             />
           ) : (
             // 초기 상태
-            <FileUploadButton onClick={() => setIsModalOpen(true)} />
+            <FileUploadButton
+              onClick={previewMode ? undefined : () => setIsModalOpen(true)}
+              disabled={previewMode}
+            />
           )}
         </>
       )}

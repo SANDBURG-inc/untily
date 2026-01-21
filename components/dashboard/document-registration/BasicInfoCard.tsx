@@ -69,7 +69,7 @@ export function BasicInfoCard({
       {/* 로고 업로드 */}
       <div>
         <label className="block text-sm font-normal text-gray-700 mb-2">
-          로고 (선택)
+          로고
         </label>
         {logoUrl ? (
           <div className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">

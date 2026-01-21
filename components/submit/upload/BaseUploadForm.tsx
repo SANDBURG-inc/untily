@@ -58,6 +58,8 @@ export interface BaseUploadFormProps {
   formFieldsAboveDocuments?: boolean;
   /** 기존 폼 응답 */
   initialFormResponses?: FormFieldResponseData[];
+  /** 미리보기 모드 (업로드/저장 불가, UI만 체험) */
+  previewMode?: boolean;
 }
 
 // Debounce 시간 (ms)
@@ -72,6 +74,7 @@ export default function BaseUploadForm({
   formFieldGroups = [],
   formFieldsAboveDocuments = false,
   initialFormResponses = [],
+  previewMode = false,
 }: BaseUploadFormProps) {
   const router = useRouter();
 
@@ -128,8 +131,11 @@ export default function BaseUploadForm({
     setError(errorMsg);
   }, []);
 
-  // 폼 응답 자동 저장
+  // 폼 응답 자동 저장 (미리보기 모드에서는 실행 안 함)
   const saveFormResponse = useCallback(async (fieldId: string, value: string) => {
+    // 미리보기 모드에서는 저장하지 않음
+    if (previewMode) return;
+
     setSavingFields((prev) => new Set(prev).add(fieldId));
 
     try {
@@ -157,7 +163,7 @@ export default function BaseUploadForm({
         return next;
       });
     }
-  }, [documentBoxId, submitterId]);
+  }, [documentBoxId, submitterId, previewMode]);
 
   // 폼 응답 변경 핸들러 (debounce 적용)
   const handleFormResponseChange = useCallback((fieldId: string, value: string) => {
@@ -308,6 +314,7 @@ export default function BaseUploadForm({
             existingUploads={existingUploads}
             onUploadsChange={(uploads) => handleUploadsChange(doc.requiredDocumentId, uploads)}
             onUploadError={handleUploadError}
+            previewMode={previewMode}
           />
         );
       })}
@@ -360,14 +367,16 @@ export default function BaseUploadForm({
         </div>
       </main>
 
-      {/* 하단 고정 버튼 영역 */}
-      <SubmitActionFooter
-        primaryLabel="다음"
-        secondaryLabel="임시저장"
-        onPrimary={handleSubmit}
-        onSecondary={() => router.back()}
-        primaryDisabled={!canProceed}
-      />
+      {/* 하단 고정 버튼 영역 (미리보기 모드에서는 숨김) */}
+      {!previewMode && (
+        <SubmitActionFooter
+          primaryLabel="다음"
+          secondaryLabel="임시저장"
+          onPrimary={handleSubmit}
+          onSecondary={() => router.back()}
+          primaryDisabled={!canProceed}
+        />
+      )}
     </div>
   );
 }

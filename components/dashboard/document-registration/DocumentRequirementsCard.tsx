@@ -205,7 +205,7 @@ export function DocumentRequirementsCard({
                 htmlFor={`multiple-${requirement.id}`}
                 className="text-sm text-gray-700 cursor-pointer select-none"
               >
-                받을 파일이 여러 개예요
+                복수 업로드 허용
               </label>
             </div>
 
