@@ -42,8 +42,8 @@ export interface SubmissionStatistics {
 /**
  * 제출자 정보로 통계 데이터 계산
  *
- * @param submitters - 제출자 목록 (submittedCount 포함)
- * @param totalRequiredDocuments - 필수 서류 총 개수
+ * @param submitters - 제출자 목록 (status 포함)
+ * @param totalRequiredDocuments - 필수 서류 총 개수 (미사용, 호환성 유지)
  * @param hasSubmitter - 지정 제출자 여부 플래그
  * @returns 계산된 통계 데이터
  *
@@ -55,19 +55,19 @@ export interface SubmissionStatistics {
  * )
  */
 export function calculateSubmissionStats(
-  submitters: Array<{ submittedCount: number }>,
+  submitters: Array<{ status: string }>,
   totalRequiredDocuments: number,
   hasSubmitter: boolean | null
 ): SubmissionStatistics {
   const hasSubmitters = hasDesignatedSubmitters(hasSubmitter);
   const totalSubmitters = submitters.length;
 
-  // 제출 완료: 모든 필수 서류를 제출한 제출자
+  // 제출 완료: status가 SUBMITTED인 제출자만
   const submittedCount = submitters.filter(
-    (s) =>
-      s.submittedCount >= totalRequiredDocuments && totalRequiredDocuments > 0
+    (s) => s.status === 'SUBMITTED'
   ).length;
 
+  // 미제출: PENDING 또는 REJECTED (제출완료가 아닌 모든 상태)
   const notSubmittedCount = totalSubmitters - submittedCount;
 
   // 진행률: 제출 완료 / 전체 (퍼센트)

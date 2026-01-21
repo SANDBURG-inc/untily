@@ -1,13 +1,19 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Users, Download, FileArchive, FileText, ClockAlert, RotateCcw } from 'lucide-react';
+import { Users, Download, FileArchive, FileText, ClockAlert, RotateCcw, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IconButton } from '@/components/shared/IconButton';
@@ -25,6 +31,15 @@ import { useIntersectionObserver } from '@/lib/hooks/useIntersectionObserver';
 import { SubmitterDetailSheet } from './SubmitterDetailSheet';
 import { SubmitterStatusDropdown } from './SubmitterStatusDropdown';
 import { CheckedToggle } from './CheckedToggle';
+
+// 제출상태 필터 타입
+type StatusFilter = 'all' | SubmittedSubmitterStatus;
+
+const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+    { value: 'all', label: '전체' },
+    { value: 'SUBMITTED', label: '제출됨' },
+    { value: 'REJECTED', label: '반려됨' },
+];
 
 /**
  * 제출자 목록 컴포넌트
@@ -61,6 +76,7 @@ export function SubmittersList({
     const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
     const [isDownloadingFiles, setIsDownloadingFiles] = useState(false);
     const [isDownloadingResponses, setIsDownloadingResponses] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
     // Sheet 상태
     const [sheetOpen, setSheetOpen] = useState(false);
@@ -71,29 +87,46 @@ export function SubmittersList({
         return submitters.filter(s => hasEverSubmitted(s.status));
     }, [submitters]);
 
+    // 상태 필터 적용
+    const filteredSubmitters = useMemo(() => {
+        if (statusFilter === 'all') return submittedSubmitters;
+        return submittedSubmitters.filter(s => s.status === statusFilter);
+    }, [submittedSubmitters, statusFilter]);
+
     const displayedSubmitters = useMemo(() => {
-        return submittedSubmitters.slice(0, displayCount);
-    }, [submittedSubmitters, displayCount]);
+        return filteredSubmitters.slice(0, displayCount);
+    }, [filteredSubmitters, displayCount]);
 
     const handleLoadMore = useCallback(() => {
-        setDisplayCount((prev) => Math.min(prev + LOAD_MORE_COUNT, submittedSubmitters.length));
-    }, [submittedSubmitters.length]);
+        setDisplayCount((prev) => Math.min(prev + LOAD_MORE_COUNT, filteredSubmitters.length));
+    }, [filteredSubmitters.length]);
 
     const observerRef = useIntersectionObserver({
         onIntersect: handleLoadMore,
     });
 
+    // 현재 필터링된 목록 기준으로 전체 선택 판단
     const allSelected = useMemo(() => {
-        return submittedSubmitters.length > 0 && selectedIds.size === submittedSubmitters.length;
-    }, [submittedSubmitters.length, selectedIds.size]);
+        return filteredSubmitters.length > 0 && filteredSubmitters.every(s => selectedIds.has(s.submitterId));
+    }, [filteredSubmitters, selectedIds]);
 
     const handleSelectAll = useCallback(() => {
         if (allSelected) {
-            setSelectedIds(new Set());
+            // 필터된 항목들만 선택 해제
+            setSelectedIds(prev => {
+                const newSelected = new Set(prev);
+                filteredSubmitters.forEach(s => newSelected.delete(s.submitterId));
+                return newSelected;
+            });
         } else {
-            setSelectedIds(new Set(submittedSubmitters.map(s => s.submitterId)));
+            // 필터된 항목들 선택 추가
+            setSelectedIds(prev => {
+                const newSelected = new Set(prev);
+                filteredSubmitters.forEach(s => newSelected.add(s.submitterId));
+                return newSelected;
+            });
         }
-    }, [allSelected, submittedSubmitters]);
+    }, [allSelected, filteredSubmitters]);
 
     const handleSelectOne = useCallback((id: string) => {
         setSelectedIds(prev => {
@@ -132,14 +165,21 @@ export function SubmittersList({
         {
             key: 'name',
             header: '이름',
-            render: (submitter) => (
-                <button
-                    onClick={() => handleNameClick(submitter.submitterId)}
-                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium text-left"
-                >
-                    {submitter.name}
-                </button>
-            ),
+            render: (submitter) => {
+                // 제출됨/반려됨만 클릭 가능
+                const canClick = hasEverSubmitted(submitter.status);
+                if (canClick) {
+                    return (
+                        <button
+                            onClick={() => handleNameClick(submitter.submitterId)}
+                            className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium text-left"
+                        >
+                            {submitter.name}
+                        </button>
+                    );
+                }
+                return <span className="text-sm text-gray-900">{submitter.name}</span>;
+            },
         },
         {
             key: 'email',
@@ -157,7 +197,27 @@ export function SubmittersList({
         },
         {
             key: 'status',
-            header: '제출상태',
+            header: (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button className="inline-flex items-center gap-1 hover:text-gray-900 focus:outline-none">
+                            제출상태
+                            <ChevronDown className="w-3 h-3" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                        {STATUS_FILTER_OPTIONS.map((option) => (
+                            <DropdownMenuItem
+                                key={option.value}
+                                onClick={() => setStatusFilter(option.value)}
+                                className={statusFilter === option.value ? 'bg-gray-100' : ''}
+                            >
+                                {option.label}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
             render: (submitter) => (
                 <SubmitterStatusDropdown
                     documentBoxId={documentBoxId}
@@ -206,7 +266,7 @@ export function SubmittersList({
                 />
             ),
         },
-    ], [allSelected, selectedIds, documentBoxId, endDate, handleSelectAll, handleSelectOne, handleNameClick]);
+    ], [allSelected, selectedIds, documentBoxId, endDate, statusFilter, handleSelectAll, handleSelectOne, handleNameClick]);
 
     const handleDownload = () => {
         const headers = ['이름', '이메일', '휴대전화', '제출상태', '제출일', '재제출횟수', '확인'];
@@ -348,7 +408,7 @@ export function SubmittersList({
                         data={displayedSubmitters}
                         keyExtractor={(s) => s.submitterId}
                     />
-                    {displayedSubmitters.length < submittedSubmitters.length && (
+                    {displayedSubmitters.length < filteredSubmitters.length && (
                         <div ref={observerRef} className="h-4 w-full" />
                     )}
                 </div>

@@ -50,7 +50,7 @@ export function SubmittedFileItem({ file, documentBoxId, onPreview }: SubmittedF
     };
 
     return (
-        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors">
             <div className="flex-shrink-0">
                 <FileIcon type={iconType} />
             </div>

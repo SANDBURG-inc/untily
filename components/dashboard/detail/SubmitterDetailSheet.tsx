@@ -205,25 +205,32 @@ export function SubmitterDetailSheet({
 
                     {submitter && !isLoading && (
                         <div className="space-y-6">
-                            {/* 제출자 정보 */}
-                            <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                            {/* 제출자 정보 - Primary 위계 */}
+                            <div className="space-y-4">
+                                {/* 이름: 가장 강조 */}
                                 <div className="flex items-center gap-3">
-                                    <User className="w-5 h-5 text-gray-400" />
-                                    <span className="text-lg font-semibold">{submitter.name}</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-sm text-gray-600">
-                                    <Mail className="w-4 h-4 text-gray-400" />
-                                    <span>{submitter.email}</span>
-                                </div>
-                                {submitter.phone && (
-                                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                                        <Phone className="w-4 h-4 text-gray-400" />
-                                        <span>{submitter.phone}</span>
+                                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <User className="w-5 h-5 text-gray-600" />
                                     </div>
-                                )}
-                                <div className="flex items-center gap-3 text-sm text-gray-600">
-                                    <Calendar className="w-4 h-4 text-gray-400" />
-                                    <span>제출일: {formatDate(submitter.lastSubmittedAt)}</span>
+                                    <span className="text-xl font-bold text-gray-900">{submitter.name}</span>
+                                </div>
+
+                                {/* 연락처/제출일: Secondary 위계 - 가로 배치 */}
+                                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
+                                    <div className="flex items-center gap-2">
+                                        <Mail className="w-4 h-4 text-gray-400" />
+                                        <span>{submitter.email}</span>
+                                    </div>
+                                    {submitter.phone && (
+                                        <div className="flex items-center gap-2">
+                                            <Phone className="w-4 h-4 text-gray-400" />
+                                            <span>{submitter.phone}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 text-gray-400" />
+                                        <span>{formatDate(submitter.lastSubmittedAt)}</span>
+                                    </div>
                                 </div>
                             </div>
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { FileText, Download } from 'lucide-react';
-import { SectionHeader } from '@/components/shared/SectionHeader';
 import { IconButton } from '@/components/shared/IconButton';
 import { SubmittedFileItem } from './SubmittedFileItem';
 
@@ -29,13 +28,15 @@ export function SubmittedFileList({
     isDownloadingAll,
 }: SubmittedFileListProps) {
     return (
-        <div>
-            <div className="flex items-center justify-between mb-4">
-                <SectionHeader
-                    icon={FileText}
-                    title={`제출 파일 (${files.length}개)`}
-                    size="sm"
-                />
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+            {/* 섹션 헤더 - 컨테이너 안에 통합 */}
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">
+                        제출 파일 ({files.length}개)
+                    </span>
+                </div>
                 {files.length > 0 && (
                     <IconButton
                         variant="primary"
@@ -49,13 +50,14 @@ export function SubmittedFileList({
                 )}
             </div>
 
+            {/* 파일 목록 - 흰 배경, divide-y로 구분 */}
             {files.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                     <FileText className="w-12 h-12 mx-auto mb-2 text-gray-300" />
                     <p>제출된 파일이 없습니다</p>
                 </div>
             ) : (
-                <div className="space-y-3">
+                <div className="divide-y divide-gray-100">
                     {files.map((file) => (
                         <SubmittedFileItem
                             key={file.submittedDocumentId}

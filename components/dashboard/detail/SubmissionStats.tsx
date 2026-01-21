@@ -53,7 +53,7 @@ export function SubmissionStats({
                     <div className="grid grid-cols-3 gap-4">
                         <StatCard label="생성일" value={formatSubmissionDate(createdAt)} />
                         <StatCard label="마감일" value={formatSubmissionDate(endDate)} />
-                        <StatCard label="제출자" value={`${totalSubmitters}명`} />
+                        <StatCard label="등록된 제출자" value={`${totalSubmitters}명`} />
                         <StatCard
                             label="제출완료"
                             value={`${submittedCount}명`}

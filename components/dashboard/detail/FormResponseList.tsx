@@ -1,7 +1,6 @@
 'use client';
 
 import { ClipboardList } from 'lucide-react';
-import { SectionHeader } from '@/components/shared/SectionHeader';
 import type {
   FormFieldType,
   FormResponseViewData,
@@ -78,15 +77,17 @@ export function FormResponseList({ fields, groups }: FormResponseListProps) {
   }
 
   return (
-    <div>
-      <SectionHeader
-        icon={ClipboardList}
-        title="입력 정보"
-        size="sm"
-        className="mb-4"
-      />
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      {/* 섹션 헤더 - 컨테이너 안에 통합 */}
+      <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+        <div className="flex items-center gap-2">
+          <ClipboardList className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-700">입력 정보</span>
+        </div>
+      </div>
 
-      <div className="p-4 bg-gray-50 rounded-lg space-y-2">
+      {/* 컨텐츠 - 흰 배경 */}
+      <div className="p-4 space-y-2">
         {allFields.map((field) => (
           <div
             key={field.formFieldId}
