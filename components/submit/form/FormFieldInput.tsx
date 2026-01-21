@@ -49,7 +49,7 @@ export function FormFieldInput({
   error,
   isSaving,
 }: FormFieldInputProps) {
-  const { fieldType, fieldLabel, placeholder, isRequired, options, hasOtherOption } = field;
+  const { fieldType, fieldLabel, placeholder, description, isRequired, options, hasOtherOption } = field;
 
   // '기타' 옵션 입력 상태 (CHECKBOX, RADIO에서 사용)
   const [otherInputValue, setOtherInputValue] = useState(() => {
@@ -68,10 +68,15 @@ export function FormFieldInput({
     // 단일 동의 체크박스만 인라인 레이블 사용 (options 없는 경우)
     if (fieldType === 'CHECKBOX' && (!options || options.length === 0)) return null;
     return (
-      <label className="block text-base text-gray-900 mb-3">
-        {fieldLabel}
-        {isRequired && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
+      <div className="mb-3">
+        <label className="block text-base text-gray-900">
+          {fieldLabel}
+          {isRequired && <span className="text-red-500 ml-0.5">*</span>}
+        </label>
+        {description && (
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
+        )}
+      </div>
     );
   };
 
