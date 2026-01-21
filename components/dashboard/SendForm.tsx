@@ -6,6 +6,7 @@ import { sendManualReminder, sendReminderAfterDeadline } from "@/app/dashboard/[
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { DocumentBoxStatus } from "@/lib/types/document";
+import type { SubmitterStatus } from "@/lib/types/submitter";
 import { DocumentBoxStatusChangeDialog } from "@/components/shared/DocumentBoxStatusChangeDialog";
 import { EmailPreviewEditable, type EmailPreviewEditableRef } from "@/components/email-editor/EmailPreviewEditable";
 
@@ -13,6 +14,7 @@ interface Submitter {
     submitterId: string;
     name: string;
     email: string;
+    status: SubmitterStatus;
     submittedDocuments: any[];
 }
 
@@ -37,12 +39,12 @@ interface Props {
 export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxDescription, endDate, documentBoxStatus, submitters, requiredDocuments }: Props) {
     const router = useRouter();
 
-    // Initial state: Select only unsubmitted users
-    const unsubmittedIds = submitters
-        .filter(s => s.submittedDocuments.length === 0)
+    // Initial state: Select users who need to submit (PENDING or REJECTED)
+    const needsSubmissionIds = submitters
+        .filter(s => s.status === 'PENDING' || s.status === 'REJECTED')
         .map(s => s.submitterId);
 
-    const [selectedIds, setSelectedIds] = useState<string[]>(unsubmittedIds);
+    const [selectedIds, setSelectedIds] = useState<string[]>(needsSubmissionIds);
     const [isPending, setIsPending] = useState(false);
 
     // 마감 후 발송 확인 Dialog 상태
@@ -74,17 +76,17 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxD
         }
     };
 
-    const isAllUnsubmittedSelected = unsubmittedIds.length > 0 && unsubmittedIds.every(id => selectedIds.includes(id));
+    const isAllNeedsSubmissionSelected = needsSubmissionIds.length > 0 && needsSubmissionIds.every(id => selectedIds.includes(id));
 
-    const toggleAllUnsubmitted = () => {
-        if (isAllUnsubmittedSelected) {
+    const toggleAllNeedsSubmission = () => {
+        if (isAllNeedsSubmissionSelected) {
             // Deselect all (only unsubmitted ones, to preserve manual choices if needed? Simplest is just toggle unsubmitted group)
             // Let's just deselect the unsubmitted ones from the current selection
-            setSelectedIds(selectedIds.filter(id => !unsubmittedIds.includes(id)));
+            setSelectedIds(selectedIds.filter(id => !needsSubmissionIds.includes(id)));
         } else {
             // Select all unsubmitted
             const newIds = new Set(selectedIds);
-            unsubmittedIds.forEach(id => newIds.add(id));
+            needsSubmissionIds.forEach(id => newIds.add(id));
             setSelectedIds(Array.from(newIds));
         }
     };
@@ -169,19 +171,25 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxD
                         <span className="text-lg">👥</span> 수신자 목록(총 {submitters.length}명)
                     </h3>
                     <button
-                        onClick={toggleAllUnsubmitted}
-                        className={`text-xs px-3 py-1.5 rounded border transition-colors ${isAllUnsubmittedSelected
+                        onClick={toggleAllNeedsSubmission}
+                        className={`text-xs px-3 py-1.5 rounded border transition-colors ${isAllNeedsSubmissionSelected
                             ? 'bg-blue-50 text-blue-600 border-blue-200 font-medium'
                             : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                             }`}
                     >
-                        미제출자 전체선택
+                        미제출/반려 전체선택
                     </button>
                 </div>
                 <div className="divide-y divide-gray-100 max-h-[300px] overflow-y-auto">
                     {submitters.map(submitter => {
-                        const isSubmitted = submitter.submittedDocuments.length > 0;
                         const isSelected = selectedIds.includes(submitter.submitterId);
+
+                        // 상태별 스타일과 레이블
+                        const statusConfig = {
+                            PENDING: { label: '미제출', className: 'text-red-500' },
+                            SUBMITTED: { label: '제출완료', className: 'text-green-600' },
+                            REJECTED: { label: '반려됨', className: 'text-orange-500' },
+                        }[submitter.status];
 
                         return (
                             <div key={submitter.submitterId} className={`flex items-center justify-between p-4 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50/30' : ''}`}>
@@ -196,8 +204,8 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxD
                                     </div>
                                 </div>
                                 <div className="w-20 text-right">
-                                    <span className={`text-xs font-medium ${isSubmitted ? 'text-green-600' : 'text-red-500'}`}>
-                                        {isSubmitted ? '제출완료' : '미제출'}
+                                    <span className={`text-xs font-medium ${statusConfig.className}`}>
+                                        {statusConfig.label}
                                     </span>
                                 </div>
                             </div>
