@@ -155,6 +155,11 @@ export function QuestionCard({
     onUpdate({ hasOtherOption: !question.hasOtherOption });
   };
 
+  // 선택지 순서 변경
+  const handleReorderOptions = (newOptions: string[]) => {
+    onUpdate({ options: newOptions });
+  };
+
   return (
     <div ref={setNodeRef} style={style} className="relative py-1">
       <div
@@ -233,6 +238,7 @@ export function QuestionCard({
                 onUpdateOption={handleUpdateOption}
                 onAddOption={handleAddOption}
                 onRemoveOption={handleRemoveOption}
+                onReorderOptions={handleReorderOptions}
                 onToggleOther={handleToggleOther}
               />
             </div>

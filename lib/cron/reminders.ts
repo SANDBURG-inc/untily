@@ -11,6 +11,7 @@
 import prisma from '@/lib/db';
 import { Resend } from 'resend';
 import { generateReminderEmailHtml } from '@/lib/email-templates';
+import { getSubmissionUrl } from '@/lib/utils/url';
 
 // ============================================================================
 // Types
@@ -247,7 +248,7 @@ async function sendReminderEmails(
     const daysLeft = calculateDaysLeft(box.endDate);
 
     const emails = incompleteSubmitters.map((submitter) => {
-        const submissionLink = `https://untily.kr/submit/${box.documentBoxId}/${submitter.submitterId}`;
+        const submissionLink = getSubmissionUrl(box.documentBoxId, submitter.submitterId);
 
         const emailHtml = generateReminderEmailHtml({
             submitterName: submitter.name,

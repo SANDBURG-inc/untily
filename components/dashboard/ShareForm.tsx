@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { generateReminderEmailHtml } from '@/lib/email-templates';
+import { getSubmissionUrl } from '@/lib/utils/url';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { ShareEmailPreviewEditable } from "@/components/email-editor/ShareEmailPreviewEditable";
@@ -33,7 +34,7 @@ export function ShareForm({
     const [copiedLink, setCopiedLink] = useState(false);
     const [copiedEmail, setCopiedEmail] = useState(false);
 
-    const shareLink = `https://untily.kr/submit/${documentBoxId}`;
+    const shareLink = getSubmissionUrl(documentBoxId);
 
     // 이메일 템플릿 상태
     const templateRef = useRef<{ greetingHtml: string; footerHtml: string }>({

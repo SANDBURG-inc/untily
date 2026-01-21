@@ -14,6 +14,7 @@ import {
     type SendTimeOption,
 } from '@/lib/types/reminder';
 import type { SubmittedSubmitterStatus } from '@/lib/types/submitter';
+import { getSubmissionUrl } from '@/lib/utils/url';
 
 export async function disableAutoReminder(documentBoxId: string) {
     try {
@@ -99,7 +100,7 @@ export async function sendManualReminder(
         const emails = submitters
             .filter(submitter => submitter.email)
             .map(submitter => {
-                const submissionLink = `https://untily.kr/submit/${documentBoxId}/${submitter.submitterId}`;
+                const submissionLink = getSubmissionUrl(documentBoxId, submitter.submitterId);
 
                 const emailHtml = generateReminderEmailHtml({
                     submitterName: submitter.name,
@@ -343,7 +344,7 @@ export async function sendReminderAfterDeadline(
         const emails = submitters
             .filter((submitter) => submitter.email)
             .map((submitter) => {
-                const submissionLink = `https://untily.kr/submit/${documentBoxId}/${submitter.submitterId}`;
+                const submissionLink = getSubmissionUrl(documentBoxId, submitter.submitterId);
 
                 const emailHtml = generateReminderEmailHtml({
                     submitterName: submitter.name,
