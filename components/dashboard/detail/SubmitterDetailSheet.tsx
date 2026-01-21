@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { User, Mail, Phone, Calendar, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Loader2, RotateCcw } from 'lucide-react';
 import {
     Sheet,
     SheetContent,
@@ -233,6 +233,23 @@ export function SubmitterDetailSheet({
                                         <span>{formatDate(submitter.lastSubmittedAt)}</span>
                                     </div>
                                 </div>
+
+                                {/* 재제출 이력 */}
+                                {submitter.resubmissionLogs.length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                        <div className="flex items-center gap-2 text-sm text-amber-600">
+                                            <RotateCcw className="w-4 h-4" />
+                                            <span className="font-medium">재제출 {submitter.resubmissionLogs.length}회</span>
+                                        </div>
+                                        <div className="mt-2 pl-6 space-y-1 text-xs text-gray-500">
+                                            {submitter.resubmissionLogs.map((log, index) => (
+                                                <div key={index}>
+                                                    {formatDate(log.resubmittedAt)}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* 폼 응답 - 파일 목록 위에 표시 */}

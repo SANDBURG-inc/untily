@@ -27,6 +27,8 @@ export interface SubmitterWithFiles {
     phone: string | null;
     lastSubmittedAt: Date | null;
     files: SubmittedFileDetail[];
+    // 재제출 이력 (제출자 상세에서 표시용)
+    resubmissionLogs: ResubmissionLogInfo[];
 }
 
 // 재제출 기록 타입
@@ -357,7 +359,12 @@ export async function getSubmitterWithFiles(
                             { requiredDocument: { order: 'asc' } },
                             { createdAt: 'desc' }
                         ]
-                    }
+                    },
+                    // 재제출 이력 조회 (최신순)
+                    resubmissionLogs: {
+                        select: { resubmittedAt: true },
+                        orderBy: { resubmittedAt: 'desc' },
+                    },
                 }
             }
         }
@@ -389,7 +396,10 @@ export async function getSubmitterWithFiles(
         email: submitter.email,
         phone: submitter.phone,
         lastSubmittedAt,
-        files
+        files,
+        resubmissionLogs: submitter.resubmissionLogs.map(log => ({
+            resubmittedAt: log.resubmittedAt,
+        })),
     };
 }
 
