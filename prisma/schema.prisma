@@ -204,6 +204,9 @@ model ReminderSchedule {
   documentBoxId String
   documentBox   DocumentBox      @relation(fields: [documentBoxId], references: [documentBoxId], onDelete: Cascade)
 
+  // 활성화 여부 (Off 시에도 스케줄 설정값 유지)
+  isEnabled Boolean @default(true)
+
   // 발송 시점 설정
   timeValue Int              // 숫자 값 (1, 2, 3...)
   timeUnit  ReminderTimeUnit // DAY 또는 WEEK

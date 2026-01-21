@@ -79,12 +79,13 @@ export async function processReminders(): Promise<ProcessResult> {
     const results: ReminderResult[] = [];
 
     // ================================================================
-    // 1. 새로운 ReminderSchedule 기반 발송
+    // 1. 새로운 ReminderSchedule 기반 발송 (isEnabled: true인 것만)
     // ================================================================
     const schedules = await prisma.reminderSchedule.findMany({
         where: {
             sendTime: currentSendTime,
             channel: 'EMAIL',
+            isEnabled: true, // Off된 스케줄은 발송하지 않음
         },
         include: {
             documentBox: {
