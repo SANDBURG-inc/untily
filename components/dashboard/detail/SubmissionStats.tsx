@@ -4,7 +4,7 @@ import { FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from './StatCard';
 import { SectionHeader } from '@/components/shared/SectionHeader';
-import { formatSubmissionDate } from '@/lib/types/submitter';
+import { formatSubmissionDateTime } from '@/lib/types/submitter';
 
 /**
  * 문서함 제출 현황 섹션
@@ -51,8 +51,8 @@ export function SubmissionStats({
                 {hasDesignatedSubmitters ? (
                     // 지정 제출자 있는 경우: 2행 3열
                     <div className="grid grid-cols-3 gap-4">
-                        <StatCard label="생성일" value={formatSubmissionDate(createdAt)} />
-                        <StatCard label="마감일" value={formatSubmissionDate(endDate)} />
+                        <StatCard label="생성일시" value={formatSubmissionDateTime(createdAt)} />
+                        <StatCard label="종료일시" value={formatSubmissionDateTime(endDate)} />
                         <StatCard label="등록된 제출자" value={`${totalSubmitters}명`} />
                         <StatCard
                             label="제출완료"
@@ -73,8 +73,8 @@ export function SubmissionStats({
                 ) : (
                     // 지정 제출자 없는 경우: 1행 3열
                     <div className="grid grid-cols-3 gap-4">
-                        <StatCard label="생성일" value={formatSubmissionDate(createdAt)} />
-                        <StatCard label="마감일" value={formatSubmissionDate(endDate)} />
+                        <StatCard label="생성일시" value={formatSubmissionDateTime(createdAt)} />
+                        <StatCard label="종료일시" value={formatSubmissionDateTime(endDate)} />
                         <StatCard label="제출자" value={`${totalSubmitters}명`} />
                     </div>
                 )}

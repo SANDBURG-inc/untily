@@ -308,7 +308,8 @@ export function createMultiChoiceValue(
   otherValue?: string | null
 ): string {
   const parts = [...selectedOptions];
-  if (otherValue) {
+  // otherValue가 null/undefined가 아니면 추가 (빈 문자열도 '기타' 체크 상태로 간주)
+  if (otherValue !== null && otherValue !== undefined) {
     parts.push(createOtherValue(otherValue));
   }
   return parts.join(',');

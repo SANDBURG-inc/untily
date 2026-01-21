@@ -5,7 +5,7 @@ import {
     type DocumentBoxStatus,
     DOCUMENT_BOX_STATUS_SHORT_LABELS,
 } from "@/lib/types/document";
-import { formatSubmissionDate } from "@/lib/types/submitter";
+import { formatSubmissionDateTime } from "@/lib/types/submitter";
 
 interface DocumentCardProps {
     title: string;
@@ -66,15 +66,15 @@ export function DocumentCard({
 
             <div className="space-y-2 mb-6 text-sm text-slate-600">
                 <div className="flex gap-2">
-                    <span className="w-16 text-slate-500">생성일:</span>
-                    <span>{formatSubmissionDate(createdAt)}</span>
+                    <span className="w-20 text-slate-500">생성일시:</span>
+                    <span>{formatSubmissionDateTime(createdAt)}</span>
                 </div>
                 <div className="flex gap-2">
-                    <span className="w-16 text-slate-500">마감일:</span>
-                    <span>{formatSubmissionDate(endDate)}</span>
+                    <span className="w-20 text-slate-500">종료일시:</span>
+                    <span>{formatSubmissionDateTime(endDate)}</span>
                 </div>
                 <div className="flex gap-2">
-                    <span className="w-16 text-slate-500">제출:</span>
+                    <span className="w-20 text-slate-500">제출:</span>
                     <span>
                         {hasDesignatedSubmitters ? (
                             <>
