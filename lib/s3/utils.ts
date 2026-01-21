@@ -34,15 +34,19 @@ export interface SubmittedFilenameParams {
   requiredDocumentTitle: string;
   submitterName: string;
   originalFilename: string;
+  /** 복수 파일 업로드 시 순번 (1부터 시작) */
+  index?: number;
 }
 
 /**
  * 제출 파일명 생성
- * 형식: {서류명}_{날짜}_{제출자이름}.{확장자}
+ * 형식: {서류명}_{날짜}_{제출자이름}.{확장자} (단일 파일)
+ * 형식: {서류명}_{날짜}_{제출자이름}_{순번}.{확장자} (복수 파일)
  * 예시: 주민등록등본_20251219_홍길동.pdf
+ * 예시: 주민등록등본_20251219_홍길동_2.pdf (두 번째 파일)
  */
 export function generateSubmittedFilename(params: SubmittedFilenameParams): string {
-  const { requiredDocumentTitle, submitterName, originalFilename } = params;
+  const { requiredDocumentTitle, submitterName, originalFilename, index } = params;
 
   const ext = getExtension(originalFilename);
   const date = getDateString();
@@ -55,7 +59,10 @@ export function generateSubmittedFilename(params: SubmittedFilenameParams): stri
     .normalize('NFC')
     .replace(/[^a-zA-Z0-9가-힣]/g, '');
 
-  return `${sanitizedTitle}_${date}_${sanitizedName}.${ext}`;
+  // 복수 파일인 경우 순번 추가 (2번째부터)
+  const indexSuffix = index && index > 1 ? `_${index}` : '';
+
+  return `${sanitizedTitle}_${date}_${sanitizedName}${indexSuffix}.${ext}`;
 }
 
 /**
