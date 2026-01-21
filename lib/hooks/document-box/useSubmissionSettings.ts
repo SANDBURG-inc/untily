@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { parseISO } from 'date-fns';
 import type { UseSubmissionSettingsOptions, UseSubmissionSettingsReturn } from './types';
+import { type ReminderScheduleState, DEFAULT_REMINDER_SCHEDULE } from '@/lib/types/reminder';
 
 /**
  * 제출 설정 상태 관리 훅
@@ -13,8 +14,9 @@ export function useSubmissionSettings(
   options: UseSubmissionSettingsOptions = {}
 ): UseSubmissionSettingsReturn {
   const { initialData } = options;
+  const uniqueId = useId();
 
-  // deadline: API에서는 문자열(YYYY-MM-DD)로 전달하지만, DatePicker는 Date 객체를 사용
+  // deadline: API에서는 문자열(ISO)로 전달하지만, DatePicker는 Date 객체를 사용
   const [deadline, setDeadline] = useState<Date | undefined>(
     initialData?.deadline ? parseISO(initialData.deadline) : undefined
   );
@@ -30,6 +32,14 @@ export function useSubmissionSettings(
   const [smsReminder] = useState(initialData?.smsReminder ?? false);
   const [kakaoReminder] = useState(initialData?.kakaoReminder ?? false);
 
+  // 리마인더 스케줄 (초기값: initialData 또는 기본 스케줄)
+  const [reminderSchedules, setReminderSchedules] = useState<ReminderScheduleState[]>(() => {
+    if (initialData?.reminderSchedules && initialData.reminderSchedules.length > 0) {
+      return initialData.reminderSchedules;
+    }
+    return [{ id: `default-${uniqueId}`, ...DEFAULT_REMINDER_SCHEDULE }];
+  });
+
   return {
     // 상태
     deadline,
@@ -37,9 +47,11 @@ export function useSubmissionSettings(
     emailReminder,
     smsReminder,
     kakaoReminder,
+    reminderSchedules,
     // 액션
     setDeadline,
     setReminderEnabled,
     setEmailReminder,
+    setReminderSchedules,
   };
 }

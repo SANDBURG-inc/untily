@@ -1,6 +1,7 @@
 import DocumentRegistrationForm from "@/components/dashboard/DocumentRegistrationForm";
 import { ensureAuthenticated } from "@/lib/auth";
 import { getDocumentBoxForEdit } from "@/lib/queries/document-box";
+import { getUserDefaultLogo } from "@/lib/queries/logo";
 import { notFound } from "next/navigation";
 
 export default async function EditDocumentBoxPage({
@@ -11,7 +12,11 @@ export default async function EditDocumentBoxPage({
     const user = await ensureAuthenticated();
     const { id } = await params;
 
-    const documentBox = await getDocumentBoxForEdit(id, user.id);
+    // 병렬로 문서함 데이터와 사용자 기본 로고 조회
+    const [documentBox, userDefaultLogoUrl] = await Promise.all([
+        getDocumentBoxForEdit(id, user.id),
+        getUserDefaultLogo(user.id),
+    ]);
 
     if (!documentBox) {
         notFound();
@@ -41,11 +46,17 @@ export default async function EditDocumentBoxPage({
                 allowMultiple: r.allowMultipleFiles ?? false,
             }))
             : [{ id: '1', name: '', type: '필수', description: '', templates: [], allowMultiple: false }],
-        deadline: documentBox.endDate.toISOString().split('T')[0],
+        deadline: documentBox.endDate.toISOString(),
         reminderEnabled: documentBox.documentBoxRemindTypes.length > 0,
         emailReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'EMAIL'),
         smsReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'SMS'),
         kakaoReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'PUSH'),
+        reminderSchedules: documentBox.reminderSchedules.map((s) => ({
+            id: s.id,
+            timeValue: s.timeValue,
+            timeUnit: s.timeUnit,
+            sendTime: s.sendTime,
+        })),
         status: documentBox.status,
         // 폼 필드 데이터 (정보 입력 항목 - 그룹 없이 직접 연결)
         formFieldsAboveDocuments: documentBox.formFieldsAboveDocuments,
@@ -78,6 +89,7 @@ export default async function EditDocumentBoxPage({
                 mode="edit"
                 documentBoxId={id}
                 initialData={initialData}
+                userDefaultLogoUrl={userDefaultLogoUrl}
             />
         </main>
     );

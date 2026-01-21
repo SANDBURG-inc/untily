@@ -67,6 +67,11 @@ export async function PUT(
             formFieldsAboveDocuments?: boolean;
             force?: boolean;
             changeStatusToOpen?: boolean;
+            reminderSchedules?: Array<{
+                timeValue: number;
+                timeUnit: 'DAY' | 'WEEK';
+                sendTime: string;
+            }>;
         } = await request.json();
         const {
             documentName,
@@ -83,6 +88,7 @@ export async function PUT(
             emailReminder,
             smsReminder,
             kakaoReminder,
+            reminderSchedules,
             force,
             changeStatusToOpen,
         } = body;
@@ -433,6 +439,24 @@ export async function PUT(
                         data: remindTypes,
                     });
                 }
+            }
+
+            // ReminderSchedule 처리: 기존 스케줄 삭제 후 새로 생성
+            await tx.reminderSchedule.deleteMany({
+                where: { documentBoxId: id },
+            });
+
+            if (reminderEnabled && reminderSchedules && reminderSchedules.length > 0) {
+                await tx.reminderSchedule.createMany({
+                    data: reminderSchedules.map((schedule, index) => ({
+                        documentBoxId: box.documentBoxId,
+                        timeValue: schedule.timeValue,
+                        timeUnit: schedule.timeUnit,
+                        sendTime: schedule.sendTime,
+                        channel: 'EMAIL' as const, // 현재 이메일만 지원
+                        order: index,
+                    })),
+                });
             }
 
             // Form fields 처리: 기존 필드 삭제 후 새로 생성
