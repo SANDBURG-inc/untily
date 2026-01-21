@@ -65,7 +65,9 @@ export async function POST(req: NextRequest) {
     // documentBoxId가 있으면 사용, 없으면 tempId 사용 (없으면 생성)
     const folderKey = documentBoxId || tempId || crypto.randomUUID();
     const timestamp = Date.now();
-    const safeFilename = filename.replace(/[^a-zA-Z0-9가-힣._-]/g, '_');
+    // macOS NFD 한글을 NFC로 정규화 후 안전한 문자만 허용
+    const normalizedFilename = filename.normalize('NFC');
+    const safeFilename = normalizedFilename.replace(/[^a-zA-Z0-9가-힣._-]/g, '_');
     const s3Key = `templates/${folderKey}/${timestamp}_${safeFilename}`;
 
     // Presigned URL 생성
