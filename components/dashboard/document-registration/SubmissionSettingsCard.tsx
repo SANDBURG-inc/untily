@@ -18,6 +18,11 @@ import {
     DEFAULT_REMINDER_SCHEDULE,
 } from '@/lib/types/reminder';
 import { cn } from '@/lib/utils';
+import {
+    Tooltip,
+    TooltipTrigger,
+    TooltipContent,
+} from '@/components/ui/tooltip';
 
 // ============================================================================
 // Props Interface
@@ -372,9 +377,6 @@ export function SubmissionSettingsCard({
                             disabled={!deadline}
                         />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1.5">
-                        선택한 시간부터 문서함이 닫힙니다
-                    </p>
                 </div>
 
                 {/* 리마인드 설정 영역 */}
@@ -390,20 +392,28 @@ export function SubmissionSettingsCard({
                         </div>
 
                         {/* 리마인드 토글 */}
-                        <div className="relative group">
+                        {!submittersEnabled ? (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="ml-4">
+                                        <Switch
+                                            checked={reminderEnabled}
+                                            onCheckedChange={onReminderEnabledChange}
+                                            disabled
+                                        />
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-center">
+                                    서류 제출자가 없는 경우<br />리마인드 기능이 비활성화됩니다.
+                                </TooltipContent>
+                            </Tooltip>
+                        ) : (
                             <Switch
                                 checked={reminderEnabled}
                                 onCheckedChange={onReminderEnabledChange}
-                                disabled={!submittersEnabled}
                                 className="ml-4"
                             />
-                            {!submittersEnabled && (
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                                    서류 제출자가 없는 경우, 리마인드 기능이 비활성화 됩니다
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
-                                </div>
-                            )}
-                        </div>
+                        )}
                     </div>
 
                     {/* 리마인드 활성화 시 상세 설정 */}

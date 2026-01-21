@@ -1,7 +1,12 @@
 'use client';
 
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, Info } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 
 interface BasicInfoCardProps {
   /** 문서함 이름 */
@@ -68,9 +73,24 @@ export function BasicInfoCard({
 
       {/* 로고 업로드 */}
       <div>
-        <label className="block text-sm font-normal text-gray-700 mb-2">
-          로고
-        </label>
+        <div className="flex items-center gap-1.5 mb-2">
+          <label className="text-sm font-normal text-gray-700">
+            로고
+          </label>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <Info className="w-3.5 h-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="whitespace-pre-line">
+              {"제출 페이지에 업로드한 로고가 표시됩니다.\n미등록 시 유저의 기본 로고가 적용됩니다."}
+            </TooltipContent>
+          </Tooltip>
+        </div>
         {logoUrl ? (
           <div className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
             <img
@@ -96,9 +116,6 @@ export function BasicInfoCard({
             로고 등록
           </Button>
         )}
-        <p className="mt-2 text-xs text-gray-500">
-          제출 페이지에 표시됩니다. 미등록 시 기본 로고가 적용됩니다.
-        </p>
       </div>
     </div>
   );
