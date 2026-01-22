@@ -46,6 +46,13 @@ export default function SubmitLandingView({
         </p>
         <p className="text-muted-foreground">서류 제출을 진행해주세요!</p>
       </div>
+
+      {/* 문서함 설명 */}
+      {documentBox.boxDescription && (
+        <p className="text-muted-foreground text-center mb-6 whitespace-pre-line">
+          {documentBox.boxDescription}
+        </p>
+      )}
     </SubmitLandingLayout>
   );
 }
