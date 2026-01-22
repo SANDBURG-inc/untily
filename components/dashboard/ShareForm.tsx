@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { generateReminderEmailHtml } from '@/lib/email-templates';
 import { getSubmissionUrl } from '@/lib/utils/url';
@@ -42,9 +42,9 @@ export function ShareForm({
         footerHtml: '',
     });
 
-    const handleTemplateChange = (greetingHtml: string, footerHtml: string) => {
+    const handleTemplateChange = useCallback((greetingHtml: string, footerHtml: string) => {
         templateRef.current = { greetingHtml, footerHtml };
-    };
+    }, []);
 
     const handleCopyLink = async () => {
         try {
