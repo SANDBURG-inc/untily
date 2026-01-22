@@ -32,8 +32,60 @@ import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import Highlight from '@tiptap/extension-highlight';
+import { Extension } from '@tiptap/core';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
+
+// ============================================================================
+// CustomListKeymap 확장 - 노션 스타일 리스트 키보드 동작
+// ============================================================================
+
+/**
+ * 리스트 항목에서의 백스페이스 동작을 노션 스타일로 개선합니다.
+ *
+ * @description
+ * 기본 TipTap ListKeymap 확장(TipTap Issue #3128 "Bullet List Limbo")은
+ * 빈 리스트 항목에서 백스페이스 시 이전 줄로 이동하면서 리스트를 유지합니다.
+ * 이 커스텀 확장은 노션처럼 리스트에서 완전히 빠져나와 일반 단락으로 변환합니다.
+ *
+ * @behavior
+ * - 리스트 항목 시작 위치에서 백스페이스 → 리스트에서 빠져나옴
+ * - 빈 리스트 항목에서 백스페이스 → 리스트에서 빠져나옴
+ * - 텍스트 중간에서 백스페이스 → 기본 동작 (문자 삭제)
+ */
+const CustomListKeymap = Extension.create({
+    name: 'customListKeymap',
+
+    addKeyboardShortcuts() {
+        return {
+            Backspace: ({ editor }) => {
+                const { state } = editor;
+                const { selection } = state;
+                const { $from } = selection;
+
+                // 현재 노드가 리스트 항목 내부의 paragraph인지 확인
+                // 리스트 구조: bulletList/orderedList > listItem > paragraph
+                const listItem = $from.node(-1);
+                if (listItem?.type.name !== 'listItem') {
+                    return false; // 리스트 항목이 아니면 기본 처리
+                }
+
+                // 커서가 리스트 항목(의 paragraph) 시작 위치인지 확인
+                const isAtStart = $from.parentOffset === 0;
+
+                // 리스트 항목(의 paragraph)이 비어있는지 확인
+                const isEmpty = $from.parent.content.size === 0;
+
+                // 시작 위치거나 비어있으면 리스트에서 빠져나옴
+                if (isAtStart || isEmpty) {
+                    return editor.commands.liftListItem('listItem');
+                }
+
+                return false; // 그 외에는 기본 백스페이스 동작
+            },
+        };
+    },
+});
 
 // ============================================================================
 // TextStyle 확장 - fontSize 속성 추가
@@ -109,6 +161,21 @@ export function getEmailEditorExtensions(placeholderText?: string) {
             },
             // blockquote는 기본적으로 활성화됨
         }),
+
+        /**
+         * CustomListKeymap - 노션 스타일 리스트 키보드 동작
+         *
+         * @description
+         * 기본 ListKeymap 확장의 "Bullet List Limbo" 문제(TipTap Issue #3128)를
+         * 해결하기 위한 커스텀 확장입니다.
+         *
+         * @behavior
+         * - 리스트 항목 시작에서 백스페이스 → 리스트에서 빠져나와 일반 단락으로
+         * - 빈 리스트 항목에서 백스페이스 → 리스트 종료
+         *
+         * @see CustomListKeymap (이 파일 상단)
+         */
+        CustomListKeymap,
 
         /**
          * TextAlign - 텍스트 정렬 확장

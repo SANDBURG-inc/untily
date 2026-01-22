@@ -33,6 +33,7 @@ import { useState, useRef, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { getEmailEditorExtensions } from '@/lib/tiptap/extensions';
 import { EmailEditorToolbar } from './EmailEditorToolbar';
+import type { EditorView } from '@tiptap/pm/view';
 
 // ============================================================================
 // 타입 정의
@@ -68,6 +69,17 @@ export function EmailEditor({
     // 에디터 전체 컨테이너 ref (툴바 + 에디터 영역 포함)
     // blur 이벤트에서 포커스 이동 대상이 컨테이너 내부인지 확인하는 데 사용
     const containerRef = useRef<HTMLDivElement>(null);
+
+    /**
+     * 한글 IME 조합 상태 추적 ref
+     *
+     * @description
+     * Chrome 128+ 버전에서 compositionend 직후 마지막 글자가 선택 상태가 되는
+     * 버그가 있어, view.composing만으로는 정확한 조합 상태를 추적할 수 없음.
+     * 이 ref는 compositionend 이벤트 후 약간의 지연을 두고 false로 설정되어,
+     * 조합 완료 직후의 Enter 키 처리를 안전하게 지연시킴.
+     */
+    const composingRef = useRef(false);
 
     /**
      * ========================================================================
@@ -162,20 +174,43 @@ export function EmailEditor({
              * ================================================================
              *
              * @problem
-             * 한글 조합(composing) 중에 Enter 키가 처리되면 조합 중인 글자가 사라짐.
-             * 예: "안녕하세요" 입력 후 엔터 → "안녕하세" 만 저장됨
-             * 이는 TipTap/ProseMirror의 한글 IME 처리 이슈.
+             * Chrome 128+ 버전에서 compositionend 직후 마지막 글자가 선택 상태로
+             * 설정되어, Enter 키 처리 시 선택된 글자가 삭제됨.
+             * (ProseMirror Issue #1484)
+             *
+             * 기존 view.composing 속성은 compositionend 이벤트 시점에 이미 false가
+             * 되어 있어, 조합 직후의 Enter 키를 감지할 수 없음.
              *
              * @solution
-             * handleKeyDown에서 view.composing이 true(IME 조합 중)일 때는
-             * 키 이벤트를 TipTap이 처리하지 않고 브라우저에 위임.
-             * return false = TipTap 기본 처리 진행
-             * return true = 이벤트 처리 완료(TipTap 처리 중단)
+             * 1. handleDOMEvents로 composition 이벤트를 직접 감지
+             * 2. composingRef를 사용하여 조합 상태를 추적
+             * 3. compositionend 후 50ms 지연을 두고 플래그 해제
+             * 4. 조합 중이거나 조합 직후의 Enter는 60ms 지연 후 처리
              */
-            handleKeyDown: (view, _event) => {
-                // IME 조합 중이면 키 이벤트 처리하지 않음 (브라우저에 위임)
-                if (view.composing) {
-                    return false;
+            handleDOMEvents: {
+                compositionstart: () => {
+                    composingRef.current = true;
+                    return false; // 기본 처리 계속
+                },
+                compositionend: () => {
+                    // 조합 완료 후 약간의 지연을 두고 플래그 해제
+                    // Chrome이 마지막 글자를 선택 상태로 만드는 것보다 늦게 해제
+                    setTimeout(() => {
+                        composingRef.current = false;
+                    }, 50);
+                    return false; // 기본 처리 계속
+                },
+            },
+            handleKeyDown: (view: EditorView, event: KeyboardEvent) => {
+                // IME 조합 중이거나 조합 직후의 Enter 키 처리
+                if (event.key === 'Enter' && (view.composing || composingRef.current)) {
+                    // 조합 완료 후 줄바꿈 삽입 (60ms 지연)
+                    // compositionend 후 플래그 해제(50ms)보다 늦게 실행
+                    setTimeout(() => {
+                        const { state, dispatch } = view;
+                        dispatch(state.tr.split(state.selection.from));
+                    }, 60);
+                    return true; // TipTap의 즉시 Enter 처리 방지
                 }
                 return false; // 기본 TipTap 처리 계속
             },
