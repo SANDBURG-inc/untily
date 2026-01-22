@@ -277,6 +277,7 @@ export default function DocumentRegistrationForm({
                 description={form.description}
                 onDescriptionChange={form.setDescription}
                 logoUrl={form.effectiveLogoUrl}
+                hasCustomLogo={!!(form.logoUrl || form.logoPreviewUrl)}
                 onLogoRemove={form.handleLogoRemove}
                 onLogoDialogOpen={() => form.setLogoDialogOpen(true)}
               />

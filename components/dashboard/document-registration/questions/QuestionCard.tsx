@@ -161,7 +161,7 @@ export function QuestionCard({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="relative py-1">
+    <div ref={setNodeRef} style={style} className="relative py-1 px-0.5">
       <div
         ref={containerRef}
         onMouseEnter={() => setIsHovered(true)}
