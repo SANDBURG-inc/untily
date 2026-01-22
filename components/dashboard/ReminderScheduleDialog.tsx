@@ -188,11 +188,10 @@ export function ReminderScheduleRow({
             <Select
                 value={schedule.templateId || 'default'}
                 onValueChange={handleTemplateChange}
+                disabled={templatesLoading}
             >
                 <SelectTrigger className="w-[116px] h-8 text-xs ml-4">
-                    <SelectValue>
-                        {templatesLoading ? '...' : selectedTemplateName}
-                    </SelectValue>
+                    <SelectValue>{selectedTemplateName}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="default">기본 템플릿</SelectItem>

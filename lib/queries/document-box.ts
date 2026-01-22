@@ -93,6 +93,7 @@ export interface DocumentBoxDetail {
         channel: 'EMAIL' | 'SMS' | 'PUSH';
         order: number;
         isEnabled: boolean;
+        templateId: string | null;
     }[];
     totalRequiredDocuments: number;
 }

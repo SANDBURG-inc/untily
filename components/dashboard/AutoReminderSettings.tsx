@@ -53,6 +53,7 @@ interface AutoReminderSettingsProps {
         timeUnit: 'DAY' | 'WEEK';
         sendTime: string;
         isEnabled: boolean;
+        templateId: string | null;
     }[];
     /** 초기 자동 리마인더 템플릿 ID */
     initialAutoTemplateId?: string | null;
@@ -130,6 +131,7 @@ export function AutoReminderSettings({
                 timeValue: s.timeValue,
                 timeUnit: s.timeUnit,
                 sendTime: s.sendTime,
+                templateId: s.templateId,
             }));
         }
         return [{ id: `new-${uniqueId}-0`, ...DEFAULT_REMINDER_SCHEDULE }];
