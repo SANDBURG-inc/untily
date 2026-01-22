@@ -1,6 +1,7 @@
 'use client';
 
 import BaseUploadForm from '@/components/submit/upload/BaseUploadForm';
+import type { FormFieldGroupData, FormFieldResponseData } from '@/lib/types/form-field';
 
 /** 양식 파일 정보 */
 interface TemplateFile {
@@ -36,12 +37,21 @@ interface PublicUploadFormProps {
     submittedDocuments: SubmittedDocument[];
   };
   documentBoxId: string;
+  /** 폼 필드 그룹 목록 */
+  formFieldGroups?: FormFieldGroupData[];
+  /** 폼 필드 표시 위치 (true: 서류 위, false: 서류 아래) */
+  formFieldsAboveDocuments?: boolean;
+  /** 기존 폼 응답 */
+  initialFormResponses?: FormFieldResponseData[];
 }
 
 export default function PublicUploadForm({
   documentBox,
   submitter,
   documentBoxId,
+  formFieldGroups,
+  formFieldsAboveDocuments,
+  initialFormResponses,
 }: PublicUploadFormProps) {
   return (
     <BaseUploadForm
@@ -50,6 +60,9 @@ export default function PublicUploadForm({
       documentBoxId={documentBoxId}
       submitterId={submitter.submitterId}
       checkoutUrl={`/submit/${documentBoxId}/checkout`}
+      formFieldGroups={formFieldGroups}
+      formFieldsAboveDocuments={formFieldsAboveDocuments}
+      initialFormResponses={initialFormResponses}
     />
   );
 }
