@@ -54,12 +54,43 @@ export function DocumentCard({
         }
     };
 
+    // D-Day 계산 (한국 시간 기준, 날짜만 비교)
+    const getDDayInfo = () => {
+        const now = new Date();
+        const endDateOnly = new Date(endDate.toDateString());
+        const nowDateOnly = new Date(now.toDateString());
+        const diffTime = endDateOnly.getTime() - nowDateOnly.getTime();
+        const daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // D-3 ~ D-Day만 표시 (마감 전, OPEN 계열 상태일 때만)
+        const openStatuses: DocumentBoxStatus[] = ['OPEN', 'OPEN_RESUME', 'OPEN_SOMEONE'];
+        if (daysUntil >= 0 && daysUntil <= 3 && openStatuses.includes(documentBoxStatus)) {
+            if (daysUntil === 0) {
+                return { label: 'D-Day', variant: 'd-day' as const };
+            }
+            return {
+                label: `D-${daysUntil}`,
+                variant: `d-${daysUntil}` as 'd-1' | 'd-2' | 'd-3'
+            };
+        }
+        return null;
+    };
+
+    const dDayInfo = getDDayInfo();
+
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col">
             <div className="mb-4">
-                <Badge variant={getBoxStatusVariant(documentBoxStatus)} className="mb-3">
-                    {DOCUMENT_BOX_STATUS_SHORT_LABELS[documentBoxStatus]}
-                </Badge>
+                <div className="flex gap-2 mb-3">
+                    <Badge variant={getBoxStatusVariant(documentBoxStatus)}>
+                        {DOCUMENT_BOX_STATUS_SHORT_LABELS[documentBoxStatus]}
+                    </Badge>
+                    {dDayInfo && (
+                        <Badge variant={dDayInfo.variant}>
+                            {dDayInfo.label}
+                        </Badge>
+                    )}
+                </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-1">{title}</h3>
                 <p className="text-slate-500 text-sm">{description}</p>
             </div>

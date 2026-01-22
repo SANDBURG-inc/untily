@@ -229,3 +229,165 @@ export function getGreetingHtmlForPreview(customGreetingHtml?: string): string {
 export function getFooterHtmlForPreview(customFooterHtml?: string): string {
     return customFooterHtml || DEFAULT_FOOTER_HTML;
 }
+
+// ============================================================================
+// 마감 알림 이메일 (문서함 생성자용)
+// ============================================================================
+
+export interface DeadlineNotificationParams {
+    /** 문서함 생성자 이름 */
+    ownerName?: string;
+    /** 문서함 제목 */
+    documentBoxTitle: string;
+    /** 문서함 ID */
+    documentBoxId: string;
+    /** 마감일 */
+    endDate: Date;
+    /** 전체 제출자 수 */
+    totalSubmitters: number;
+    /** 제출 완료 수 */
+    submittedCount: number;
+    /** 미제출 수 */
+    notSubmittedCount: number;
+    /** 알림 유형: 'd-3' | 'd-day' | 'closed' */
+    notificationType: 'd-3' | 'd-day' | 'closed';
+}
+
+/**
+ * 마감 알림 이메일 HTML 생성 (문서함 생성자용)
+ *
+ * 문서함 마감 3일 전, 당일, 마감 후에 생성자에게 발송되는 이메일입니다.
+ */
+export function generateDeadlineNotificationHtml({
+    ownerName,
+    documentBoxTitle,
+    documentBoxId,
+    endDate,
+    totalSubmitters,
+    submittedCount,
+    notSubmittedCount,
+    notificationType,
+}: DeadlineNotificationParams): string {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://untily.kr';
+    const dashboardLink = `${appUrl}/dashboard/${documentBoxId}`;
+
+    const formattedDate =
+        endDate instanceof Date ? endDate.toISOString().split('T')[0] : endDate;
+
+    // 알림 유형별 메시지
+    const getMessage = () => {
+        switch (notificationType) {
+            case 'd-3':
+                return {
+                    title: '마감 3일 전 알림',
+                    urgency: '3일 후',
+                    emoji: '📋',
+                    statusColor: '#d97706', // amber-600
+                };
+            case 'd-day':
+                return {
+                    title: '오늘 마감 알림',
+                    urgency: '오늘',
+                    emoji: '⚡',
+                    statusColor: '#dc2626', // red-600
+                };
+            case 'closed':
+                return {
+                    title: '마감 완료 알림',
+                    urgency: '마감됨',
+                    emoji: '✅',
+                    statusColor: '#059669', // emerald-600
+                };
+        }
+    };
+
+    const message = getMessage();
+    const greeting = ownerName ? `${ownerName}님 안녕하세요,` : '안녕하세요,';
+
+    const bodyText =
+        notificationType === 'closed'
+            ? `'${documentBoxTitle}' 문서함이 마감되었습니다.`
+            : `'${documentBoxTitle}' 문서함이 ${message.urgency} 마감됩니다.`;
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1f2937; background-color: #f9fafb; margin: 0; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <!-- 헤더 -->
+        <div style="background-color: ${message.statusColor}; padding: 24px; text-align: center;">
+            <span style="font-size: 32px;">${message.emoji}</span>
+            <h1 style="margin: 12px 0 0 0; font-size: 20px; font-weight: 600; color: #ffffff;">${documentBoxTitle}</h1>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: rgba(255,255,255,0.9);">${message.title}</p>
+        </div>
+
+        <!-- 본문 -->
+        <div style="padding: 32px 24px;">
+            <p style="margin: 0 0 16px 0; font-size: 15px; color: #374151;">${greeting}</p>
+            <p style="margin: 0 0 8px 0; font-size: 15px; color: #374151;">오늘까지입니다.</p>
+            <p style="margin: 0 0 24px 0; font-size: 15px; color: #374151; font-weight: 500;">${bodyText}</p>
+
+            <!-- 현황 카드 -->
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #64748b;">📊 현재 현황</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                    <div style="flex: 1; min-width: 100px; text-align: center; padding: 12px; background-color: #ffffff; border-radius: 6px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #1e293b;">${totalSubmitters}</div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">전체 제출자</div>
+                    </div>
+                    <div style="flex: 1; min-width: 100px; text-align: center; padding: 12px; background-color: #ffffff; border-radius: 6px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #059669;">${submittedCount}</div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">제출 완료</div>
+                    </div>
+                    <div style="flex: 1; min-width: 100px; text-align: center; padding: 12px; background-color: #ffffff; border-radius: 6px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #dc2626;">${notSubmittedCount}</div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">미제출</div>
+                    </div>
+                </div>
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+                    <div style="font-size: 13px; color: #64748b;">
+                        <span style="font-weight: 500;">📅 마감일:</span> ${formattedDate}
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA 버튼 -->
+            <div style="text-align: center;">
+                <a href="${dashboardLink}" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 600;">
+                    👉 지금 바로 확인하기
+                </a>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <div style="padding: 20px 24px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
+            <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                감사합니다.<br/>
+                오늘까지 팀 드림
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+    `;
+}
+
+/**
+ * 마감 알림 이메일 제목 생성
+ */
+export function getDeadlineNotificationSubject(
+    documentBoxTitle: string,
+    notificationType: 'd-3' | 'd-day' | 'closed'
+): string {
+    switch (notificationType) {
+        case 'd-3':
+            return `[오늘까지] '${documentBoxTitle}' 마감 3일 전입니다`;
+        case 'd-day':
+            return `[오늘까지] '${documentBoxTitle}' 오늘 마감됩니다`;
+        case 'closed':
+            return `[오늘까지] '${documentBoxTitle}' 문서함이 마감되었습니다`;
+    }
+}

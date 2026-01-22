@@ -28,6 +28,15 @@ const badgeVariants = cva(
           "border-transparent bg-emerald-500 text-white [a&]:hover:bg-emerald-600",
         warning:
           "border-transparent bg-orange-500 text-white [a&]:hover:bg-orange-600",
+        // D-Day 뱃지 variants (마감일 기준 임박 표시)
+        "d-3":
+          "border-transparent bg-amber-400 text-white [a&]:hover:bg-amber-500",
+        "d-2":
+          "border-transparent bg-amber-500 text-white [a&]:hover:bg-amber-600",
+        "d-1":
+          "border-transparent bg-amber-600 text-white [a&]:hover:bg-amber-700",
+        "d-day":
+          "border-transparent bg-amber-700 text-white [a&]:hover:bg-amber-800",
       },
     },
     defaultVariants: {
