@@ -28,7 +28,7 @@
  * 2. 하이라이트 사용 후 버튼이 계속 활성화 상태 (storedMarks 초기화로 해결)
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import type { Editor } from '@tiptap/react';
 import {
     Bold,
@@ -126,6 +126,36 @@ interface EmailEditorToolbarProps {
 // ============================================================================
 
 export function EmailEditorToolbar({ editor }: EmailEditorToolbarProps) {
+    /**
+     * ========================================================================
+     * [문제 해결] 커서 위치에 따른 툴바 상태 동기화
+     * ========================================================================
+     *
+     * @problem
+     * React는 `editor` 객체 참조가 동일하면 리렌더링하지 않음.
+     * 결과적으로 커서를 이동해도 `editor.isActive()` 결과가 UI에 반영되지 않아
+     * 정렬, 볼드 등의 버튼 활성화 상태가 이전 값으로 유지됨.
+     *
+     * @solution
+     * 에디터의 `selectionUpdate`/`update` 이벤트를 구독하여
+     * 커서 이동이나 내용 변경 시 컴포넌트를 강제 리렌더링.
+     */
+    const [, forceUpdate] = useReducer((x) => x + 1, 0);
+
+    useEffect(() => {
+        const handleUpdate = () => forceUpdate();
+
+        // 커서/선택 영역 변경 시 리렌더링
+        editor.on('selectionUpdate', handleUpdate);
+        // 내용 변경 시에도 리렌더링 (서식 적용 반영)
+        editor.on('update', handleUpdate);
+
+        return () => {
+            editor.off('selectionUpdate', handleUpdate);
+            editor.off('update', handleUpdate);
+        };
+    }, [editor]);
+
     // 플레이스홀더 삽입 (변수 버튼)
     const insertPlaceholder = (placeholder: string) => {
         editor.chain().focus().insertContent(placeholder).run();
