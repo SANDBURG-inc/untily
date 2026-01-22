@@ -30,6 +30,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 /**
  * 섹션 ID 타입
@@ -293,11 +298,24 @@ export default function DocumentRegistrationForm({
               onToggle={() => toggleSection('submitters')}
               tooltip={"등록된 이메일로만 제출 가능합니다.\n미등록 시 링크를 받은 누구나 제출할 수 있습니다."}
               rightAction={
-                <Switch
-                  checked={form.submittersEnabled}
-                  onCheckedChange={form.handleSubmittersEnabledChange}
-                  disabled={form.isEditMode}
-                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Switch
+                        checked={form.submittersEnabled}
+                        onCheckedChange={form.handleSubmittersEnabledChange}
+                        disabled={form.isEditMode}
+                      />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p className="text-xs">
+                      {form.isEditMode
+                        ? '한번 등록된 제출자 설정은 변경할 수 없습니다.'
+                        : '활성화 시 등록된 이메일로만 제출 가능합니다.\n생성 후에는 변경할 수 없습니다.'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               }
             >
               <SubmitterRegistrationCard
