@@ -17,8 +17,10 @@ interface BasicInfoCardProps {
   description: string;
   /** 문서함 설명 변경 핸들러 */
   onDescriptionChange: (value: string) => void;
-  /** 로고 URL */
+  /** 로고 URL (표시용, fallback 포함) */
   logoUrl: string;
+  /** 문서함 고유 로고 설정 여부 (삭제 버튼 표시 조건) */
+  hasCustomLogo: boolean;
   /** 로고 삭제 핸들러 */
   onLogoRemove: () => void;
   /** 로고 다이얼로그 열기 핸들러 */
@@ -37,6 +39,7 @@ export function BasicInfoCard({
   description,
   onDescriptionChange,
   logoUrl,
+  hasCustomLogo,
   onLogoRemove,
   onLogoDialogOpen,
 }: BasicInfoCardProps) {
@@ -98,13 +101,24 @@ export function BasicInfoCard({
               alt="문서함 로고"
               className="h-12 max-w-[200px] object-contain"
             />
-            <button
-              type="button"
-              onClick={onLogoRemove}
-              className="text-sm text-red-500 hover:text-red-600 transition-colors"
-            >
-              삭제
-            </button>
+            {hasCustomLogo ? (
+              <button
+                type="button"
+                onClick={onLogoRemove}
+                className="text-sm text-red-500 hover:text-red-600 transition-colors cursor-pointer"
+              >
+                삭제
+              </button>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={onLogoDialogOpen}
+              >
+                변경
+              </Button>
+            )}
           </div>
         ) : (
           <Button
