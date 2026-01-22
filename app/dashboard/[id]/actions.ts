@@ -1,7 +1,7 @@
 'use server';
 
 import prisma from "@/lib/db";
-import { RemindType, ReminderTimeUnit, DocumentBoxStatus, SubmitterStatus } from "@/lib/generated/prisma/client";
+import { RemindType, DocumentBoxStatus, SubmitterStatus } from "@/lib/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { Resend } from 'resend';
 import { generateReminderEmailHtml } from '@/lib/email-templates';
@@ -10,11 +10,14 @@ import {
     MAX_REMINDER_COUNT,
     TIME_VALUE_RANGE,
     SEND_TIME_OPTIONS,
-    type ReminderTimeUnitType,
     type SendTimeOption,
 } from '@/lib/types/reminder';
 import type { SubmittedSubmitterStatus } from '@/lib/types/submitter';
 import { getSubmissionUrl } from '@/lib/utils/url';
+import {
+    replaceReminderSchedules,
+    setReminderScheduleEnabled,
+} from '@/lib/queries/reminder-schedule';
 
 export async function disableAutoReminder(documentBoxId: string) {
     try {
@@ -204,29 +207,7 @@ export async function saveReminderSchedules(
 
         // 3. 트랜잭션으로 기존 삭제 + 새로 생성 (isEnabled: true로 활성화)
         await prisma.$transaction(async (tx) => {
-            // 기존 스케줄 삭제
-            await tx.reminderSchedule.deleteMany({
-                where: { documentBoxId },
-            });
-
-            // 새 스케줄 생성 (템플릿 정보 포함, 활성화 상태)
-            if (schedules.length > 0) {
-                await tx.reminderSchedule.createMany({
-                    data: schedules.map((schedule, index) => ({
-                        documentBoxId,
-                        timeValue: schedule.timeValue,
-                        timeUnit: schedule.timeUnit as ReminderTimeUnit,
-                        sendTime: schedule.sendTime,
-                        channel: schedule.channel as RemindType,
-                        order: index,
-                        isEnabled: true, // 저장 시 활성화
-                        // 템플릿 정보
-                        templateId: schedule.templateId || null,
-                        greetingHtml: schedule.greetingHtml || null,
-                        footerHtml: schedule.footerHtml || null,
-                    })),
-                });
-            }
+            await replaceReminderSchedules(tx, documentBoxId, schedules, true);
         });
 
         revalidatePath(`/dashboard/${documentBoxId}`);
@@ -248,11 +229,8 @@ export async function disableAutoReminderV2(documentBoxId: string) {
             await tx.documentBoxRemindType.deleteMany({
                 where: { documentBoxId },
             });
-            // ReminderSchedule은 삭제하지 않고 isEnabled만 false로 변경
-            await tx.reminderSchedule.updateMany({
-                where: { documentBoxId },
-                data: { isEnabled: false },
-            });
+            // 공통 함수 사용: 스케줄 비활성화
+            await setReminderScheduleEnabled(tx, documentBoxId, false);
         });
 
         revalidatePath(`/dashboard/${documentBoxId}`);
@@ -268,10 +246,8 @@ export async function disableAutoReminderV2(documentBoxId: string) {
  */
 export async function enableAutoReminderV2(documentBoxId: string) {
     try {
-        await prisma.reminderSchedule.updateMany({
-            where: { documentBoxId },
-            data: { isEnabled: true },
-        });
+        // 공통 함수 사용: 스케줄 활성화
+        await setReminderScheduleEnabled(prisma, documentBoxId, true);
 
         revalidatePath(`/dashboard/${documentBoxId}`);
         return { success: true };

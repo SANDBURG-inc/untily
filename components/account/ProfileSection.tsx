@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthenticatedUser } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SectionHeader } from '@/components/shared/SectionHeader';
@@ -9,13 +10,25 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { formatPhoneNumberOnInput, isValidPhoneNumber } from '@/lib/utils/phone';
 
-interface ProfileSectionProps {
-  user: AuthenticatedUser;
+interface UserProfile {
+  name: string | null;
+  phone: string | null;
 }
 
-export function ProfileSection({ user }: ProfileSectionProps) {
-  const [name, setName] = useState(user.name);
-  const [phone, setPhone] = useState(user.phone || '');
+interface ProfileSectionProps {
+  user: AuthenticatedUser;
+  userProfile: UserProfile | null;
+}
+
+export function ProfileSection({ user, userProfile }: ProfileSectionProps) {
+  const router = useRouter();
+
+  // Prisma User 데이터 우선, 없으면 Neon Auth 데이터 fallback
+  const displayName = userProfile?.name || user.name;
+  const displayPhone = userProfile?.phone || user.phone || '';
+
+  const [name, setName] = useState(displayName);
+  const [phone, setPhone] = useState(displayPhone);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -26,7 +39,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
   };
 
   const handleSave = async () => {
-    if (name === user.name && phone === user.phone) {
+    if (name === displayName && phone === displayPhone) {
       setIsEditing(false);
       return;
     }
@@ -41,29 +54,48 @@ export function ProfileSection({ user }: ProfileSectionProps) {
 
     setIsSaving(true);
     try {
-      // TODO: API 호출로 이름 및 전화번호 업데이트
-      // const response = await fetch('/api/user/update', {
-      //   method: 'PATCH',
-      //   body: JSON.stringify({ name, phone }),
-      // });
+      const response = await fetch('/api/user/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone }),
+      });
 
-      // 임시로 바로 완료 처리
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || '업데이트에 실패했습니다.');
+      }
+
       setIsEditing(false);
+      router.refresh();
     } catch (error) {
       console.error('Failed to update profile:', error);
-      setError('프로필 업데이트 중 오류가 발생했습니다.');
+      setError(error instanceof Error ? error.message : '프로필 업데이트 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleCancel = () => {
+    setName(displayName);
+    setPhone(displayPhone);
+    setIsEditing(false);
+    setError('');
+  };
+
   return (
     <Card variant="compact">
       <CardHeader variant="compact">
-        <CardTitle>
-          <SectionHeader icon={User} title="프로필 정보" size="lg" />
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>
+            <SectionHeader icon={User} title="프로필 정보" size="lg" />
+          </CardTitle>
+          {!isEditing && (
+            <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
+              수정
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent variant="compact" className="space-y-4">
         {/* 안내 메시지 */}
@@ -80,8 +112,8 @@ export function ProfileSection({ user }: ProfileSectionProps) {
         )}
 
         {/* 이름 */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">이름</label>
+        <div className="space-y-1">
+          <label className="block text-xs text-gray-500">이름</label>
           {isEditing ? (
             <Input
               value={name}
@@ -89,27 +121,22 @@ export function ProfileSection({ user }: ProfileSectionProps) {
               placeholder="이름을 입력하세요"
             />
           ) : (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-900">{user.name}</span>
-              <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
-                수정
-              </Button>
-            </div>
+            <p className="text-base font-medium text-gray-900">{displayName}</p>
           )}
         </div>
 
         {/* 이메일 (조회만) */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">이메일</label>
+        <div className="space-y-1">
+          <label className="block text-xs text-gray-500">이메일</label>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-900">{user.email}</span>
-            <span className="text-xs text-gray-500">수정 불가</span>
+            <p className="text-base font-medium text-gray-900">{user.email}</p>
+            <span className="text-xs text-gray-400">수정 불가</span>
           </div>
         </div>
 
         {/* 연락처 */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">연락처</label>
+        <div className="space-y-1">
+          <label className="block text-xs text-gray-500">연락처</label>
           {isEditing ? (
             <Input
               value={phone}
@@ -117,9 +144,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
               placeholder="전화번호를 입력하세요"
             />
           ) : (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-900">{user.phone || '미등록'}</span>
-            </div>
+            <p className="text-base font-medium text-gray-900">{displayPhone || '미등록'}</p>
           )}
         </div>
 
@@ -129,12 +154,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
               {isSaving ? '저장 중...' : '저장'}
             </Button>
             <Button
-              onClick={() => {
-                setName(user.name);
-                setPhone(user.phone || '');
-                setIsEditing(false);
-                setError('');
-              }}
+              onClick={handleCancel}
               variant="outline"
               size="sm"
               disabled={isSaving}

@@ -25,8 +25,18 @@
  * @knownIssues
  * 이 파일에서 해결된 주요 이슈들:
  * 1. 툴바 버튼 클릭 시 툴바가 사라지는 문제 (handleBlur에서 해결)
- * 2. 한글 IME 입력 시 마지막 글자 사라짐 (handleKeyDown에서 해결)
- * 3. SSR 하이드레이션 오류 (immediatelyRender: false로 해결)
+ * 2. SSR 하이드레이션 오류 (immediatelyRender: false로 해결)
+ *
+ * @unresolvedIssues
+ * [미해결] 한글 IME 입력 시 마지막 글자 사라짐 (Chrome 128+, Mac)
+ * - 증상: '가나다' 입력 후 커서 이동 없이 Enter → '가나'만 남음
+ * - 원인: compositionend 직후 마지막 글자가 선택 상태가 되는 Chrome 버그
+ * - 시도한 방법들:
+ *   1. composingRef로 조합 상태 추적 + setTimeout 지연 (50ms/60ms/100ms)
+ *   2. event.isComposing || view.composing || composingRef 체크
+ *   3. 공백 문자 트릭 (공백 삽입 → 조합 강제 종료 → 공백 삭제 → 줄바꿈)
+ *   4. requestAnimationFrame으로 타이밍 동기화
+ * - 참고: ProseMirror Issue #1484
  */
 
 import { useState, useRef, useCallback } from 'react';
@@ -156,29 +166,6 @@ export function EmailEditor({
                 class: 'prose prose-sm max-w-none focus:outline-none',
                 style: `min-height: ${minHeight}`,
             },
-            /**
-             * ================================================================
-             * [문제 해결] 한글 IME 입력 시 마지막 글자 사라짐
-             * ================================================================
-             *
-             * @problem
-             * 한글 조합(composing) 중에 Enter 키가 처리되면 조합 중인 글자가 사라짐.
-             * 예: "안녕하세요" 입력 후 엔터 → "안녕하세" 만 저장됨
-             * 이는 TipTap/ProseMirror의 한글 IME 처리 이슈.
-             *
-             * @solution
-             * handleKeyDown에서 view.composing이 true(IME 조합 중)일 때는
-             * 키 이벤트를 TipTap이 처리하지 않고 브라우저에 위임.
-             * return false = TipTap 기본 처리 진행
-             * return true = 이벤트 처리 완료(TipTap 처리 중단)
-             */
-            handleKeyDown: (view, _event) => {
-                // IME 조합 중이면 키 이벤트 처리하지 않음 (브라우저에 위임)
-                if (view.composing) {
-                    return false;
-                }
-                return false; // 기본 TipTap 처리 계속
-            },
         },
     });
 
@@ -279,6 +266,36 @@ export function EmailEditor({
                     margin: 0 0 8px 0;
                     color: #6b7280;
                     font-style: italic;
+                }
+
+                /* Heading 스타일 (H1~H4) */
+                .email-editor .ProseMirror h1 {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    line-height: 1.3;
+                    margin: 0 0 12px 0;
+                    color: #111827;
+                }
+                .email-editor .ProseMirror h2 {
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    line-height: 1.3;
+                    margin: 0 0 10px 0;
+                    color: #1f2937;
+                }
+                .email-editor .ProseMirror h3 {
+                    font-size: 1.125rem;
+                    font-weight: 600;
+                    line-height: 1.4;
+                    margin: 0 0 8px 0;
+                    color: #374151;
+                }
+                .email-editor .ProseMirror h4 {
+                    font-size: 1rem;
+                    font-weight: 600;
+                    line-height: 1.4;
+                    margin: 0 0 6px 0;
+                    color: #4b5563;
                 }
 
                 /* 형광펜(Highlight) 스타일 - 기본 노란색 */

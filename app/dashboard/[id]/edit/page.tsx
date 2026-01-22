@@ -27,7 +27,7 @@ export default async function EditDocumentBoxPage({
         documentName: documentBox.boxTitle,
         description: documentBox.boxDescription || '',
         logoUrl: documentBox.logos[0]?.imageUrl || '',
-        submittersEnabled: documentBox.submitters.length > 0,
+        submittersEnabled: documentBox.hasSubmitter ?? false,
         submitters: documentBox.submitters.length > 0
             ? documentBox.submitters.map((s) => ({
                 id: s.submitterId,
@@ -47,8 +47,12 @@ export default async function EditDocumentBoxPage({
             }))
             : [{ id: '1', name: '', type: '필수', description: '', templates: [], allowMultiple: false }],
         deadline: documentBox.endDate.toISOString(),
-        reminderEnabled: documentBox.documentBoxRemindTypes.length > 0,
-        emailReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'EMAIL'),
+        reminderEnabled:
+            documentBox.reminderSchedules.some((s) => s.isEnabled) ||
+            documentBox.documentBoxRemindTypes.length > 0,
+        emailReminder:
+            documentBox.reminderSchedules.some((s) => s.isEnabled && s.channel === 'EMAIL') ||
+            documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'EMAIL'),
         smsReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'SMS'),
         kakaoReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'PUSH'),
         reminderSchedules: documentBox.reminderSchedules.map((s) => ({
@@ -56,6 +60,7 @@ export default async function EditDocumentBoxPage({
             timeValue: s.timeValue,
             timeUnit: s.timeUnit,
             sendTime: s.sendTime,
+            templateId: s.templateId,
         })),
         status: documentBox.status,
         // 폼 필드 데이터 (정보 입력 항목 - 그룹 없이 직접 연결)

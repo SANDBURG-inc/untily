@@ -28,7 +28,7 @@
  * 2. 하이라이트 사용 후 버튼이 계속 활성화 상태 (storedMarks 초기화로 해결)
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import type { Editor } from '@tiptap/react';
 import {
     Bold,
@@ -47,6 +47,11 @@ import {
     ChevronDown,
     Type,
     ALargeSmall,
+    Heading1,
+    Heading2,
+    Heading3,
+    Heading4,
+    Pilcrow,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -121,6 +126,36 @@ interface EmailEditorToolbarProps {
 // ============================================================================
 
 export function EmailEditorToolbar({ editor }: EmailEditorToolbarProps) {
+    /**
+     * ========================================================================
+     * [문제 해결] 커서 위치에 따른 툴바 상태 동기화
+     * ========================================================================
+     *
+     * @problem
+     * React는 `editor` 객체 참조가 동일하면 리렌더링하지 않음.
+     * 결과적으로 커서를 이동해도 `editor.isActive()` 결과가 UI에 반영되지 않아
+     * 정렬, 볼드 등의 버튼 활성화 상태가 이전 값으로 유지됨.
+     *
+     * @solution
+     * 에디터의 `selectionUpdate`/`update` 이벤트를 구독하여
+     * 커서 이동이나 내용 변경 시 컴포넌트를 강제 리렌더링.
+     */
+    const [, forceUpdate] = useReducer((x) => x + 1, 0);
+
+    useEffect(() => {
+        const handleUpdate = () => forceUpdate();
+
+        // 커서/선택 영역 변경 시 리렌더링
+        editor.on('selectionUpdate', handleUpdate);
+        // 내용 변경 시에도 리렌더링 (서식 적용 반영)
+        editor.on('update', handleUpdate);
+
+        return () => {
+            editor.off('selectionUpdate', handleUpdate);
+            editor.off('update', handleUpdate);
+        };
+    }, [editor]);
+
     // 플레이스홀더 삽입 (변수 버튼)
     const insertPlaceholder = (placeholder: string) => {
         editor.chain().focus().insertContent(placeholder).run();
@@ -181,6 +216,91 @@ export function EmailEditorToolbar({ editor }: EmailEditorToolbarProps) {
 
     return (
         <div className="flex items-center gap-1 mb-2 p-1 bg-gray-50 border border-gray-200 rounded-lg flex-wrap">
+            {/* ============================================================
+                Heading 드롭다운 (# + Space로 입력 가능)
+                ============================================================ */}
+            <DropdownMenu>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                className={cn(
+                                    'flex items-center gap-0.5 p-1.5 rounded transition-colors',
+                                    editor.isActive('heading')
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'text-gray-600 hover:bg-gray-200'
+                                )}
+                            >
+                                <Pilcrow className="w-4 h-4" />
+                                <ChevronDown className="w-3 h-3" />
+                            </button>
+                        </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>단락/제목</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="start" className="min-w-[140px]">
+                    <DropdownMenuItem
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => editor.chain().focus().setParagraph().run()}
+                        className={cn(
+                            'cursor-pointer',
+                            !editor.isActive('heading') && 'bg-blue-50'
+                        )}
+                    >
+                        <Pilcrow className="w-4 h-4 mr-2" />
+                        <span>본문</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                        className={cn(
+                            'cursor-pointer',
+                            editor.isActive('heading', { level: 1 }) && 'bg-blue-50'
+                        )}
+                    >
+                        <Heading1 className="w-4 h-4 mr-2" />
+                        <span className="text-xl font-bold">제목 1</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                        className={cn(
+                            'cursor-pointer',
+                            editor.isActive('heading', { level: 2 }) && 'bg-blue-50'
+                        )}
+                    >
+                        <Heading2 className="w-4 h-4 mr-2" />
+                        <span className="text-lg font-bold">제목 2</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                        className={cn(
+                            'cursor-pointer',
+                            editor.isActive('heading', { level: 3 }) && 'bg-blue-50'
+                        )}
+                    >
+                        <Heading3 className="w-4 h-4 mr-2" />
+                        <span className="text-base font-semibold">제목 3</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
+                        className={cn(
+                            'cursor-pointer',
+                            editor.isActive('heading', { level: 4 }) && 'bg-blue-50'
+                        )}
+                    >
+                        <Heading4 className="w-4 h-4 mr-2" />
+                        <span className="text-sm font-semibold">제목 4</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Divider />
+
             {/* ============================================================
                 텍스트 서식 버튼들
                 ============================================================ */}

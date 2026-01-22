@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback, useId } from 'react';
-import { CheckCircle, Info, Check, Bell } from 'lucide-react';
+import { CheckCircle, Info, Check, Bell, Settings } from 'lucide-react';
 import {
     saveReminderSchedules,
     disableAutoReminderV2,
@@ -53,6 +53,7 @@ interface AutoReminderSettingsProps {
         timeUnit: 'DAY' | 'WEEK';
         sendTime: string;
         isEnabled: boolean;
+        templateId: string | null;
     }[];
     /** 초기 자동 리마인더 템플릿 ID */
     initialAutoTemplateId?: string | null;
@@ -130,6 +131,7 @@ export function AutoReminderSettings({
                 timeValue: s.timeValue,
                 timeUnit: s.timeUnit,
                 sendTime: s.sendTime,
+                templateId: s.templateId,
             }));
         }
         return [{ id: `new-${uniqueId}-0`, ...DEFAULT_REMINDER_SCHEDULE }];
@@ -259,12 +261,24 @@ export function AutoReminderSettings({
                     </span>
                 </div>
 
-                <Switch
-                    checked={isEnabled}
-                    onCheckedChange={handleToggle}
-                    disabled={isPending}
-                    aria-label="자동 리마인드 토글"
-                />
+                <div className="flex items-center gap-2">
+                    {isEnabled && (
+                        <button
+                            type="button"
+                            onClick={() => setIsModalOpen(true)}
+                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            aria-label="리마인드 설정 변경"
+                        >
+                            <Settings className="w-4 h-4" />
+                        </button>
+                    )}
+                    <Switch
+                        checked={isEnabled}
+                        onCheckedChange={handleToggle}
+                        disabled={isPending}
+                        aria-label="자동 리마인드 토글"
+                    />
+                </div>
             </div>
 
             {/* 설정 다이얼로그 */}

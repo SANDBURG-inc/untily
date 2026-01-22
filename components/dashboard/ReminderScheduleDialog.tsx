@@ -188,11 +188,10 @@ export function ReminderScheduleRow({
             <Select
                 value={schedule.templateId || 'default'}
                 onValueChange={handleTemplateChange}
+                disabled={templatesLoading}
             >
                 <SelectTrigger className="w-[116px] h-8 text-xs ml-4">
-                    <SelectValue>
-                        {templatesLoading ? '...' : selectedTemplateName}
-                    </SelectValue>
+                    <SelectValue>{selectedTemplateName}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="default">기본 템플릿</SelectItem>
@@ -290,7 +289,7 @@ export function ReminderScheduleDialog({
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
                         <Bell className="w-5 h-5" />
@@ -301,12 +300,14 @@ export function ReminderScheduleDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <ReminderScheduleEditor
-                    schedules={localSchedules}
-                    onAddSchedule={handleAddSchedule}
-                    onUpdateSchedule={handleUpdateSchedule}
-                    onDeleteSchedule={handleDeleteSchedule}
-                />
+                <div className="flex-1 overflow-y-auto -mx-6 px-6">
+                    <ReminderScheduleEditor
+                        schedules={localSchedules}
+                        onAddSchedule={handleAddSchedule}
+                        onUpdateSchedule={handleUpdateSchedule}
+                        onDeleteSchedule={handleDeleteSchedule}
+                    />
+                </div>
 
                 <DialogFooter className="flex gap-2 sm:flex-row">
                     <Button

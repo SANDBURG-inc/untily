@@ -172,6 +172,12 @@ export function replacePlaceholders(
  */
 export function sanitizeHtmlForEmail(html: string): string {
     return html
+        // Heading 태그 인라인 스타일 (H1~H4)
+        .replace(/<h1>/g, '<h1 style="font-size: 24px; font-weight: 700; line-height: 1.3; margin: 0 0 12px 0; color: #111827;">')
+        .replace(/<h2>/g, '<h2 style="font-size: 20px; font-weight: 700; line-height: 1.3; margin: 0 0 10px 0; color: #1f2937;">')
+        .replace(/<h3>/g, '<h3 style="font-size: 18px; font-weight: 600; line-height: 1.4; margin: 0 0 8px 0; color: #374151;">')
+        .replace(/<h4>/g, '<h4 style="font-size: 16px; font-weight: 600; line-height: 1.4; margin: 0 0 6px 0; color: #4b5563;">')
+
         // p 태그에 기본 스타일 추가
         .replace(/<p>/g, '<p style="margin: 0 0 8px 0; font-size: 14px; color: #1f2937;">')
 

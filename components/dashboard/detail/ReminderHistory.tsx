@@ -42,6 +42,7 @@ interface ReminderHistoryProps {
         timeUnit: 'DAY' | 'WEEK';
         sendTime: string;
         isEnabled: boolean;
+        templateId: string | null;
     }[];
 }
 

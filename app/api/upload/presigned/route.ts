@@ -68,9 +68,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '유효하지 않은 서류입니다.' }, { status: 400 });
     }
 
-    // 8. 파일 크기 체크 (10MB)
-    if (size && size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: '파일 크기가 10MB를 초과합니다.' }, { status: 400 });
+    // 8. 파일 크기 체크 (25MB)
+    if (size && size > 25 * 1024 * 1024) {
+      return NextResponse.json({ error: '파일 크기가 25MB를 초과합니다.' }, { status: 400 });
     }
 
     // 9. 파일 확장자 체크 (위험한 실행 파일만 차단)

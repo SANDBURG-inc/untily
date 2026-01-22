@@ -151,11 +151,17 @@ export async function validatePublicSubmitAuth(
 
   // 7. Submitter가 없으면 새로 생성
   if (!submitter) {
+    // User 테이블에서 프로필 정보 조회 (저장된 이름, 연락처 우선 사용)
+    const userProfile = await prisma.user.findUnique({
+      where: { authUserId: user.id },
+      select: { name: true, phone: true },
+    });
+
     submitter = await prisma.submitter.create({
       data: {
-        name: user.name || user.email || '익명',
+        name: userProfile?.name || user.name || user.email || '익명',
         email: user.email || '',
-        phone: '',
+        phone: userProfile?.phone || '',
         documentBoxId,
         userId: user.id,
         status: 'PENDING',

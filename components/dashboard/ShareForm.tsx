@@ -6,7 +6,7 @@ import { generateReminderEmailHtml } from '@/lib/email-templates';
 import { getSubmissionUrl } from '@/lib/utils/url';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
-import { ShareEmailPreviewEditable } from "@/components/email-editor/ShareEmailPreviewEditable";
+import { EmailPreviewEditable } from "@/components/email-editor/EmailPreviewEditable";
 
 interface RequiredDocument {
     id: string;
@@ -128,7 +128,8 @@ export function ShareForm({
             />
 
             {/* 이메일 미리보기 (편집 가능) */}
-            <ShareEmailPreviewEditable
+            <EmailPreviewEditable
+                mode="share"
                 documentBoxId={documentBoxId}
                 documentBoxTitle={documentBoxTitle}
                 documentBoxDescription={documentBoxDescription}

@@ -6,6 +6,7 @@ import type { FormFieldGroupData, FormFieldData } from '@/lib/types/form-field';
 import { deleteMultipleFromS3 } from '@/lib/s3/delete';
 import { createTemplateZip, deleteTemplateZip, hasTemplatesChanged } from '@/lib/s3/zip';
 import { S3_BUCKET, S3_REGION } from '@/lib/s3/client';
+import { handleReminderScheduleUpdate } from '@/lib/queries/reminder-schedule';
 
 /**
  * S3 URL에서 키 추출
@@ -441,23 +442,18 @@ export async function PUT(
                 }
             }
 
-            // ReminderSchedule 처리: 기존 스케줄 삭제 후 새로 생성
-            await tx.reminderSchedule.deleteMany({
-                where: { documentBoxId: id },
-            });
-
-            if (reminderEnabled && reminderSchedules && reminderSchedules.length > 0) {
-                await tx.reminderSchedule.createMany({
-                    data: reminderSchedules.map((schedule, index) => ({
-                        documentBoxId: box.documentBoxId,
-                        timeValue: schedule.timeValue,
-                        timeUnit: schedule.timeUnit,
-                        sendTime: schedule.sendTime,
-                        channel: 'EMAIL' as const, // 현재 이메일만 지원
-                        order: index,
-                    })),
-                });
-            }
+            // ReminderSchedule 처리: 공통 함수 사용
+            await handleReminderScheduleUpdate(
+                tx,
+                id,
+                reminderSchedules?.map((schedule) => ({
+                    timeValue: schedule.timeValue,
+                    timeUnit: schedule.timeUnit,
+                    sendTime: schedule.sendTime,
+                    channel: 'EMAIL' as const,
+                })),
+                reminderEnabled
+            );
 
             // Form fields 처리: 기존 필드 삭제 후 새로 생성
             // FormFieldResponse는 FormField에 cascade 연결되어 자동 삭제됨

@@ -33,7 +33,7 @@ const BLOCKED_EXTENSIONS = [
   'hta', 'cpl', 'msc', 'gadget', 'inf', 'reg', 'lnk', 'ws', 'wsf', 'wsc', 'wsh',
 ];
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (파일당)
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB (파일당)
 const MAX_FILES = 10; // 최대 파일 개수
 const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB (총 용량)
 
@@ -80,7 +80,7 @@ const checkZipContents = async (
 const validateFile = async (file: File): Promise<string | null> => {
   // 파일 크기 체크
   if (file.size > MAX_FILE_SIZE) {
-    return '파일 크기는 10MB 이하여야 합니다.';
+    return '파일 크기는 25MB 이하여야 합니다.';
   }
 
   // 차단된 확장자 체크
@@ -350,10 +350,10 @@ export default function FileUploadDialog({
                 <p className="text-sm text-gray-500">
                   • 최대 {MAX_FILES}개 파일, 총 100MB까지
                 </p>
-                <p className="text-sm text-gray-500">• 파일당 최대 10MB</p>
+                <p className="text-sm text-gray-500">• 파일당 최대 25MB</p>
               </>
             ) : (
-              <p className="text-sm text-gray-500">• 최대 파일 크기: 10MB</p>
+              <p className="text-sm text-gray-500">• 최대 파일 크기: 25MB</p>
             )}
             <p className="text-xs text-gray-400">
               • 일부 파일 형식은 업로드가 제한됩니다.
