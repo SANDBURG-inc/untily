@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { processDeadlineNotifications } from '@/lib/cron';
+import { verifyCronAuth } from '@/lib/cron/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,10 +10,16 @@ export const dynamic = 'force-dynamic';
  * 실제 스케줄링은 instrumentation.ts + node-cron에서 처리됩니다.
  * 이 엔드포인트는 수동 테스트나 외부 트리거가 필요한 경우에 사용합니다.
  *
+ * @requires Authorization: Bearer <CRON_SECRET>
+ *
  * @example
- * GET /api/cron/deadline-notification
+ * curl -H "Authorization: Bearer <CRON_SECRET>" /api/cron/deadline-notification
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+    // 인증 검증
+    const authError = verifyCronAuth(request);
+    if (authError) return authError;
+
     try {
         const result = await processDeadlineNotifications();
 
