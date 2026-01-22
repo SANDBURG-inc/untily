@@ -14,6 +14,15 @@ import { generateReminderEmailHtml } from '@/lib/email-templates';
 import { getSubmissionUrl } from '@/lib/utils/url';
 
 // ============================================================================
+// Constants & Utils
+// ============================================================================
+
+// Resend API rate limit: 초당 2개 요청
+// 안전 마진을 위해 600ms delay 사용
+const RATE_LIMIT_DELAY_MS = 600;
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -129,6 +138,9 @@ export async function processReminders(): Promise<ProcessResult> {
         if (emailResult) {
             totalEmailsSent += emailResult.emailsSent;
             results.push(emailResult.result);
+
+            // Rate limit 방지: 문서함 간 delay
+            await delay(RATE_LIMIT_DELAY_MS);
         }
     }
 
@@ -292,12 +304,12 @@ async function sendReminderEmails(
     // 배치 발송
     let emailsSent = 0;
     const chunkSize = 100;
-    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     for (let i = 0; i < emails.length; i += chunkSize) {
         const chunk = emails.slice(i, i + chunkSize);
         if (i > 0) {
-            await delay(500);
+            // Rate limit 방지: chunk 간 delay
+            await delay(RATE_LIMIT_DELAY_MS);
         }
         const { error } = await resend.batch.send(chunk);
         if (error) {
@@ -378,6 +390,9 @@ async function processLegacyReminders(): Promise<{
         if (emailResult) {
             totalEmailsSent += emailResult.emailsSent;
             results.push(emailResult.result);
+
+            // Rate limit 방지: 문서함 간 delay
+            await delay(RATE_LIMIT_DELAY_MS);
         }
     }
 

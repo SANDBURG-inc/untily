@@ -19,6 +19,14 @@ import {
 } from '@/lib/email-templates';
 
 // ============================================================================
+// Constants & Utils
+// ============================================================================
+
+// Resend API rate limit: 초당 2개 요청
+const RATE_LIMIT_DELAY_MS = 600;
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -130,6 +138,7 @@ async function sendNotificationsForDaysUntil(
     for (const box of documentBoxes) {
         const result = await sendNotification(box, notificationType);
         results.push(result);
+        if (result.success) await delay(RATE_LIMIT_DELAY_MS);
     }
 
     return results;
@@ -177,12 +186,14 @@ async function sendDDayNotifications(): Promise<NotificationResult[]> {
     for (const box of openBoxes) {
         const result = await sendNotification(box, 'd-day');
         results.push(result);
+        if (result.success) await delay(RATE_LIMIT_DELAY_MS);
     }
 
     // CLOSED_EXPIRED 상태: "오늘 종료됨" 알림
     for (const box of closedBoxes) {
         const result = await sendNotification(box, 'closed');
         results.push(result);
+        if (result.success) await delay(RATE_LIMIT_DELAY_MS);
     }
 
     return results;
