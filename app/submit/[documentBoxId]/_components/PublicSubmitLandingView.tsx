@@ -38,7 +38,7 @@ export default function PublicSubmitLandingView({
     >
       {/* 문서함 설명 */}
       {documentBox.boxDescription && (
-        <p className="text-muted-foreground text-center mb-6">
+        <p className="text-muted-foreground text-center mb-6 whitespace-pre-line">
           {documentBox.boxDescription}
         </p>
       )}
