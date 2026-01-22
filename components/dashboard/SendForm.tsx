@@ -1,16 +1,20 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { sendManualReminder } from "@/app/dashboard/[id]/actions";
-import { generateReminderEmailHtml } from '@/lib/email-templates';
+import { sendManualReminder, sendReminderAfterDeadline } from "@/app/dashboard/[id]/actions";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { DocumentBoxStatus } from "@/lib/types/document";
+import type { SubmitterStatus } from "@/lib/types/submitter";
+import { DocumentBoxStatusChangeDialog } from "@/components/shared/DocumentBoxStatusChangeDialog";
+import { EmailPreviewEditable, type EmailPreviewEditableRef } from "@/components/email-editor/EmailPreviewEditable";
 
 interface Submitter {
     submitterId: string;
     name: string;
     email: string;
+    status: SubmitterStatus;
     submittedDocuments: any[];
 }
 
@@ -24,21 +28,45 @@ interface RequiredDocument {
 interface Props {
     documentBoxId: string;
     documentBoxTitle: string;
+    documentBoxDescription?: string | null;
     endDate: Date;
+    /** 문서함 상태 */
+    documentBoxStatus: DocumentBoxStatus;
     submitters: Submitter[];
     requiredDocuments: RequiredDocument[];
 }
 
-export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, submitters, requiredDocuments }: Props) {
+export function ReminderSendForm({ documentBoxId, documentBoxTitle, documentBoxDescription, endDate, documentBoxStatus, submitters, requiredDocuments }: Props) {
     const router = useRouter();
 
-    // Initial state: Select only unsubmitted users
-    const unsubmittedIds = submitters
-        .filter(s => s.submittedDocuments.length === 0)
+    // Initial state: Select users who need to submit (PENDING or REJECTED)
+    const needsSubmissionIds = submitters
+        .filter(s => s.status === 'PENDING' || s.status === 'REJECTED')
         .map(s => s.submitterId);
 
-    const [selectedIds, setSelectedIds] = useState<string[]>(unsubmittedIds);
+    const [selectedIds, setSelectedIds] = useState<string[]>(needsSubmissionIds);
     const [isPending, setIsPending] = useState(false);
+
+    // 마감 후 발송 확인 Dialog 상태
+    const [showAfterDeadlineDialog, setShowAfterDeadlineDialog] = useState(false);
+
+    // 이메일 템플릿 상태
+    const templateRef = useRef<{ greetingHtml: string; footerHtml: string }>({
+        greetingHtml: '',
+        footerHtml: '',
+    });
+
+    // 이메일 미리보기 편집 상태 ref
+    const emailPreviewRef = useRef<EmailPreviewEditableRef>(null);
+
+    const handleTemplateChange = (greetingHtml: string, footerHtml: string) => {
+        templateRef.current = { greetingHtml, footerHtml };
+    };
+
+    // 열린 상태가 아닌지 확인 (OPEN, OPEN_RESUME, OPEN_SOMEONE는 열린 상태)
+    // OPEN_RESUME: 모든 사용자가 제출 가능한 상태이므로 Dialog 불필요
+    // OPEN_SOMEONE: 이미 일부 제출 가능 상태이므로 상태 변경 안내 불필요
+    const isNotOpenStatus = documentBoxStatus !== 'OPEN' && documentBoxStatus !== 'OPEN_RESUME' && documentBoxStatus !== 'OPEN_SOMEONE';
 
     const toggleSelect = (id: string) => {
         if (selectedIds.includes(id)) {
@@ -48,17 +76,17 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
         }
     };
 
-    const isAllUnsubmittedSelected = unsubmittedIds.length > 0 && unsubmittedIds.every(id => selectedIds.includes(id));
+    const isAllNeedsSubmissionSelected = needsSubmissionIds.length > 0 && needsSubmissionIds.every(id => selectedIds.includes(id));
 
-    const toggleAllUnsubmitted = () => {
-        if (isAllUnsubmittedSelected) {
+    const toggleAllNeedsSubmission = () => {
+        if (isAllNeedsSubmissionSelected) {
             // Deselect all (only unsubmitted ones, to preserve manual choices if needed? Simplest is just toggle unsubmitted group)
             // Let's just deselect the unsubmitted ones from the current selection
-            setSelectedIds(selectedIds.filter(id => !unsubmittedIds.includes(id)));
+            setSelectedIds(selectedIds.filter(id => !needsSubmissionIds.includes(id)));
         } else {
             // Select all unsubmitted
             const newIds = new Set(selectedIds);
-            unsubmittedIds.forEach(id => newIds.add(id));
+            needsSubmissionIds.forEach(id => newIds.add(id));
             setSelectedIds(Array.from(newIds));
         }
     };
@@ -68,10 +96,56 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
             alert("수신자를 한 명 이상 선택해주세요.");
             return;
         }
+
+        // 편집 모드일 때 저장 여부 확인
+        if (emailPreviewRef.current?.isEditing) {
+            const confirmSend = confirm("템플릿 변경내용이 저장되지 않았습니다. 저장하지 않고 보내시겠습니까?");
+            if (!confirmSend) {
+                // 취소 시 편집 버튼 영역으로 스크롤
+                emailPreviewRef.current.scrollToEditButtons();
+                return;
+            }
+        }
+
+        // OPEN 상태가 아니면 확인 Dialog 표시
+        if (isNotOpenStatus) {
+            setShowAfterDeadlineDialog(true);
+            return;
+        }
+
+        // 일반 발송
         if (!confirm(`${selectedIds.length}명에게 리마인드 이메일을 발송하시겠습니까?`)) return;
 
         setIsPending(true);
-        const result = await sendManualReminder(documentBoxId, selectedIds);
+        const { greetingHtml, footerHtml } = templateRef.current;
+        const result = await sendManualReminder(
+            documentBoxId,
+            selectedIds,
+            greetingHtml || undefined,
+            footerHtml || undefined
+        );
+        setIsPending(false);
+
+        if (result.success) {
+            router.push(`/dashboard/${documentBoxId}/send/success`);
+            router.refresh();
+        } else {
+            alert("발송 실패: " + result.error);
+        }
+    };
+
+    // 마감 후 발송 확인
+    const handleAfterDeadlineSend = async () => {
+        setShowAfterDeadlineDialog(false);
+        setIsPending(true);
+
+        const { greetingHtml, footerHtml } = templateRef.current;
+        const result = await sendReminderAfterDeadline(
+            documentBoxId,
+            selectedIds,
+            greetingHtml || undefined,
+            footerHtml || undefined
+        );
         setIsPending(false);
 
         if (result.success) {
@@ -97,19 +171,25 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
                         <span className="text-lg">👥</span> 수신자 목록(총 {submitters.length}명)
                     </h3>
                     <button
-                        onClick={toggleAllUnsubmitted}
-                        className={`text-xs px-3 py-1.5 rounded border transition-colors ${isAllUnsubmittedSelected
+                        onClick={toggleAllNeedsSubmission}
+                        className={`text-xs px-3 py-1.5 rounded border transition-colors ${isAllNeedsSubmissionSelected
                             ? 'bg-blue-50 text-blue-600 border-blue-200 font-medium'
                             : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                             }`}
                     >
-                        미제출자 전체선택
+                        미제출/반려 전체선택
                     </button>
                 </div>
                 <div className="divide-y divide-gray-100 max-h-[300px] overflow-y-auto">
                     {submitters.map(submitter => {
-                        const isSubmitted = submitter.submittedDocuments.length > 0;
                         const isSelected = selectedIds.includes(submitter.submitterId);
+
+                        // 상태별 스타일과 레이블
+                        const statusConfig = {
+                            PENDING: { label: '미제출', className: 'text-red-500' },
+                            SUBMITTED: { label: '제출완료', className: 'text-green-600' },
+                            REJECTED: { label: '반려됨', className: 'text-orange-500' },
+                        }[submitter.status];
 
                         return (
                             <div key={submitter.submitterId} className={`flex items-center justify-between p-4 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50/30' : ''}`}>
@@ -124,8 +204,8 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
                                     </div>
                                 </div>
                                 <div className="w-20 text-right">
-                                    <span className={`text-xs font-medium ${isSubmitted ? 'text-green-600' : 'text-red-500'}`}>
-                                        {isSubmitted ? '제출완료' : '미제출'}
+                                    <span className={`text-xs font-medium ${statusConfig.className}`}>
+                                        {statusConfig.label}
                                     </span>
                                 </div>
                             </div>
@@ -134,37 +214,21 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
                 </div>
             </div>
 
-            {/* Email Preview */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <span className="text-lg">✉️</span> 이메일 미리보기
-                </h3>
-
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 p-4 border-b border-gray-200">
-                        <div className="text-sm text-gray-500 mb-1">제목</div>
-                        <div className="text-base font-bold text-gray-900">[문서 제출 요청] {documentBoxTitle} 서류 제출</div>
-                    </div>
-                    {/* Render HTML Preview in a safe container, or just styled div to look like email client */}
-                    <div className="p-6 bg-white overflow-x-auto">
-                        <div
-                            dangerouslySetInnerHTML={{
-                                __html: generateReminderEmailHtml({
-                                    documentBoxTitle,
-                                    documentBoxDescription: "필수 서류를 제출해주세요.", // Or pass actual description if available
-                                    endDate,
-                                    requiredDocuments: requiredDocuments.map(d => ({
-                                        name: d.name,
-                                        description: d.description,
-                                        isRequired: d.isRequired
-                                    })),
-                                    submissionLink: "(제출자별 링크가 생성됩니다)"
-                                })
-                            }}
-                        />
-                    </div>
-                </div>
-            </div>
+            {/* Email Preview - Editable */}
+            <EmailPreviewEditable
+                ref={emailPreviewRef}
+                documentBoxId={documentBoxId}
+                documentBoxTitle={documentBoxTitle}
+                documentBoxDescription={documentBoxDescription}
+                endDate={endDate}
+                requiredDocuments={requiredDocuments.map(d => ({
+                    name: d.name,
+                    description: d.description,
+                    isRequired: d.isRequired
+                }))}
+                submissionLink="(제출자별 링크가 생성됩니다)"
+                onTemplateChange={handleTemplateChange}
+            />
 
             {/* Required Documents List */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
@@ -204,6 +268,25 @@ export function ReminderSendForm({ documentBoxId, documentBoxTitle, endDate, sub
                     </button>
                 </div>
             </div>
+
+            {/* 마감 후 발송 확인 Dialog */}
+            <DocumentBoxStatusChangeDialog
+                open={showAfterDeadlineDialog}
+                onOpenChange={setShowAfterDeadlineDialog}
+                title="마감 후 리마인드 발송"
+                currentStatus={documentBoxStatus}
+                newStatus="일부 제출 가능"
+                newStatusColor="orange"
+                description={
+                    <p>
+                        리마인드를 발송하면 <strong>이번에 리마인드를 받은 사람만</strong>{' '}
+                        서류를 제출할 수 있습니다.
+                    </p>
+                }
+                confirmText="동의하고 발송"
+                onConfirm={handleAfterDeadlineSend}
+                onCancel={() => setShowAfterDeadlineDialog(false)}
+            />
         </div>
     );
 }

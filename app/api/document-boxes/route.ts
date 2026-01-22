@@ -20,7 +20,7 @@ export async function GET() {
             },
             include: {
                 submitters: true,
-                requiredDocuments: true,
+                requiredDocuments: { orderBy: { order: 'asc' } },
                 documentBoxRemindTypes: true,
             },
             orderBy: {

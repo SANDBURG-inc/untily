@@ -1,28 +1,107 @@
 'use client';
 
-import { Plus, X, FileText, ChevronDown } from 'lucide-react';
-import type { DocumentRequirement } from '@/lib/types/document';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
+import type { DocumentRequirement, TemplateFile } from '@/lib/types/document';
 import { IconButton } from '@/components/shared/IconButton';
-import { SectionHeader } from '@/components/shared/SectionHeader';
+import FileUploadDialog from '@/components/submit/upload/FileUploadDialog';
+import { DocumentRequirementItem } from './document-requirements';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 
 interface DocumentRequirementsCardProps {
   /** 서류 요구사항 목록 */
   requirements: DocumentRequirement[];
   /** 서류 요구사항 목록 변경 핸들러 */
   onRequirementsChange: (requirements: DocumentRequirement[]) => void;
+  /** 양식 파일 선택 핸들러 (생성 모드에서 지연 업로드용) */
+  onTemplateFileSelect?: (requirementId: string, file: File) => void;
+  /** 양식 파일 삭제 핸들러 */
+  onTemplateFileRemove?: (requirementId: string, index: number) => void;
+  /** 양식 파일 업로드 중인 항목 ID 목록 */
+  uploadingTemplateIds?: string[];
+  /** 양식 파일 미리보기 핸들러 (edit 모드에서 사용) */
+  onTemplatePreview?: (requirementId: string, template: TemplateFile) => void;
 }
 
 /**
  * DocumentRequirementsCard 컴포넌트
  *
  * 수집할 서류 정보를 등록하는 카드 컴포넌트입니다.
- * 서류명, 유형(필수/옵션), 설명을 입력받습니다.
+ * 서류명, 유형(필수/옵션), 설명, 양식 파일(여러 개)을 입력받습니다.
+ * 드래그 앤 드롭으로 서류 순서를 변경할 수 있습니다.
+ * SectionHeader는 부모 CollapsibleSection에서 렌더링합니다.
  */
 export function DocumentRequirementsCard({
   requirements,
   onRequirementsChange,
+  onTemplateFileSelect,
+  onTemplateFileRemove,
+  uploadingTemplateIds = [],
+  onTemplatePreview,
 }: DocumentRequirementsCardProps) {
+  // 파일 업로드 다이얼로그 상태
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [activeRequirementId, setActiveRequirementId] = useState<string | null>(null);
+
+  // 드래그 앤 드롭 센서 설정
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px 이동 후 드래그 시작
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  /**
+   * 드래그 종료 핸들러
+   */
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = requirements.findIndex((r) => r.id === active.id);
+      const newIndex = requirements.findIndex((r) => r.id === over.id);
+      onRequirementsChange(arrayMove(requirements, oldIndex, newIndex));
+    }
+  };
+
+  /**
+   * 파일 업로드 다이얼로그 열기
+   */
+  const openFileDialog = (requirementId: string) => {
+    setActiveRequirementId(requirementId);
+    setIsDialogOpen(true);
+  };
+
+  /**
+   * 복수 파일 선택 완료 핸들러
+   */
+  const handleFilesSelect = (files: File[]) => {
+    if (activeRequirementId) {
+      files.forEach((file) => {
+        onTemplateFileSelect?.(activeRequirementId, file);
+      });
+    }
+    setActiveRequirementId(null);
+  };
+
   /**
    * 새 서류 요구사항 추가
    */
@@ -32,6 +111,8 @@ export function DocumentRequirementsCard({
       name: '',
       type: '필수',
       description: '',
+      templates: [],
+      allowMultiple: false,
     };
     onRequirementsChange([...requirements, newRequirement]);
   };
@@ -42,7 +123,7 @@ export function DocumentRequirementsCard({
   const updateRequirement = (
     id: string,
     field: keyof DocumentRequirement,
-    value: string
+    value: string | boolean
   ) => {
     onRequirementsChange(
       requirements.map((r) => (r.id === id ? { ...r, [field]: value } : r))
@@ -56,102 +137,82 @@ export function DocumentRequirementsCard({
     onRequirementsChange(requirements.filter((r) => r.id !== id));
   };
 
+  /**
+   * 양식 파일 삭제 핸들러
+   */
+  const handleTemplateRemove = (requirementId: string, index: number) => {
+    onTemplateFileRemove?.(requirementId, index);
+
+    onRequirementsChange(
+      requirements.map((r) => {
+        if (r.id === requirementId && r.templates) {
+          const newTemplates = [...r.templates];
+          newTemplates.splice(index, 1);
+          return { ...r, templates: newTemplates };
+        }
+        return r;
+      })
+    );
+  };
+
   return (
-    <Card variant="compact" className="mb-6">
-      <CardHeader variant="compact">
-        <CardTitle>
-          <SectionHeader icon={FileText} title="수집 서류 등록" size="md" />
-        </CardTitle>
-      </CardHeader>
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={requirements.map((r) => r.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-4">
+            {requirements.map((requirement) => (
+              <DocumentRequirementItem
+                key={requirement.id}
+                requirement={requirement}
+                canDelete={requirements.length > 1}
+                onUpdate={(field, value) =>
+                  updateRequirement(requirement.id, field, value)
+                }
+                onRemove={() => removeRequirement(requirement.id)}
+                onOpenFileDialog={() => openFileDialog(requirement.id)}
+                onTemplateRemove={(index) =>
+                  handleTemplateRemove(requirement.id, index)
+                }
+                isUploading={uploadingTemplateIds.includes(requirement.id)}
+                onTemplatePreview={
+                  onTemplatePreview
+                    ? (template) => onTemplatePreview(requirement.id, template)
+                    : undefined
+                }
+              />
+            ))}
 
-      <CardContent variant="compact">
-        <div className="space-y-4">
-          {requirements.map((requirement) => (
-            <div
-              key={requirement.id}
-              className="relative border border-gray-200 rounded-lg p-4"
-            >
-              {/* 삭제 버튼 (서류가 2개 이상일 때만 표시) */}
-              {requirements.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeRequirement(requirement.id)}
-                  className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {/* 서류명 입력 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    서류명<span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={requirement.name}
-                    onChange={(e) =>
-                      updateRequirement(requirement.id, 'name', e.target.value)
-                    }
-                    placeholder="예: 주민등록등본"
-                    className="w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400"
-                    required
-                  />
-                </div>
-
-                {/* 서류 유형 선택 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    서류 유형<span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={requirement.type}
-                      onChange={(e) =>
-                        updateRequirement(requirement.id, 'type', e.target.value)
-                      }
-                      className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white appearance-none pr-10 text-gray-700"
-                      required
-                    >
-                      <option value="필수">필수</option>
-                      <option value="옵션">옵션</option>
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-
-              {/* 서류 설명 입력 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
-                  설명
-                </label>
-                <input
-                  type="text"
-                  value={requirement.description}
-                  onChange={(e) =>
-                    updateRequirement(requirement.id, 'description', e.target.value)
-                  }
-                  placeholder="예: 3개월 이내 발급"
-                  className="w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400"
-                />
-              </div>
+            {/* 서류 추가 버튼 */}
+            <div className="pt-2">
+              <IconButton
+                type="button"
+                variant="secondary"
+                icon={<Plus className="w-4 h-4" />}
+                onClick={addRequirement}
+                className="w-full"
+              >
+                서류 추가
+              </IconButton>
             </div>
-          ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
-          {/* 서류 추가 버튼 */}
-          <IconButton
-            type="button"
-            variant="secondary"
-            icon={<Plus className="w-4 h-4" />}
-            onClick={addRequirement}
-            className="w-full"
-          >
-            서류 추가
-          </IconButton>
-        </div>
-      </CardContent>
-    </Card>
+      {/* 파일 업로드 다이얼로그 (멀티 파일 지원) */}
+      <FileUploadDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        title="양식 파일 업로드"
+        multiple
+        onFilesSelect={handleFilesSelect}
+      />
+    </>
   );
 }

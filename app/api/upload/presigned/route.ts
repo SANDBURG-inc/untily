@@ -5,6 +5,7 @@ import { generateUploadUrl } from '@/lib/s3/presigned';
 import { generateS3Key, getContentType, getFileUrl, generateSubmittedFilename } from '@/lib/s3/utils';
 import { S3_BUCKET, S3_REGION } from '@/lib/s3/client';
 import { hasDesignatedSubmitters } from '@/lib/utils/document-box';
+import { isDocumentBoxClosed, type DocumentBoxStatus } from '@/lib/types/document';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     // 2. 요청 바디 파싱
     const body = await request.json();
-    const { documentBoxId, submitterId, requiredDocumentId, filename, contentType, size } = body;
+    const { documentBoxId, submitterId, requiredDocumentId, filename, contentType, size, originalNameHint } = body;
 
     if (!documentBoxId || !submitterId || !requiredDocumentId || !filename) {
       return NextResponse.json({ error: '필수 정보가 누락되었습니다.' }, { status: 400 });
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
       where: { submitterId },
       include: {
         documentBox: {
-          include: { requiredDocuments: true },
+          include: { requiredDocuments: { orderBy: { order: 'asc' } } },
         },
       },
     });
@@ -49,9 +50,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. 만료 체크
-    if (new Date() > submitter.documentBox.endDate) {
-      return NextResponse.json({ error: '제출 기한이 만료되었습니다.' }, { status: 400 });
+    // 5. 제출 가능 상태 체크 (status 기반)
+    if (isDocumentBoxClosed(submitter.documentBox.status as DocumentBoxStatus)) {
+      return NextResponse.json({ error: '제출이 마감되었습니다.' }, { status: 400 });
     }
 
     // 6. 이미 제출 완료 체크
@@ -67,16 +68,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '유효하지 않은 서류입니다.' }, { status: 400 });
     }
 
-    // 8. 파일 크기 체크 (10MB)
-    if (size && size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: '파일 크기가 10MB를 초과합니다.' }, { status: 400 });
+    // 8. 파일 크기 체크 (25MB)
+    if (size && size > 25 * 1024 * 1024) {
+      return NextResponse.json({ error: '파일 크기가 25MB를 초과합니다.' }, { status: 400 });
     }
 
-    // 9. 파일 확장자 체크
-    const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+    // 9. 파일 확장자 체크 (위험한 실행 파일만 차단)
+    const blockedExtensions = [
+      'exe', 'sh', 'bat', 'cmd', 'ps1', 'vbs', 'js', 'jar', 'msi', 'scr', 'com', 'pif',
+      'hta', 'cpl', 'msc', 'gadget', 'inf', 'reg', 'lnk', 'ws', 'wsf', 'wsc', 'wsh',
+    ];
     const ext = filename.split('.').pop()?.toLowerCase();
-    if (!ext || !allowedExtensions.includes(ext)) {
-      return NextResponse.json({ error: '허용되지 않는 파일 형식입니다. (PDF, JPG, PNG만 가능)' }, { status: 400 });
+    if (ext && blockedExtensions.includes(ext)) {
+      return NextResponse.json({ error: '보안상의 이유로 이 파일 형식은 업로드할 수 없습니다.' }, { status: 400 });
     }
 
     // 10. S3 키 생성 (식별용 - timestamp + 원본파일명)
@@ -88,17 +92,19 @@ export async function POST(request: NextRequest) {
     });
 
     // 11. 저장용 파일명 생성 (사용자에게 보여지는 이름)
-    // 형식: {서류명}_{날짜}_{제출자이름}.{확장자}
+    // 형식: {서류명}_{날짜}_{제출자이름}_{원본힌트}.{확장자}
+    // originalNameHint는 클라이언트에서 중복 처리된 한글 추출값 (예: "계약서", "계약서_2")
     const displayFilename = generateSubmittedFilename({
       requiredDocumentTitle: requiredDoc.documentTitle,
       submitterName: submitter.name,
       originalFilename: filename,
+      originalNameHint,
     });
 
-    // 12. Content-Type 결정
+    // 13. Content-Type 결정
     const finalContentType = contentType || getContentType(filename);
 
-    // 13. Presigned URL 생성
+    // 14. Presigned URL 생성
     const uploadUrl = await generateUploadUrl({
       key: s3Key,
       contentType: finalContentType,
@@ -110,7 +116,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 14. DB에 SubmittedDocument 생성
+    // 15. DB에 SubmittedDocument 생성
     const fileUrl = getFileUrl(s3Key, S3_BUCKET, S3_REGION);
 
     const submittedDocument = await prisma.submittedDocument.create({

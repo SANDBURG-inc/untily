@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
-import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse } from '@/lib/types/document';
+import type { CreateDocumentBoxRequest, CreateDocumentBoxResponse, TemplateFile } from '@/lib/types/document';
+import type { FormFieldGroupData, FormFieldData } from '@/lib/types/form-field';
+import { createTemplateZip } from '@/lib/s3/zip';
 
 export async function POST(request: Request) {
     try {
@@ -14,7 +16,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const body: CreateDocumentBoxRequest = await request.json();
+        const body = await request.json();
         const {
             documentName,
             description,
@@ -22,12 +24,25 @@ export async function POST(request: Request) {
             submittersEnabled,
             submitters,
             requirements,
+            formFieldGroups, // 기존 호환성
+            formFields,       // 새 구조 (우선)
+            formFieldsAboveDocuments,
             deadline,
             reminderEnabled,
             emailReminder,
             smsReminder,
             kakaoReminder,
-        } = body;
+            reminderSchedules,
+        } = body as CreateDocumentBoxRequest & {
+            formFieldGroups?: FormFieldGroupData[];
+            formFields?: FormFieldData[];
+            formFieldsAboveDocuments?: boolean;
+            reminderSchedules?: Array<{
+                timeValue: number;
+                timeUnit: 'DAY' | 'WEEK';
+                sendTime: string;
+            }>;
+        };
 
         // Validate required fields
         if (!documentName || !deadline) {
@@ -56,6 +71,7 @@ export async function POST(request: Request) {
                     endDate,
                     userId: user.id,
                     hasSubmitter: submittersEnabled,
+                    formFieldsAboveDocuments: formFieldsAboveDocuments ?? false,
                 },
             });
 
@@ -83,13 +99,37 @@ export async function POST(request: Request) {
                 });
             }
 
-            // Create required documents
+            // Create required documents (양식 파일 목록 포함, 순서 유지)
             if (requirements.length > 0) {
                 await tx.requiredDocument.createMany({
-                    data: requirements.map((req) => ({
+                    data: requirements.map((req, index) => ({
                         documentTitle: req.name,
                         documentDescription: req.description || null,
                         isRequired: req.type === '필수',
+                        allowMultipleFiles: req.allowMultiple ?? false,
+                        order: req.order ?? index, // 순서 저장 (없으면 배열 인덱스 사용)
+                        documentBoxId: box.documentBoxId,
+                        templates: JSON.parse(JSON.stringify(req.templates || [])),
+                    })),
+                });
+            }
+
+            // Create form fields (정보 입력 항목 - 그룹 없이 직접 연결)
+            // formFields 우선, 없으면 formFieldGroups에서 평탄화
+            const fieldsToCreate: FormFieldData[] = formFields ||
+                (formFieldGroups ? formFieldGroups.flatMap(g => g.fields) : []);
+
+            if (fieldsToCreate.length > 0) {
+                await tx.formField.createMany({
+                    data: fieldsToCreate.map((field, index) => ({
+                        fieldLabel: field.fieldLabel,
+                        fieldType: field.fieldType,
+                        placeholder: field.placeholder || null,
+                        description: field.description || null,
+                        isRequired: field.isRequired,
+                        order: field.order ?? index,
+                        options: JSON.parse(JSON.stringify(field.options || [])),
+                        hasOtherOption: field.hasOtherOption ?? false,
                         documentBoxId: box.documentBoxId,
                     })),
                 });
@@ -125,10 +165,54 @@ export async function POST(request: Request) {
                         data: remindTypes,
                     });
                 }
+
+                // Create reminder schedules
+                if (reminderSchedules && reminderSchedules.length > 0) {
+                    await tx.reminderSchedule.createMany({
+                        data: reminderSchedules.map((schedule, index) => ({
+                            documentBoxId: box.documentBoxId,
+                            timeValue: schedule.timeValue,
+                            timeUnit: schedule.timeUnit,
+                            sendTime: schedule.sendTime,
+                            channel: 'EMAIL' as const, // 현재 이메일만 지원
+                            order: index,
+                        })),
+                    });
+                }
             }
 
             return box;
         });
+
+        // 트랜잭션 완료 후 ZIP 생성 (비동기, 실패해도 문서함 생성은 성공)
+        try {
+            const createdRequirements = await prisma.requiredDocument.findMany({
+                where: { documentBoxId: documentBox.documentBoxId },
+            });
+
+            for (const req of createdRequirements) {
+                const templates = (req.templates as TemplateFile[] | null) || [];
+
+                // 양식 2개 이상일 때만 ZIP 생성
+                if (templates.length >= 2) {
+                    const zipKey = await createTemplateZip({
+                        templates,
+                        documentBoxId: documentBox.documentBoxId,
+                        requiredDocumentId: req.requiredDocumentId,
+                    });
+
+                    if (zipKey) {
+                        await prisma.requiredDocument.update({
+                            where: { requiredDocumentId: req.requiredDocumentId },
+                            data: { templateZipKey: zipKey },
+                        });
+                    }
+                }
+            }
+        } catch (zipError) {
+            // ZIP 생성 실패는 로깅만 (문서함 생성은 성공)
+            console.error('Failed to create template ZIP:', zipError);
+        }
 
         return NextResponse.json<CreateDocumentBoxResponse>({
             success: true,

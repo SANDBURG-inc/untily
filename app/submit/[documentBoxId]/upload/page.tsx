@@ -20,11 +20,22 @@ export default async function PublicUploadPage({ params }: PublicUploadPageProps
   }
 
   // 인증 완료 → 업로드 폼 표시
+  // Prisma JsonValue → TemplateFile[] 타입 변환
+  const requiredDocuments = submitter.documentBox.requiredDocuments.map((doc) => ({
+    requiredDocumentId: doc.requiredDocumentId,
+    documentTitle: doc.documentTitle,
+    documentDescription: doc.documentDescription,
+    isRequired: doc.isRequired,
+    templates: (doc.templates as Array<{ s3Key: string; filename: string }>) || [],
+    templateZipKey: doc.templateZipKey,
+    allowMultipleFiles: doc.allowMultipleFiles,
+  }));
+
   return (
     <PublicUploadForm
       documentBox={{
         boxTitle: submitter.documentBox.boxTitle,
-        requiredDocuments: submitter.documentBox.requiredDocuments,
+        requiredDocuments,
       }}
       submitter={{
         name: submitter.name,

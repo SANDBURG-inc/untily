@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { neonAuth } from '@neondatabase/neon-js/auth/next';
 import prisma from '@/lib/db';
 import { hasDesignatedSubmitters } from '@/lib/utils/document-box';
+import { isDocumentBoxClosed, type DocumentBoxStatus } from '@/lib/types/document';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
       where: { submitterId },
       include: {
         documentBox: {
-          include: { requiredDocuments: true },
+          include: { requiredDocuments: { orderBy: { order: 'asc' } } },
         },
         submittedDocuments: true,
       },
@@ -46,15 +47,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. 만료 체크
-    if (new Date() > submitter.documentBox.endDate) {
-      return NextResponse.json({ error: '제출 기한이 만료되었습니다.' }, { status: 400 });
+    // 5. 제출 가능 상태 체크 (status 기반)
+    if (isDocumentBoxClosed(submitter.documentBox.status as DocumentBoxStatus)) {
+      return NextResponse.json({ error: '제출이 마감되었습니다.' }, { status: 400 });
     }
 
-    // 6. 이미 제출 완료 체크
+    // 6. 이미 제출 완료 체크 (SUBMITTED 상태면 재제출 불가, REJECTED는 가능)
     if (submitter.status === 'SUBMITTED') {
       return NextResponse.json({ error: '이미 제출이 완료되었습니다.' }, { status: 400 });
     }
+
+    // REJECTED 상태인지 확인 (재제출 로그 기록용)
+    const isResubmission = submitter.status === 'REJECTED';
 
     // 7. 필수 서류 업로드 완료 확인
     const requiredDocs = submitter.documentBox.requiredDocuments.filter((doc) => doc.isRequired);
@@ -72,15 +76,78 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. 제출 완료 처리
-    await prisma.submitter.update({
-      where: { submitterId },
-      data: {
-        status: 'SUBMITTED',
-        submittedAt: new Date(),
-        userId: user.id,
+    // 8. 필수 폼 필드 응답 확인
+    const requiredFields = await prisma.formField.findMany({
+      where: {
+        documentBoxId: submitter.documentBox.documentBoxId,
+        isRequired: true,
       },
     });
+
+    const formResponses = await prisma.formFieldResponse.findMany({
+      where: { submitterId },
+    });
+
+    const responseMap = new Map(formResponses.map((r) => [r.formFieldId, r.value]));
+
+    for (const field of requiredFields) {
+      const response = responseMap.get(field.formFieldId);
+
+      // 응답이 없거나 빈 값인 경우
+      if (!response || response.trim() === '') {
+        return NextResponse.json(
+          { error: `필수 항목 "${field.fieldLabel}"을(를) 입력해주세요.` },
+          { status: 400 }
+        );
+      }
+
+      // CHECKBOX 타입에서 필수 복수선택 검증 (기타 포함 시 기타값도 체크)
+      if (field.fieldType === 'CHECKBOX') {
+        // 단순 동의 체크박스 (options이 없거나 빈 배열인 경우)
+        const options = field.options as string[] | null;
+        if (!options || options.length === 0) {
+          if (response !== 'true') {
+            return NextResponse.json(
+              { error: `"${field.fieldLabel}" 동의가 필요합니다.` },
+              { status: 400 }
+            );
+          }
+        }
+        // 복수선택 체크박스는 값이 있으면 통과 (위에서 빈 값 체크 완료)
+      }
+    }
+
+    // 9. 제출 완료 처리
+    if (isResubmission) {
+      // 재제출인 경우: ResubmissionLog 생성 + 상태 변경 (트랜잭션)
+      await prisma.$transaction([
+        prisma.resubmissionLog.create({
+          data: {
+            submitterId,
+            resubmittedAt: new Date(),
+          },
+        }),
+        prisma.submitter.update({
+          where: { submitterId },
+          data: {
+            status: 'SUBMITTED',
+            submittedAt: new Date(),
+            userId: user.id,
+            isChecked: false, // 재제출 시 확인 상태 초기화
+          },
+        }),
+      ]);
+    } else {
+      // 최초 제출
+      await prisma.submitter.update({
+        where: { submitterId },
+        data: {
+          status: 'SUBMITTED',
+          submittedAt: new Date(),
+          userId: user.id,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

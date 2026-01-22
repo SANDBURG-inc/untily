@@ -1,6 +1,7 @@
 import DocumentRegistrationForm from "@/components/dashboard/DocumentRegistrationForm";
 import { ensureAuthenticated } from "@/lib/auth";
 import { getDocumentBoxForEdit } from "@/lib/queries/document-box";
+import { getUserDefaultLogo } from "@/lib/queries/logo";
 import { notFound } from "next/navigation";
 
 export default async function EditDocumentBoxPage({
@@ -11,7 +12,11 @@ export default async function EditDocumentBoxPage({
     const user = await ensureAuthenticated();
     const { id } = await params;
 
-    const documentBox = await getDocumentBoxForEdit(id, user.id);
+    // 병렬로 문서함 데이터와 사용자 기본 로고 조회
+    const [documentBox, userDefaultLogoUrl] = await Promise.all([
+        getDocumentBoxForEdit(id, user.id),
+        getUserDefaultLogo(user.id),
+    ]);
 
     if (!documentBox) {
         notFound();
@@ -22,7 +27,7 @@ export default async function EditDocumentBoxPage({
         documentName: documentBox.boxTitle,
         description: documentBox.boxDescription || '',
         logoUrl: documentBox.logos[0]?.imageUrl || '',
-        submittersEnabled: documentBox.submitters.length > 0,
+        submittersEnabled: documentBox.hasSubmitter ?? false,
         submitters: documentBox.submitters.length > 0
             ? documentBox.submitters.map((s) => ({
                 id: s.submitterId,
@@ -37,13 +42,50 @@ export default async function EditDocumentBoxPage({
                 name: r.documentTitle,
                 type: r.isRequired ? '필수' : '옵션',
                 description: r.documentDescription || '',
+                templates: (r.templates as { s3Key: string; filename: string }[]) || [],
+                allowMultiple: r.allowMultipleFiles ?? false,
             }))
-            : [{ id: '1', name: '', type: '필수', description: '' }],
-        deadline: documentBox.endDate.toISOString().split('T')[0],
-        reminderEnabled: documentBox.documentBoxRemindTypes.length > 0,
-        emailReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'EMAIL'),
+            : [{ id: '1', name: '', type: '필수', description: '', templates: [], allowMultiple: false }],
+        deadline: documentBox.endDate.toISOString(),
+        reminderEnabled:
+            documentBox.reminderSchedules.some((s) => s.isEnabled) ||
+            documentBox.documentBoxRemindTypes.length > 0,
+        emailReminder:
+            documentBox.reminderSchedules.some((s) => s.isEnabled && s.channel === 'EMAIL') ||
+            documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'EMAIL'),
         smsReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'SMS'),
         kakaoReminder: documentBox.documentBoxRemindTypes.some((t) => t.remindType === 'PUSH'),
+        reminderSchedules: documentBox.reminderSchedules.map((s) => ({
+            id: s.id,
+            timeValue: s.timeValue,
+            timeUnit: s.timeUnit,
+            sendTime: s.sendTime,
+            templateId: s.templateId,
+        })),
+        status: documentBox.status,
+        // 폼 필드 데이터 (정보 입력 항목 - 그룹 없이 직접 연결)
+        formFieldsAboveDocuments: documentBox.formFieldsAboveDocuments,
+        // 기존 formFieldGroups 형식 유지 (호환성) - 하나의 기본 그룹으로 래핑
+        formFieldGroups: documentBox.formFields.length > 0
+            ? [{
+                id: 'default-group',
+                groupTitle: '입력 항목',
+                groupDescription: '',
+                isRequired: true,
+                order: 0,
+                fields: documentBox.formFields.map((field) => ({
+                    id: field.formFieldId,
+                    fieldLabel: field.fieldLabel,
+                    fieldType: field.fieldType,
+                    placeholder: field.placeholder || '',
+                    description: field.description || '',
+                    isRequired: field.isRequired,
+                    order: field.order,
+                    options: (field.options as string[]) || [],
+                    hasOtherOption: field.hasOtherOption,
+                })),
+            }]
+            : [],
     };
 
     return (
@@ -52,7 +94,9 @@ export default async function EditDocumentBoxPage({
                 mode="edit"
                 documentBoxId={id}
                 initialData={initialData}
+                userDefaultLogoUrl={userDefaultLogoUrl}
             />
         </main>
     );
 }
+ 

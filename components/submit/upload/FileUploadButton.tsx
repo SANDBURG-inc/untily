@@ -4,7 +4,7 @@ import { Upload } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 interface FileUploadButtonProps {
-  onClick: () => void;
+  onClick?: () => void;
   disabled?: boolean;
   className?: string;
   label?: string;

@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { IconButton } from '@/components/shared/IconButton';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { StatusChangeDropdown } from '@/components/dashboard/StatusChangeDropdown';
 import {
     SubmissionStats,
     SubmittersList,
@@ -69,10 +70,17 @@ export default async function DocumentBoxDetailPage({
 
     return (
         <main className="container mx-auto px-4 py-8">
-            {/* 페이지 헤더: 문서함 제목 + 수정 버튼 */}
+            {/* 페이지 헤더: 문서함 제목 + 상태 + 수정 버튼 */}
             <PageHeader
                 title={documentBox.boxTitle}
                 description={documentBox.boxDescription || '제출할 서류를 확인하세요.'}
+                statusBadge={
+                    <StatusChangeDropdown
+                        documentBoxId={id}
+                        currentStatus={documentBox.status}
+                        size="lg"
+                    />
+                }
                 actions={
                     <>
                         <IconButton
@@ -111,7 +119,7 @@ export default async function DocumentBoxDetailPage({
                 submitters={documentBox.submitters}
                 documentBoxId={id}
                 documentBoxTitle={documentBox.boxTitle}
-                totalRequiredDocuments={documentBox.totalRequiredDocuments}
+                endDate={documentBox.endDate}
             />
             {/* 3. 수집 서류 목록 */}
             <RequiredDocumentsList documents={documentBox.requiredDocuments} />
@@ -120,8 +128,12 @@ export default async function DocumentBoxDetailPage({
             {stats.hasDesignatedSubmitters && (
                 <ReminderHistory
                     documentBoxId={id}
-                    autoReminderEnabled={documentBox.documentBoxRemindTypes.length > 0}
+                    autoReminderEnabled={
+                        documentBox.reminderSchedules.some(s => s.isEnabled) ||
+                        documentBox.documentBoxRemindTypes.length > 0
+                    }
                     reminderLogs={documentBox.reminderLogs}
+                    reminderSchedules={documentBox.reminderSchedules}
                 />
             )}
         </main>

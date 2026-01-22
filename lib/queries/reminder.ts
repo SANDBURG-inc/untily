@@ -6,6 +6,7 @@
  * ## 사용처
  * - app/dashboard/[id]/reminders/[logId]/page.tsx (리마인드 로그 상세)
  * - components/dashboard/detail/ReminderHistory.tsx (리마인드 내역 표시)
+ * - lib/auth/submitter-auth.ts (OPEN_SOMEONE 상태 제출 허용 판단)
  *
  * ## 관련 파일
  * - lib/types/reminder.ts - 타입, 상수, 유틸리티 함수
@@ -217,4 +218,65 @@ export async function getPaginatedReminderRecipients(
         currentPage: page,
         totalPages: Math.ceil(totalCount / pageSize),
     };
+}
+
+// ============================================================================
+// OPEN_SOMEONE 상태용 쿼리 함수
+// ============================================================================
+
+/**
+ * 제출자가 마감 후 리마인드를 받았는지 확인
+ *
+ * OPEN_SOMEONE 상태에서 제출 허용 여부를 결정할 때 사용합니다.
+ *
+ * @param documentBoxId 문서함 ID
+ * @param submitterId 제출자 ID
+ * @returns 마감 후 리마인드를 받았으면 true
+ *
+ * @example
+ * if (documentBox.status === 'OPEN_SOMEONE') {
+ *   const canSubmit = await hasReceivedReminderAfterDeadline(documentBoxId, submitterId);
+ *   if (!canSubmit) return { status: 'closed', documentBox };
+ * }
+ */
+export async function hasReceivedReminderAfterDeadline(
+    documentBoxId: string,
+    submitterId: string
+): Promise<boolean> {
+    const recipient = await prisma.reminderRecipient.findFirst({
+        where: {
+            submitterId,
+            reminderLog: {
+                documentBoxId,
+                sentAfterDeadline: true,
+            },
+        },
+    });
+
+    return recipient !== null;
+}
+
+/**
+ * 문서함의 마감 후 리마인드 수신자 목록 조회
+ *
+ * @param documentBoxId 문서함 ID
+ * @returns 마감 후 리마인드를 받은 제출자 ID 목록
+ */
+export async function getReminderRecipientsAfterDeadline(
+    documentBoxId: string
+): Promise<string[]> {
+    const recipients = await prisma.reminderRecipient.findMany({
+        where: {
+            reminderLog: {
+                documentBoxId,
+                sentAfterDeadline: true,
+            },
+        },
+        select: {
+            submitterId: true,
+        },
+        distinct: ['submitterId'],
+    });
+
+    return recipients.map((r) => r.submitterId);
 }

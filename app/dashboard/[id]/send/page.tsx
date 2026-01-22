@@ -21,7 +21,7 @@ export default async function ReminderSendPage({
                     submittedDocuments: true // To check submission status
                 }
             },
-            requiredDocuments: true
+            requiredDocuments: { orderBy: { order: 'asc' } }
         }
     });
 
@@ -39,11 +39,14 @@ export default async function ReminderSendPage({
             <ReminderSendForm
                 documentBoxId={documentBox.documentBoxId}
                 documentBoxTitle={documentBox.boxTitle}
+                documentBoxDescription={documentBox.boxDescription}
                 endDate={documentBox.endDate}
+                documentBoxStatus={documentBox.status}
                 submitters={documentBox.submitters.map(s => ({
                     submitterId: s.submitterId,
                     name: s.name,
                     email: s.email,
+                    status: s.status,
                     submittedDocuments: s.submittedDocuments
                 }))}
                 requiredDocuments={documentBox.requiredDocuments.map(d => ({

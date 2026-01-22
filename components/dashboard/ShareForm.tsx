@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Check } from "lucide-react";
 import { generateReminderEmailHtml } from '@/lib/email-templates';
+import { getSubmissionUrl } from '@/lib/utils/url';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
+import { EmailPreviewEditable } from "@/components/email-editor/EmailPreviewEditable";
 
 interface RequiredDocument {
     id: string;
@@ -33,7 +34,17 @@ export function ShareForm({
     const [copiedLink, setCopiedLink] = useState(false);
     const [copiedEmail, setCopiedEmail] = useState(false);
 
-    const shareLink = `https://untily.kr/submit/${documentBoxId}`;
+    const shareLink = getSubmissionUrl(documentBoxId);
+
+    // 이메일 템플릿 상태
+    const templateRef = useRef<{ greetingHtml: string; footerHtml: string }>({
+        greetingHtml: '',
+        footerHtml: '',
+    });
+
+    const handleTemplateChange = (greetingHtml: string, footerHtml: string) => {
+        templateRef.current = { greetingHtml, footerHtml };
+    };
 
     const handleCopyLink = async () => {
         try {
@@ -45,7 +56,7 @@ export function ShareForm({
         }
     };
 
-    const handleCopyEmail = async () => {
+    const handleCopyEmail = async (customGreetingHtml?: string, customFooterHtml?: string) => {
         try {
             const emailHtml = generateReminderEmailHtml({
                 documentBoxTitle,
@@ -56,16 +67,18 @@ export function ShareForm({
                     description: d.description,
                     isRequired: d.isRequired
                 })),
-                submissionLink: shareLink
+                submissionLink: shareLink,
+                customGreetingHtml: customGreetingHtml || undefined,
+                customFooterHtml: customFooterHtml || undefined,
             });
 
             const plainText = `[리마인드] ${documentBoxTitle} 서류 제출\n\n${documentBoxDescription || '아래 문서 제출을 요청드립니다.'}\n\n마감일: ${new Date(endDate).toISOString().split('T')[0]}\n\n제출 링크: ${shareLink}`;
 
-            // Create blobs for both HTML and plain text
+            // HTML과 텍스트 형식의 Blob 생성
             const htmlBlob = new Blob([emailHtml], { type: 'text/html' });
             const textBlob = new Blob([plainText], { type: 'text/plain' });
 
-            // Use the Clipboard API to write both formats
+            // Clipboard API로 두 형식 모두 복사
             await navigator.clipboard.write([
                 new ClipboardItem({
                     ['text/html']: htmlBlob,
@@ -75,9 +88,26 @@ export function ShareForm({
 
             setCopiedEmail(true);
             setTimeout(() => setCopiedEmail(false), 2000);
+
+            // 마지막 사용 템플릿 저장
+            if (customGreetingHtml || customFooterHtml) {
+                try {
+                    await fetch('/api/remind-template/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            documentBoxId,
+                            lastGreetingHtml: customGreetingHtml || null,
+                            lastFooterHtml: customFooterHtml || null,
+                        }),
+                    });
+                } catch (saveErr) {
+                    console.error('Failed to save template config:', saveErr);
+                }
+            }
         } catch (err) {
             console.error('Failed to copy email:', err);
-            // Fallback to plain text if ClipboardItem is not supported
+            // ClipboardItem 미지원 시 텍스트만 복사 (폴백)
             try {
                 const plainText = `[리마인드] ${documentBoxTitle} 서류 제출\n\n${documentBoxDescription || '아래 문서 제출을 요청드립니다.'}\n\n마감일: ${new Date(endDate).toISOString().split('T')[0]}\n\n제출 링크: ${shareLink}`;
                 await navigator.clipboard.writeText(plainText);
@@ -97,67 +127,23 @@ export function ShareForm({
                 align="center"
             />
 
-            {/* Email Preview Section */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                        <span className="text-lg">✉️</span> 이메일 미리보기
-                    </h3>
-                </div>
+            {/* 이메일 미리보기 (편집 가능) */}
+            <EmailPreviewEditable
+                mode="share"
+                documentBoxId={documentBoxId}
+                documentBoxTitle={documentBoxTitle}
+                documentBoxDescription={documentBoxDescription}
+                endDate={endDate}
+                requiredDocuments={requiredDocuments}
+                shareLink={shareLink}
+                onTemplateChange={handleTemplateChange}
+                onCopyEmail={handleCopyEmail}
+                copiedEmail={copiedEmail}
+                onCopyLink={handleCopyLink}
+                copiedLink={copiedLink}
+            />
 
-                <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden p-6 relative">
-                    <button
-                        onClick={handleCopyEmail}
-                        className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
-                    >
-                        {copiedEmail ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                        메일복사
-                    </button>
-
-                    <div className="space-y-4 max-w-2xl">
-                        <div>
-                            <h4 className="text-lg font-bold text-slate-900 mb-1">{documentBoxTitle}</h4>
-                            <p className="text-sm text-slate-500">{documentBoxDescription || "연말정산을 위한 필수 서류를 제출해주세요."}</p>
-                        </div>
-
-                        <div className="text-sm text-slate-700 space-y-2">
-                            <p>📅 <strong>마감일:</strong> {new Date(endDate).toISOString().split('T')[0]}</p>
-                            <div>
-                                <p className="mb-1 font-semibold">📄 제출 서류:</p>
-                                <ul className="list-disc pl-5 space-y-1">
-                                    {requiredDocuments.map(doc => (
-                                        <li key={doc.id}>
-                                            {doc.name}
-                                            {doc.isRequired && (
-                                                <span className="text-red-500 ml-1 font-bold">*</span>
-                                            )}
-                                            {doc.description && <span className="text-slate-400 ml-2">: {doc.description}</span>}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 p-4 bg-white border border-slate-100 rounded-lg flex items-center justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-wider">제출 링크</p>
-                                <p className="text-blue-600 text-sm font-medium truncate underline">
-                                    {shareLink}
-                                </p>
-                            </div>
-                            <button
-                                onClick={handleCopyLink}
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
-                            >
-                                {copiedLink ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                                링크복사
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Requested Documents Section */}
+            {/* 요청 서류 섹션 */}
             <div className="mb-8">
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <span className="text-lg">📄</span> 요청 서류(총 {requiredDocuments.length}개)
@@ -177,7 +163,7 @@ export function ShareForm({
                 </div>
             </div>
 
-            {/* Bottom Actions */}
+            {/* 하단 버튼 */}
             <div className="flex items-center gap-3">
                 <button
                     onClick={() => router.back()}

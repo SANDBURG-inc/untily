@@ -7,10 +7,14 @@ import { IconButton } from "@/components/shared/IconButton";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ensureAuthenticated } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { getOrCreateUser } from "@/lib/queries/user";
 import { hasDesignatedSubmitters } from "@/lib/utils/document-box";
 
 export default async function DashboardPage() {
     const user = await ensureAuthenticated();
+
+    // User 레코드 동기화 (이메일 포함)
+    await getOrCreateUser({ id: user.id, email: user.email, name: user.name });
 
     // Fetch default logo
     const defaultLogo = await prisma.logo.findFirst({
@@ -28,7 +32,7 @@ export default async function DashboardPage() {
         },
         include: {
             submitters: true,
-            requiredDocuments: true,
+            requiredDocuments: { orderBy: { order: 'asc' } },
         },
         orderBy: {
             createdAt: 'desc',
@@ -69,39 +73,22 @@ export default async function DashboardPage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {documentBoxes.map((box) => {
-                        const hasLimitedSubmitters = hasDesignatedSubmitters(box.hasSubmitter);
-                        const currentCount = box.submitters.filter(s => s.status === 'SUBMITTED').length;
-                        const totalCount = box.submitters.length;
-                        const unsubmittedCount = totalCount - currentCount;
-                        const isExpired = new Date() > box.endDate;
-
-                        let status: "In Progress" | "Expired Incomplete" | "Completed" = 'In Progress';
-                        if (hasLimitedSubmitters) {
-                            if (currentCount === totalCount && totalCount > 0) {
-                                status = 'Completed';
-                            } else if (isExpired) {
-                                status = 'Expired Incomplete';
-                            } else {
-                                status = 'In Progress';
-                            }
-                        } else {
-                            // Public box
-                            status = isExpired ? 'Completed' : 'In Progress';
-                        }
-
+                        const submittedCount = box.submitters.filter(s => s.status === 'SUBMITTED').length;
+                        const totalSubmitters = box.submitters.length;
+                        const notSubmittedCount = totalSubmitters - submittedCount;
                         return (
                             <DocumentCard
                                 key={box.documentBoxId}
                                 documentBoxId={box.documentBoxId}
                                 title={box.boxTitle}
                                 description={box.boxDescription || ''}
-                                createdDate={box.createdAt.toISOString().split('T')[0]}
-                                dueDate={box.endDate.toISOString().split('T')[0]}
-                                currentCount={currentCount}
-                                totalCount={totalCount}
-                                unsubmittedCount={unsubmittedCount}
-                                status={status}
-                                hasLimitedSubmitters={hasLimitedSubmitters}
+                                createdAt={box.createdAt}
+                                endDate={box.endDate}
+                                submittedCount={submittedCount}
+                                totalSubmitters={totalSubmitters}
+                                notSubmittedCount={notSubmittedCount}
+                                hasDesignatedSubmitters={hasDesignatedSubmitters(box.hasSubmitter)}
+                                documentBoxStatus={box.status}
                             />
                         );
                     })}
