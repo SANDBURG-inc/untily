@@ -10,6 +10,7 @@
 import cron from 'node-cron';
 import { processReminders } from './reminders';
 import { processStatusTransition } from './status-transition';
+import { processDeadlineNotifications } from './deadline-notification';
 
 // 중복 초기화 방지 플래그
 let isInitialized = false;
@@ -66,11 +67,32 @@ export function setupCronJobs(): void {
         }
     });
 
+    // ================================================================
+    // 매일 09:00 마감 알림 발송 (문서함 생성자에게)
+    // 스케줄: 0 9 * * * (매일 09:00에 실행)
+    // ================================================================
+    cron.schedule('0 9 * * *', async () => {
+        const startTime = Date.now();
+        console.log(`[Cron] Running deadline notification job at ${new Date().toISOString()}`);
+
+        try {
+            const result = await processDeadlineNotifications();
+            const duration = Date.now() - startTime;
+            console.log(
+                `[Cron] Deadline notification job completed in ${duration}ms: ${result.notificationsSent} notifications sent`
+            );
+        } catch (error) {
+            console.error('[Cron] Deadline notification job failed:', error);
+        }
+    });
+
     console.log('[Cron] Cron jobs scheduled successfully');
     console.log('[Cron] - Reminder job: every 30 minutes');
     console.log('[Cron] - Status transition job: every 30 minutes');
+    console.log('[Cron] - Deadline notification job: daily at 09:00');
 }
 
 // 개별 함수도 export (API Route에서 수동 트리거용)
 export { processReminders } from './reminders';
 export { processStatusTransition } from './status-transition';
+export { processDeadlineNotifications } from './deadline-notification';
