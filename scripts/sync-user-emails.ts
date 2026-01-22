@@ -10,7 +10,7 @@
  * @module scripts/sync-user-emails
  */
 
-import { PrismaClient } from '../lib/generated/prisma';
+import { PrismaClient } from '@/lib/generated/prisma';
 
 const prisma = new PrismaClient();
 
