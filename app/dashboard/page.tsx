@@ -7,10 +7,14 @@ import { IconButton } from "@/components/shared/IconButton";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ensureAuthenticated } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { getOrCreateUser } from "@/lib/queries/user";
 import { hasDesignatedSubmitters } from "@/lib/utils/document-box";
 
 export default async function DashboardPage() {
     const user = await ensureAuthenticated();
+
+    // User 레코드 동기화 (이메일 포함)
+    await getOrCreateUser({ id: user.id, email: user.email, name: user.name });
 
     // Fetch default logo
     const defaultLogo = await prisma.logo.findFirst({

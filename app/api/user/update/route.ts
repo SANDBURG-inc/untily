@@ -28,15 +28,17 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // User 레코드 업데이트 (없으면 생성)
+    // User 레코드 업데이트 (없으면 생성, 이메일 동기화 포함)
     const updatedUser = await prisma.user.upsert({
       where: { authUserId: user.id },
       update: {
+        email: user.email, // Neon Auth 이메일 동기화
         ...(name !== undefined && { name }),
         ...(phone !== undefined && { phone: phone || null }),
       },
       create: {
         authUserId: user.id,
+        email: user.email,
         name,
         phone: phone || null,
       },

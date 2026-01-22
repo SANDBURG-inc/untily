@@ -183,6 +183,7 @@ enum SubscriptionPlan {
 model User {
   userId           String           @id @default(cuid())
   authUserId       String           @unique // Neon Auth user.id
+  email            String?          // 이메일 (Neon Auth에서 동기화)
   name             String?          // 사용자 표시 이름 (프로필에서 수정 가능)
   phone            String?          // 연락처 (프로필에서 수정 가능)
   subscriptionPlan SubscriptionPlan @default(BETA)
