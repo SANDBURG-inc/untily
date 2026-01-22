@@ -172,6 +172,12 @@ export function replacePlaceholders(
  */
 export function sanitizeHtmlForEmail(html: string): string {
     return html
+        // 빈 줄 처리: <p></p> 또는 <p><br></p>를 &nbsp;로 채워서 높이 유지
+        // 이메일 클라이언트는 빈 p 태그를 무시하므로 반드시 필요
+        .replace(/<p><\/p>/g, '<p>&nbsp;</p>')
+        .replace(/<p><br\s*\/?><\/p>/g, '<p>&nbsp;</p>')
+        .replace(/<p><br class="[^"]*"\s*\/?><\/p>/g, '<p>&nbsp;</p>')
+
         // Heading 태그 인라인 스타일 (H1~H4)
         .replace(/<h1>/g, '<h1 style="font-size: 24px; font-weight: 700; line-height: 1.3; margin: 0 0 12px 0; color: #111827;">')
         .replace(/<h2>/g, '<h2 style="font-size: 20px; font-weight: 700; line-height: 1.3; margin: 0 0 10px 0; color: #1f2937;">')

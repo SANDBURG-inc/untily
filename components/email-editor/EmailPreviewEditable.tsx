@@ -468,7 +468,7 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
                 /* ============================================================
                    Share 모드 미리보기
                    ============================================================ */
-                <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden p-6 relative">
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden p-6 relative">
                     {/* 메일 복사 버튼 */}
                     {!isEditing && onCopyEmail && (
                         <button
@@ -500,10 +500,10 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
                         </div>
 
                         {/* 문서함 정보 (편집 불가) */}
-                        <div className={isEditing ? 'opacity-60' : ''}>
+                        <div className={`bg-slate-50 border border-slate-100 rounded-xl p-5 ${isEditing ? 'opacity-60' : ''}`}>
                             <div>
                                 <h4 className="text-lg font-bold text-slate-900 mb-1">{documentBoxTitle}</h4>
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-slate-500 whitespace-pre-line">
                                     {documentBoxDescription || "필수 서류를 제출해주세요."}
                                 </p>
                             </div>
@@ -549,7 +549,7 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
 
                         {/* 제출 링크 */}
                         {shareLink && (
-                            <div className="mt-6 p-4 bg-white border border-slate-100 rounded-lg flex items-center justify-between gap-4">
+                            <div className="mt-6 p-4 bg-slate-50/70 border border-slate-100 rounded-lg flex items-center justify-between gap-4">
                                 <div className="flex-1 min-w-0">
                                     <p className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-wider">
                                         제출 링크
@@ -650,6 +650,18 @@ export const EmailPreviewEditable = forwardRef<EmailPreviewEditableRef, EmailPre
              * ================================================================
              */}
             <style jsx global>{`
+                /* 단락(p) 스타일 - 에디터와 동일한 마진 유지 */
+                .email-preview-content p {
+                    margin: 0 0 8px 0;
+                }
+                .email-preview-content p:last-child {
+                    margin-bottom: 0;
+                }
+                /* 빈 줄(br만 있는 p) 처리 - 에디터처럼 줄 높이 유지 */
+                .email-preview-content p:empty,
+                .email-preview-content p:has(> br:only-child) {
+                    min-height: 1.5em;
+                }
                 /* 불렛 리스트 */
                 .email-preview-content ul {
                     list-style-type: disc;

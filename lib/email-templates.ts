@@ -127,7 +127,7 @@ export function generateDocumentInfoHtml({
     return `
         <div style="background-color: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 24px; margin: 20px 0;">
             <h4 style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: #111827;">${documentBoxTitle} 서류 제출</h4>
-            <p style="margin: 0 0 16px 0; font-size: 14px; color: #4b5563;">${documentBoxDescription || '필수 서류를 제출해주세요.'}</p>
+            <p style="margin: 0 0 16px 0; font-size: 14px; color: #4b5563; white-space: pre-line;">${documentBoxDescription || '필수 서류를 제출해주세요.'}</p>
 
             <div style="margin-bottom: 16px; font-size: 14px; color: #374151;">
                 <span style="font-weight: 600; margin-right: 4px;">📅 마감일:</span>
