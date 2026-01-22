@@ -441,21 +441,34 @@ export async function PUT(
                 }
             }
 
-            // ReminderSchedule 처리: 기존 스케줄 삭제 후 새로 생성
-            await tx.reminderSchedule.deleteMany({
-                where: { documentBoxId: id },
-            });
-
-            if (reminderEnabled && reminderSchedules && reminderSchedules.length > 0) {
+            // ReminderSchedule 처리: 스케줄 삭제 대신 isEnabled 상태 관리
+            if (reminderSchedules && reminderSchedules.length > 0) {
+                // 스케줄이 전달되면 기존 삭제 → 새로 생성 (isEnabled 포함)
+                await tx.reminderSchedule.deleteMany({
+                    where: { documentBoxId: id },
+                });
                 await tx.reminderSchedule.createMany({
                     data: reminderSchedules.map((schedule, index) => ({
                         documentBoxId: box.documentBoxId,
                         timeValue: schedule.timeValue,
                         timeUnit: schedule.timeUnit,
                         sendTime: schedule.sendTime,
-                        channel: 'EMAIL' as const, // 현재 이메일만 지원
+                        channel: 'EMAIL' as const,
                         order: index,
+                        isEnabled: reminderEnabled,
                     })),
+                });
+            } else if (!reminderEnabled) {
+                // 리마인드 Off이고 스케줄이 없으면 기존 스케줄 비활성화만
+                await tx.reminderSchedule.updateMany({
+                    where: { documentBoxId: id },
+                    data: { isEnabled: false },
+                });
+            } else {
+                // 리마인드 On이고 스케줄이 없으면 기존 스케줄 활성화
+                await tx.reminderSchedule.updateMany({
+                    where: { documentBoxId: id },
+                    data: { isEnabled: true },
                 });
             }
 
