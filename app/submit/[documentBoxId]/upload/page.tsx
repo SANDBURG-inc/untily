@@ -31,6 +31,38 @@ export default async function PublicUploadPage({ params }: PublicUploadPageProps
     allowMultipleFiles: doc.allowMultipleFiles,
   }));
 
+  // 폼 필드 변환 (Prisma → FormFieldData)
+  const formFields = submitter.documentBox.formFields.map((field) => ({
+    id: field.formFieldId,
+    fieldLabel: field.fieldLabel,
+    fieldType: field.fieldType,
+    placeholder: field.placeholder || undefined,
+    description: field.description || undefined,
+    isRequired: field.isRequired,
+    order: field.order,
+    options: (field.options as string[]) || [],
+    hasOtherOption: field.hasOtherOption,
+    validation: field.validation as { minLength?: number; maxLength?: number; pattern?: string; patternMessage?: string } | undefined,
+  }));
+
+  // 폼 필드 그룹 변환 (BaseUploadForm에서 사용)
+  const formFieldGroups = formFields.length > 0
+    ? [{
+        id: 'default-group',
+        groupTitle: '입력 항목',
+        groupDescription: undefined,
+        isRequired: true,
+        order: 0,
+        fields: formFields,
+      }]
+    : [];
+
+  // 기존 폼 응답 변환
+  const initialFormResponses = submitter.formFieldResponses.map((response) => ({
+    formFieldId: response.formFieldId,
+    value: response.value,
+  }));
+
   return (
     <PublicUploadForm
       documentBox={{
@@ -49,6 +81,9 @@ export default async function PublicUploadPage({ params }: PublicUploadPageProps
         })),
       }}
       documentBoxId={documentBoxId}
+      formFieldGroups={formFieldGroups}
+      formFieldsAboveDocuments={submitter.documentBox.formFieldsAboveDocuments}
+      initialFormResponses={initialFormResponses}
     />
   );
 }
