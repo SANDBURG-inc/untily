@@ -47,6 +47,11 @@ import {
     ChevronDown,
     Type,
     ALargeSmall,
+    Heading1,
+    Heading2,
+    Heading3,
+    Heading4,
+    Pilcrow,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -181,6 +186,91 @@ export function EmailEditorToolbar({ editor }: EmailEditorToolbarProps) {
 
     return (
         <div className="flex items-center gap-1 mb-2 p-1 bg-gray-50 border border-gray-200 rounded-lg flex-wrap">
+            {/* ============================================================
+                Heading 드롭다운 (# + Space로 입력 가능)
+                ============================================================ */}
+            <DropdownMenu>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                className={cn(
+                                    'flex items-center gap-0.5 p-1.5 rounded transition-colors',
+                                    editor.isActive('heading')
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'text-gray-600 hover:bg-gray-200'
+                                )}
+                            >
+                                <Pilcrow className="w-4 h-4" />
+                                <ChevronDown className="w-3 h-3" />
+                            </button>
+                        </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>단락/제목</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="start" className="min-w-[140px]">
+                    <DropdownMenuItem
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => editor.chain().focus().setParagraph().run()}
+                        className={cn(
+                            'cursor-pointer',
+                            !editor.isActive('heading') && 'bg-blue-50'
+                        )}
+                    >
+                        <Pilcrow className="w-4 h-4 mr-2" />
+                        <span>본문</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                        className={cn(
+                            'cursor-pointer',
+                            editor.isActive('heading', { level: 1 }) && 'bg-blue-50'
+                        )}
+                    >
+                        <Heading1 className="w-4 h-4 mr-2" />
+                        <span className="text-xl font-bold">제목 1</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                        className={cn(
+                            'cursor-pointer',
+                            editor.isActive('heading', { level: 2 }) && 'bg-blue-50'
+                        )}
+                    >
+                        <Heading2 className="w-4 h-4 mr-2" />
+                        <span className="text-lg font-bold">제목 2</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                        className={cn(
+                            'cursor-pointer',
+                            editor.isActive('heading', { level: 3 }) && 'bg-blue-50'
+                        )}
+                    >
+                        <Heading3 className="w-4 h-4 mr-2" />
+                        <span className="text-base font-semibold">제목 3</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
+                        className={cn(
+                            'cursor-pointer',
+                            editor.isActive('heading', { level: 4 }) && 'bg-blue-50'
+                        )}
+                    >
+                        <Heading4 className="w-4 h-4 mr-2" />
+                        <span className="text-sm font-semibold">제목 4</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Divider />
+
             {/* ============================================================
                 텍스트 서식 버튼들
                 ============================================================ */}

@@ -97,13 +97,16 @@ export function getEmailEditorExtensions(placeholderText?: string) {
          * - codeBlock: 이메일에서 코드 블록 스타일 지원이 불안정
          * - code: 인라인 코드도 마찬가지
          * - horizontalRule: 이메일에서 HR 렌더링이 다양함
-         * - heading: 이메일에서 h1-h6 사용 자제 (스타일 충돌)
+         *
+         * heading은 H1~H4까지 지원 (Markdown 단축키: # + Space → H1)
          */
         StarterKit.configure({
             codeBlock: false,
             code: false,
             horizontalRule: false,
-            heading: false,
+            heading: {
+                levels: [1, 2, 3, 4],
+            },
             // blockquote는 기본적으로 활성화됨
         }),
 

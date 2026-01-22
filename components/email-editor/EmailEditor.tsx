@@ -281,6 +281,36 @@ export function EmailEditor({
                     font-style: italic;
                 }
 
+                /* Heading 스타일 (H1~H4) */
+                .email-editor .ProseMirror h1 {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    line-height: 1.3;
+                    margin: 0 0 12px 0;
+                    color: #111827;
+                }
+                .email-editor .ProseMirror h2 {
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    line-height: 1.3;
+                    margin: 0 0 10px 0;
+                    color: #1f2937;
+                }
+                .email-editor .ProseMirror h3 {
+                    font-size: 1.125rem;
+                    font-weight: 600;
+                    line-height: 1.4;
+                    margin: 0 0 8px 0;
+                    color: #374151;
+                }
+                .email-editor .ProseMirror h4 {
+                    font-size: 1rem;
+                    font-weight: 600;
+                    line-height: 1.4;
+                    margin: 0 0 6px 0;
+                    color: #4b5563;
+                }
+
                 /* 형광펜(Highlight) 스타일 - 기본 노란색 */
                 .email-editor .ProseMirror mark {
                     background-color: #fef08a;

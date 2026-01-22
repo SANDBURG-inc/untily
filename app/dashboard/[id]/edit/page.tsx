@@ -27,7 +27,7 @@ export default async function EditDocumentBoxPage({
         documentName: documentBox.boxTitle,
         description: documentBox.boxDescription || '',
         logoUrl: documentBox.logos[0]?.imageUrl || '',
-        submittersEnabled: documentBox.hasSubmitter,
+        submittersEnabled: documentBox.hasSubmitter ?? false,
         submitters: documentBox.submitters.length > 0
             ? documentBox.submitters.map((s) => ({
                 id: s.submitterId,
