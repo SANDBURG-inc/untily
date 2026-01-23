@@ -22,9 +22,11 @@ import { Table, Column } from '@/components/shared/Table';
 import { downloadCsv } from '@/lib/utils/csv-export';
 import type { SubmitterWithStatus } from '@/lib/queries/document-box';
 import {
+    type SubmitterStatus,
     type SubmittedSubmitterStatus,
     hasEverSubmitted,
     SUBMITTER_STATUS_LABELS,
+    SUBMITTER_STATUS_STYLES,
     formatSubmissionDate,
 } from '@/lib/types/submitter';
 import { useIntersectionObserver } from '@/lib/hooks/useIntersectionObserver';
@@ -33,17 +35,25 @@ import { SubmitterStatusDropdown } from './SubmitterStatusDropdown';
 import { CheckedToggle } from './CheckedToggle';
 
 // 제출상태 필터 타입
-type StatusFilter = 'all' | SubmittedSubmitterStatus;
+type StatusFilter = 'all' | SubmitterStatus;
 
-const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+const STATUS_FILTER_OPTIONS_DEFAULT: { value: StatusFilter; label: string }[] = [
     { value: 'all', label: '전체' },
     { value: 'SUBMITTED', label: '제출됨' },
     { value: 'REJECTED', label: '반려됨' },
 ];
 
+const STATUS_FILTER_OPTIONS_DESIGNATED: { value: StatusFilter; label: string }[] = [
+    { value: 'all', label: '전체' },
+    { value: 'SUBMITTED', label: '제출됨' },
+    { value: 'REJECTED', label: '반려됨' },
+    { value: 'PENDING', label: '등록됨' },
+];
+
 /**
  * 제출자 목록 컴포넌트
- * 제출 경험이 있는 사람만 표시 (SUBMITTED 또는 REJECTED)
+ * - 지정 제출자 문서함: 모든 제출자 표시 (제출/반려 우선 정렬, PENDING은 '등록됨')
+ * - 비지정 제출자 문서함: 제출 경험이 있는 사람만 표시 (SUBMITTED 또는 REJECTED)
  * 체크박스 선택, CSV 다운로드 기능 제공
  */
 interface SubmittersListProps {
@@ -55,6 +65,8 @@ interface SubmittersListProps {
     documentBoxTitle: string;
     /** 문서함 마감일 (늦은 제출 표시용) */
     endDate: Date;
+    /** 지정 제출자 문서함 여부 */
+    hasDesignatedSubmitters: boolean;
 }
 
 const INITIAL_DISPLAY_COUNT = 20;
@@ -71,6 +83,7 @@ export function SubmittersList({
     documentBoxId,
     documentBoxTitle,
     endDate,
+    hasDesignatedSubmitters,
 }: SubmittersListProps) {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
@@ -82,16 +95,38 @@ export function SubmittersList({
     const [sheetOpen, setSheetOpen] = useState(false);
     const [selectedSubmitterId, setSelectedSubmitterId] = useState<string | null>(null);
 
-    // 제출 경험이 있는 제출자만 필터링 (SUBMITTED 또는 REJECTED)
-    const submittedSubmitters = useMemo(() => {
+    const statusFilterOptions = hasDesignatedSubmitters
+        ? STATUS_FILTER_OPTIONS_DESIGNATED
+        : STATUS_FILTER_OPTIONS_DEFAULT;
+
+    // 지정 제출자: 모든 제출자 표시 (제출/반려 우선 정렬)
+    // 비지정 제출자: 제출 경험이 있는 제출자만 필터링
+    const baseSubmitters = useMemo(() => {
+        if (hasDesignatedSubmitters) {
+            // SUBMITTED/REJECTED 우선, 그 다음 PENDING (이름 가나다순)
+            return [...submitters].sort((a, b) => {
+                const aSubmitted = hasEverSubmitted(a.status);
+                const bSubmitted = hasEverSubmitted(b.status);
+                if (aSubmitted && !bSubmitted) return -1;
+                if (!aSubmitted && bSubmitted) return 1;
+                if (aSubmitted && bSubmitted) {
+                    // 둘 다 제출 경험: 제출일 역순
+                    const aDate = a.lastSubmittedAt ? new Date(a.lastSubmittedAt).getTime() : 0;
+                    const bDate = b.lastSubmittedAt ? new Date(b.lastSubmittedAt).getTime() : 0;
+                    return bDate - aDate;
+                }
+                // 둘 다 PENDING: 이름 가나다순
+                return a.name.localeCompare(b.name, 'ko');
+            });
+        }
         return submitters.filter(s => hasEverSubmitted(s.status));
-    }, [submitters]);
+    }, [submitters, hasDesignatedSubmitters]);
 
     // 상태 필터 적용
     const filteredSubmitters = useMemo(() => {
-        if (statusFilter === 'all') return submittedSubmitters;
-        return submittedSubmitters.filter(s => s.status === statusFilter);
-    }, [submittedSubmitters, statusFilter]);
+        if (statusFilter === 'all') return baseSubmitters;
+        return baseSubmitters.filter(s => s.status === statusFilter);
+    }, [baseSubmitters, statusFilter]);
 
     const displayedSubmitters = useMemo(() => {
         return filteredSubmitters.slice(0, displayCount);
@@ -206,7 +241,7 @@ export function SubmittersList({
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                        {STATUS_FILTER_OPTIONS.map((option) => (
+                        {statusFilterOptions.map((option) => (
                             <DropdownMenuItem
                                 key={option.value}
                                 onClick={() => setStatusFilter(option.value)}
@@ -218,13 +253,23 @@ export function SubmittersList({
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
-            render: (submitter) => (
-                <SubmitterStatusDropdown
-                    documentBoxId={documentBoxId}
-                    submitterId={submitter.submitterId}
-                    currentStatus={submitter.status as SubmittedSubmitterStatus}
-                />
-            ),
+            render: (submitter) => {
+                // PENDING 상태: 정적 Badge로 표시
+                if (submitter.status === 'PENDING') {
+                    return (
+                        <Badge className={SUBMITTER_STATUS_STYLES['PENDING']}>
+                            {SUBMITTER_STATUS_LABELS['PENDING']}
+                        </Badge>
+                    );
+                }
+                return (
+                    <SubmitterStatusDropdown
+                        documentBoxId={documentBoxId}
+                        submitterId={submitter.submitterId}
+                        currentStatus={submitter.status as SubmittedSubmitterStatus}
+                    />
+                );
+            },
         },
         {
             key: 'lastDate',
@@ -258,23 +303,26 @@ export function SubmittersList({
         {
             key: 'checked',
             header: '확인',
-            render: (submitter) => (
-                <CheckedToggle
-                    documentBoxId={documentBoxId}
-                    submitterId={submitter.submitterId}
-                    isChecked={submitter.isChecked}
-                />
-            ),
+            render: (submitter) => {
+                if (submitter.status === 'PENDING') return null;
+                return (
+                    <CheckedToggle
+                        documentBoxId={documentBoxId}
+                        submitterId={submitter.submitterId}
+                        isChecked={submitter.isChecked}
+                    />
+                );
+            },
         },
-    ], [allSelected, selectedIds, documentBoxId, endDate, statusFilter, handleSelectAll, handleSelectOne, handleNameClick]);
+    ], [allSelected, selectedIds, documentBoxId, endDate, statusFilter, statusFilterOptions, handleSelectAll, handleSelectOne, handleNameClick]);
 
     const handleDownload = () => {
         const headers = ['이름', '이메일', '휴대전화', '제출상태', '제출일', '재제출횟수', '확인'];
-        const rows = submittedSubmitters.map(s => [
+        const rows = baseSubmitters.map(s => [
             s.name,
             s.email,
             s.phone || '',
-            SUBMITTER_STATUS_LABELS[s.status as SubmittedSubmitterStatus] || s.status,
+            SUBMITTER_STATUS_LABELS[s.status as SubmitterStatus] || s.status,
             formatSubmissionDate(s.lastSubmittedAt),
             String(s.resubmissionLogs.length),
             s.isChecked ? 'O' : '',
@@ -375,7 +423,7 @@ export function SubmittersList({
                     >
                         {isDownloadingResponses ? '다운로드 중...' : '폼 응답'}
                     </IconButton>
-                    {submittedSubmitters.length > 0 && (
+                    {baseSubmitters.length > 0 && (
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <IconButton
