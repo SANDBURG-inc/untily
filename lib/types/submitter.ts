@@ -29,13 +29,15 @@ export const SUBMISSION_STATUS_STYLES: Record<SubmissionStatus, string> = {
 } as const;
 
 // 제출자 상태별 스타일 (DB 상태용)
-export const SUBMITTER_STATUS_STYLES: Record<SubmittedSubmitterStatus, string> = {
+export const SUBMITTER_STATUS_STYLES: Record<SubmitterStatus, string> = {
+    'PENDING': 'bg-gray-100 text-gray-700',
     'SUBMITTED': 'bg-green-100 text-green-700',
     'REJECTED': 'bg-red-100 text-red-700',
 } as const;
 
 // 제출자 상태별 레이블 (DB 상태용)
-export const SUBMITTER_STATUS_LABELS: Record<SubmittedSubmitterStatus, string> = {
+export const SUBMITTER_STATUS_LABELS: Record<SubmitterStatus, string> = {
+    'PENDING': '등록됨',
     'SUBMITTED': '제출됨',
     'REJECTED': '반려됨',
 } as const;

@@ -60,7 +60,12 @@ export function calculateSubmissionStats(
   hasSubmitter: boolean | null
 ): SubmissionStatistics {
   const hasSubmitters = hasDesignatedSubmitters(hasSubmitter);
-  const totalSubmitters = submitters.length;
+
+  // 공개 제출: 실제 제출한 사람만 카운트 (PENDING 제외)
+  // 지정 제출: 전체 등록 제출자 수
+  const totalSubmitters = hasSubmitters
+    ? submitters.length
+    : submitters.filter(s => s.status === 'SUBMITTED' || s.status === 'REJECTED').length;
 
   // 제출 완료: status가 SUBMITTED인 제출자만
   const submittedCount = submitters.filter(

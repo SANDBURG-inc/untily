@@ -139,6 +139,9 @@ export async function getFormResponsesForExport(
         },
       },
       submitters: {
+        where: {
+          status: { in: ['SUBMITTED', 'REJECTED'] },
+        },
         orderBy: { name: 'asc' },
         select: {
           submitterId: true,
@@ -177,7 +180,7 @@ export async function getFormResponsesForExport(
     }
   }
 
-  // 제출자 목록 구성 (응답이 없는 제출자도 포함)
+  // 제출 경험이 있는 제출자(SUBMITTED/REJECTED)만 포함
   const submitters: SubmitterFormResponse[] = documentBox.submitters.map(s => ({
     submitterId: s.submitterId,
     name: s.name,
