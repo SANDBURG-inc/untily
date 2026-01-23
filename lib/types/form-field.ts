@@ -246,6 +246,9 @@ export function hasBuiltInValidation(fieldType: FormFieldType): boolean {
 // '기타' 옵션 관련 유틸리티
 // ============================================================================
 
+// 복수 선택 값 구분자 (옵션 텍스트에 쉼표 포함 가능하므로 특수 구분자 사용)
+export const MULTI_CHOICE_SEPARATOR = '|||';
+
 // '기타' 옵션 선택 시 값 prefix
 export const OTHER_OPTION_PREFIX = '__OTHER__:';
 
@@ -275,7 +278,8 @@ export function createOtherValue(userInput: string): string {
 
 /**
  * 복수 선택(CHECKBOX) 응답에서 '기타' 값 파싱
- * 형식: "옵션1,옵션2,__OTHER__:사용자입력"
+ * 새 형식: "옵션1|||옵션2|||__OTHER__:사용자입력"
+ * 기존 형식(fallback): "옵션1,옵션2,__OTHER__:사용자입력"
  */
 export function parseMultiChoiceValue(value: string): {
   selectedOptions: string[];
@@ -285,7 +289,9 @@ export function parseMultiChoiceValue(value: string): {
     return { selectedOptions: [], otherValue: null };
   }
 
-  const parts = value.split(',');
+  // 새 구분자가 포함되어 있으면 새 방식으로 파싱, 아니면 쉼표 fallback
+  const separator = value.includes(MULTI_CHOICE_SEPARATOR) ? MULTI_CHOICE_SEPARATOR : ',';
+  const parts = value.split(separator);
   const selectedOptions: string[] = [];
   let otherValue: string | null = null;
 
@@ -302,6 +308,7 @@ export function parseMultiChoiceValue(value: string): {
 
 /**
  * 복수 선택(CHECKBOX) 응답 값 생성
+ * 구분자: '|||' (옵션 텍스트에 쉼표 포함 가능)
  */
 export function createMultiChoiceValue(
   selectedOptions: string[],
@@ -312,7 +319,7 @@ export function createMultiChoiceValue(
   if (otherValue !== null && otherValue !== undefined) {
     parts.push(createOtherValue(otherValue));
   }
-  return parts.join(',');
+  return parts.join(MULTI_CHOICE_SEPARATOR);
 }
 
 // ============================================================================
