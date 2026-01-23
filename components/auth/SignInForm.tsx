@@ -16,11 +16,13 @@ import { getAuthErrorMessage } from "@/lib/auth/error-message";
 
 interface SignInFormProps {
     callbackURL?: string;
+    defaultEmail?: string;
+    defaultPassword?: string;
 }
 
-export default function SignInForm({ callbackURL }: SignInFormProps) {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+export default function SignInForm({ callbackURL, defaultEmail, defaultPassword }: SignInFormProps) {
+    const [email, setEmail] = useState(defaultEmail || '');
+    const [password, setPassword] = useState(defaultPassword || '');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();

@@ -6,12 +6,12 @@ import { redirect } from "next/navigation";
 import { DEFAULT_REDIRECT } from "@/lib/auth/return-url";
 
 interface SignInPageProps {
-    searchParams: Promise<{ callbackURL?: string }>;
+    searchParams: Promise<{ callbackURL?: string; email?: string; password?: string }>;
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
     const { user } = await getSession();
-    const { callbackURL } = await searchParams;
+    const { callbackURL, email, password } = await searchParams;
 
     // 이미 로그인된 사용자는 리다이렉트
     if (user) {
@@ -34,7 +34,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col items-center justify-center p-4">
-                <SignInForm callbackURL={callbackURL} />
+                <SignInForm callbackURL={callbackURL} defaultEmail={email} defaultPassword={password} />
             </main>
         </div>
     );
