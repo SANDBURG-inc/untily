@@ -47,16 +47,17 @@ export function FormFieldGroupItem({
         </div>
 
         {/* 필드 목록 */}
-        <div className="space-y-4">
+        <div className="divide-y divide-gray-100">
           {sortedFields.map((field) => (
-            <FormFieldInput
-              key={field.id}
-              field={field}
-              value={responses.get(field.id) || ''}
-              onChange={(value) => onResponseChange(field.id, value)}
-              error={errors.get(field.id)}
-              isSaving={savingFields.has(field.id)}
-            />
+            <div key={field.id} className="py-6 first:pt-0 last:pb-0">
+              <FormFieldInput
+                field={field}
+                value={responses.get(field.id) || ''}
+                onChange={(value) => onResponseChange(field.id, value)}
+                error={errors.get(field.id)}
+                isSaving={savingFields.has(field.id)}
+              />
+            </div>
           ))}
         </div>
       </CardContent>

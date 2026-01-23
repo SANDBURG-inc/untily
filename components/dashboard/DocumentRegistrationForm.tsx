@@ -504,6 +504,7 @@ export default function DocumentRegistrationForm({
           fields: group.fields.map((field) => ({
             id: field.id,
             fieldLabel: field.fieldLabel,
+            description: field.description,
             fieldType: field.fieldType,
             placeholder: field.placeholder,
             isRequired: field.isRequired,
