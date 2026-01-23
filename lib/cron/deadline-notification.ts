@@ -17,6 +17,7 @@ import {
     generateDeadlineNotificationHtml,
     getDeadlineNotificationSubject,
 } from '@/lib/email-templates';
+import { hasDesignatedSubmitters } from '@/lib/utils/document-box';
 
 // ============================================================================
 // Constants & Utils
@@ -208,11 +209,13 @@ async function sendNotification(
         boxTitle: string;
         userId: string;
         endDate: Date;
+        hasSubmitter: boolean | null;
         submitters: { status: string }[];
     },
     notificationType: 'd-3' | 'd-day' | 'closed'
 ): Promise<NotificationResult> {
     const { documentBoxId, boxTitle, userId, endDate, submitters } = box;
+    const isDesignated = hasDesignatedSubmitters(box.hasSubmitter);
 
     // 문서함 소유자 이메일 조회
     const owner = await prisma.user.findFirst({
@@ -235,9 +238,17 @@ async function sendNotification(
     }
 
     // 제출 현황 계산
-    const totalSubmitters = submitters.length;
     const submittedCount = submitters.filter((s) => s.status === 'SUBMITTED').length;
-    const notSubmittedCount = totalSubmitters - submittedCount;
+    const rejectedCount = submitters.filter((s) => s.status === 'REJECTED').length;
+
+    // 지정 제출자: 전체(등록된 제출자) / 제출 완료 / 미제출(REJECTED+PENDING)
+    // 비지정 제출자: 전체(SUBMITTED+REJECTED) / 제출됨 / 반려됨 (PENDING 제외)
+    const totalSubmitters = isDesignated
+        ? submitters.length
+        : submittedCount + rejectedCount;
+    const notSubmittedCount = isDesignated
+        ? submitters.length - submittedCount
+        : rejectedCount;
 
     // 이메일 생성
     const emailHtml = generateDeadlineNotificationHtml({
@@ -249,6 +260,7 @@ async function sendNotification(
         submittedCount,
         notSubmittedCount,
         notificationType,
+        hasDesignatedSubmitters: isDesignated,
     });
 
     const subject = getDeadlineNotificationSubject(boxTitle, notificationType);

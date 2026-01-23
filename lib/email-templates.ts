@@ -247,10 +247,12 @@ export interface DeadlineNotificationParams {
     totalSubmitters: number;
     /** 제출 완료 수 */
     submittedCount: number;
-    /** 미제출 수 */
+    /** 미제출 수 (지정 제출자: PENDING+REJECTED, 비지정: REJECTED) */
     notSubmittedCount: number;
     /** 알림 유형: 'd-3' | 'd-day' | 'closed' */
     notificationType: 'd-3' | 'd-day' | 'closed';
+    /** 지정 제출자 문서함 여부 */
+    hasDesignatedSubmitters: boolean;
 }
 
 /**
@@ -267,6 +269,7 @@ export function generateDeadlineNotificationHtml({
     submittedCount,
     notSubmittedCount,
     notificationType,
+    hasDesignatedSubmitters,
 }: DeadlineNotificationParams): string {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://untily.kr';
     const dashboardLink = `${appUrl}/dashboard/${documentBoxId}`;
@@ -340,11 +343,11 @@ export function generateDeadlineNotificationHtml({
                     </div>
                     <div style="flex: 1; min-width: 100px; text-align: center; padding: 12px; background-color: #ffffff; border-radius: 6px;">
                         <div style="font-size: 24px; font-weight: 700; color: #059669;">${submittedCount}</div>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">제출 완료</div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">${hasDesignatedSubmitters ? '제출 완료' : '제출됨'}</div>
                     </div>
                     <div style="flex: 1; min-width: 100px; text-align: center; padding: 12px; background-color: #ffffff; border-radius: 6px;">
                         <div style="font-size: 24px; font-weight: 700; color: #dc2626;">${notSubmittedCount}</div>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">미제출</div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">${hasDesignatedSubmitters ? '미제출' : '반려됨'}</div>
                     </div>
                 </div>
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
