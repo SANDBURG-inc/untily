@@ -32,8 +32,8 @@ export default function PublicSubmitLandingView({
     <SubmitLandingLayout
       title={documentBox.boxTitle}
       logoUrl={logoUrl}
-      buttonText="로그인하고 제출하기"
-      buttonHref={signInUrl}
+      buttonText={isAuthenticated ? '문서 제출하기' : '로그인하고 제출하기'}
+      buttonHref={isAuthenticated ? uploadUrl : signInUrl}
       titleClassName="mb-4"
     >
       {/* 문서함 설명 */}
