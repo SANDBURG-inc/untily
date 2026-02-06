@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import { Toaster } from 'sonner';
 import "./globals.css";
+import { GoogleAnalytics } from '@next/third-parties/google'
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -48,6 +49,7 @@ export default function RootLayout({
           />
         </AuthProvider>
       </body>
+      <GoogleAnalytics gaId="G-GQ2J083WPN" />
     </html>
   );
 }
