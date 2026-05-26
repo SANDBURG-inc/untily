@@ -39,7 +39,14 @@ export function setupCronJobs(): void {
     // 스케줄: */30 * * * * (매 시간 0분, 30분에 실행)
     // ================================================================
     cron.schedule('*/30 * * * *', async () => {
-        if (!(await claimCronSlot('reminders', SLOT_30MIN))) {
+        let claimed: boolean;
+        try {
+            claimed = await claimCronSlot('reminders', SLOT_30MIN);
+        } catch (error) {
+            console.error('[Cron] claim failed: reminders', error);
+            return;
+        }
+        if (!claimed) {
             console.log('[Cron] skipped: reminders');
             return;
         }
@@ -64,7 +71,14 @@ export function setupCronJobs(): void {
     // 스케줄: */30 * * * * (매 시간 0분, 30분에 실행)
     // ================================================================
     cron.schedule('*/30 * * * *', async () => {
-        if (!(await claimCronSlot('status-transition', SLOT_30MIN))) {
+        let claimed: boolean;
+        try {
+            claimed = await claimCronSlot('status-transition', SLOT_30MIN);
+        } catch (error) {
+            console.error('[Cron] claim failed: status-transition', error);
+            return;
+        }
+        if (!claimed) {
             console.log('[Cron] skipped: status-transition');
             return;
         }
@@ -89,7 +103,14 @@ export function setupCronJobs(): void {
     // 스케줄: 0 9 * * * (매일 09:00에 실행)
     // ================================================================
     cron.schedule('0 9 * * *', async () => {
-        if (!(await claimCronSlot('deadline-notification', SLOT_DAILY))) {
+        let claimed: boolean;
+        try {
+            claimed = await claimCronSlot('deadline-notification', SLOT_DAILY);
+        } catch (error) {
+            console.error('[Cron] claim failed: deadline-notification', error);
+            return;
+        }
+        if (!claimed) {
             console.log('[Cron] skipped: deadline-notification');
             return;
         }
