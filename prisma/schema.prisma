@@ -10,7 +10,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Logo {
@@ -379,4 +381,21 @@ model ResubmissionLog {
   resubmittedAt     DateTime  @default(now())
 
   @@index([submitterId])
+}
+
+// ============================================================================
+// Cron 단일 실행 보장 (ADR-0001)
+// ============================================================================
+
+// PM2 cluster 4 인스턴스가 모두 cron을 등록해도 job 본체는 1벌만 수행하도록
+// unique-row claim 으로 디둡한다. 콜백 진입 시 (jobName, slot) INSERT 시도해
+// 성공한 인스턴스만 실제 작업을 실행한다.
+model CronRun {
+  id        String   @id @default(cuid())
+  jobName   String // 'reminders' | 'status-transition' | 'deadline-notification'
+  slot      String // 시각을 job 주기로 floor 한 ISO 문자열
+  claimedAt DateTime @default(now())
+
+  @@unique([jobName, slot])
+  @@index([claimedAt])
 }

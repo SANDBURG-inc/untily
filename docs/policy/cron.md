@@ -85,6 +85,38 @@ curl https://untily.kr/api/cron/status-transition
 
 ---
 
+## 다중 인스턴스 중복 실행 방지 (PM2 cluster)
+
+`ecosystem.config.js`는 `instances: 4`, `exec_mode: 'cluster'`. `instrumentation.ts`의 `register()`는 **프로세스마다 1회** 실행되므로, `setupCronJobs()`도 인스턴스마다 호출되어 cron이 **4벌** 등록된다. (`isInitialized` 플래그는 프로세스 내 중복만 막고, 프로세스 간 중복은 못 막는다.)
+
+→ 결과: 매 tick마다 `processReminders()` / `processStatusTransition()`가 4중 실행. **모든 수신자에게 리마인더 이메일 4통**, `ReminderLog` box당 4행, `updateMany` 4중 실행. (2026-05-18 PM2 로그로 확정.)
+
+### 해결: CronRun unique-row claim
+
+4 인스턴스 모두 cron을 등록하되(이중화 유지), job 본체 진입 시 **DB 행 선점**으로 1벌만 실제 수행한다.
+
+```
+model CronRun {
+  id        String   @id @default(cuid())
+  jobName   String   // 'reminders' | 'status-transition' | 'deadline-notification'
+  slot      String   // 스케줄 tick을 job 주기로 floor한 ISO 문자열
+  claimedAt DateTime @default(now())
+  @@unique([jobName, slot])
+}
+```
+
+- `claimCronSlot(jobName, slotMs)` 헬퍼: `INSERT ... ON CONFLICT DO NOTHING`. 삽입 성공한 인스턴스만 `true` → job 수행. 나머지 3벌은 즉시 스킵.
+- **slot 계산**: 현재 시각을 job 주기로 floor (`*/30` → 30분, `0 9` → 날짜). 4 인스턴스가 9ms 내 동시 발화하므로 30분 경계를 못 넘어 동일 slot 산출.
+- **at-most-once**: claim을 작업 *전*에 잡는다. 승자가 크래시하면 그 tick은 유실 → 수동 `/api/cron/*`로 복구.
+- **PgBouncer 안전**: Neon `-pooler`(transaction-mode PgBouncer)에서 세션 advisory lock은 깨진다. unique-row claim은 단일 트랜잭션이라 풀러 무관하게 동작.
+- **보존**: 승자가 기회적으로 `claimedAt < now() - 7d` prune (저빈도·경량).
+- **수동 트리거 예외**: `/api/cron/*` GET은 claim 래퍼를 **거치지 않는다**. 수동 = 의도적 복구/테스트이므로 항상 실행.
+
+> ⚠️ B/C(동적 스케줄·lazy expiry)는 별도 결정. 보류 — D 적용 후 Neon 실측 청구서로 필요성 판단.
+> ⚠️ Flagged ambiguity (B/C 착수 시 해소): "만료"가 두 의미로 쓰임 — (1) 영속 상태 `CLOSED_EXPIRED` (대시보드 상태머신 키), (2) auth의 실시간 판정 `status==='OPEN' && now>endDate`. status-transition cron은 (1)을 유지. 제출 차단은 (2)로 이미 안전.
+
+---
+
 ## 마이그레이션 가이드
 
 ### 기존 설정 삭제
@@ -127,6 +159,13 @@ rm -rf app/api/cron/
 ---
 
 ## CHANGELOG
+
+### 2026-05-18
+- **[버그/최적화]** PM2 cluster 4배 중복 cron 실행 확정 (로그 증거).
+  - 결정: `CronRun` unique-row claim 테이블로 디둡 (at-most-once, 4 인스턴스 등록 유지).
+  - 수동 `/api/cron/*`는 claim 우회.
+  - B(동적 스케줄)/C(lazy expiry)는 보류 — D 적용 후 Neon 실측으로 판단.
+  - 상세: `docs/neon-compute-optimization.md`, `docs/adr/0001-cron-single-execution-row-claim.md`
 
 ### 2025-01-16
 - **[리팩토링]** Cron 로직 Next.js 서버 내장 방식으로 변경
