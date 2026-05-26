@@ -11,9 +11,14 @@ import cron from 'node-cron';
 import { processReminders } from './reminders';
 import { processStatusTransition } from './status-transition';
 import { processDeadlineNotifications } from './deadline-notification';
+import { claimCronSlot } from './claim';
 
-// 중복 초기화 방지 플래그
+// 중복 초기화 방지 플래그 (프로세스 내 중복만 막음. 프로세스 간 중복은 claimCronSlot 으로 차단)
 let isInitialized = false;
+
+// Cron job slot 크기 (ADR-0001)
+const SLOT_30MIN = 30 * 60 * 1000;
+const SLOT_DAILY = 24 * 60 * 60 * 1000;
 
 /**
  * Cron Job 설정 및 시작
@@ -34,6 +39,12 @@ export function setupCronJobs(): void {
     // 스케줄: */30 * * * * (매 시간 0분, 30분에 실행)
     // ================================================================
     cron.schedule('*/30 * * * *', async () => {
+        if (!(await claimCronSlot('reminders', SLOT_30MIN))) {
+            console.log('[Cron] skipped: reminders');
+            return;
+        }
+        console.log('[Cron] claimed: reminders');
+
         const startTime = Date.now();
         console.log(`[Cron] Running reminder job at ${new Date().toISOString()}`);
 
@@ -53,6 +64,12 @@ export function setupCronJobs(): void {
     // 스케줄: */30 * * * * (매 시간 0분, 30분에 실행)
     // ================================================================
     cron.schedule('*/30 * * * *', async () => {
+        if (!(await claimCronSlot('status-transition', SLOT_30MIN))) {
+            console.log('[Cron] skipped: status-transition');
+            return;
+        }
+        console.log('[Cron] claimed: status-transition');
+
         const startTime = Date.now();
         console.log(`[Cron] Running status transition job at ${new Date().toISOString()}`);
 
@@ -72,6 +89,12 @@ export function setupCronJobs(): void {
     // 스케줄: 0 9 * * * (매일 09:00에 실행)
     // ================================================================
     cron.schedule('0 9 * * *', async () => {
+        if (!(await claimCronSlot('deadline-notification', SLOT_DAILY))) {
+            console.log('[Cron] skipped: deadline-notification');
+            return;
+        }
+        console.log('[Cron] claimed: deadline-notification');
+
         const startTime = Date.now();
         console.log(`[Cron] Running deadline notification job at ${new Date().toISOString()}`);
 
