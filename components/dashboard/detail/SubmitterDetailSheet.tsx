@@ -11,6 +11,7 @@ import {
 import { SubmittedFileList } from './SubmittedFileList';
 import { FormResponseList } from './FormResponseList';
 import { FileViewer } from '@/components/shared/FileViewer';
+import { hideChannelButton, showChannelButton } from '@/lib/channeltalk';
 import type { SubmitterWithFiles } from '@/lib/queries/document-box';
 import type { SubmitterFormResponsesData } from '@/lib/types/form-field';
 
@@ -46,6 +47,14 @@ export function SubmitterDetailSheet({
 
     // 전체 다운로드 상태
     const [isDownloadingAll, setIsDownloadingAll] = useState(false);
+
+    // 시트가 열리면 채널톡 런처가 우하단 다운로드 버튼을 가리므로 숨김.
+    // 닫힘/언마운트/페이지 이탈 시 cleanup에서 복원.
+    useEffect(() => {
+        if (!open) return;
+        hideChannelButton();
+        return () => showChannelButton();
+    }, [open]);
 
     // 제출자 정보 로드 (파일 + 폼 응답 병렬 조회)
     useEffect(() => {
